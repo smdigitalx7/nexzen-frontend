@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Payment Helper Utilities
  *
  * This file contains utilities and examples for handling payment processing
@@ -210,7 +210,7 @@ function PaymentComponent() {
   // Process reservation payment and show receipt in modal
   const handleReservationPayment = async () => {
     try {
-      const { blobUrl, income_id, paymentData } = await handlePayByReservation('RS-NZN25260105', {
+      const { blobUrl, income_id, paymentData } = await handlePayByReservation(123, {
         details: [{ 
           purpose: 'APPLICATION_FEE', 
           paid_amount: 1000, 

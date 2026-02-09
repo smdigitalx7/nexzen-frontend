@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Tuition Fee Component
  * Handles tuition fee payment input for multiple payment form
  */
@@ -314,125 +314,77 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
         <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
           <div className="space-y-6">
 
-          {/* Term Selection - Both colleges and schools use term-based tuition fees */}
-          <div className="space-y-3">
+          {/* Term Selection - Compact term boxes */}
+          <div className="space-y-2">
             <Label className="text-sm font-medium">Select Terms *</Label>
-                
-                {!hasOutstandingPayments ? (
-              <div className="text-center py-8">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="p-4 bg-green-100 rounded-full">
-                    <CheckCircle2 className="h-8 w-8 text-green-600" />
-                  </div>
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold text-green-800 mb-2">
-                      {allTermsPaid ? 'All Tuition Fees Paid!' : 'No Outstanding Tuition Fees'}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {allTermsPaid 
-                        ? 'All tuition fee terms have been paid in full.'
-                        : 'There are no outstanding tuition fee payments for this student.'
-                      }
-                    </p>
-                  </div>
+            {!hasOutstandingPayments ? (
+              <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50/80 p-4">
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium text-green-800">
+                    {allTermsPaid ? "All Tuition Fees Paid" : "No Outstanding Tuition Fees"}
+                  </p>
+                  <p className="text-xs text-green-700 mt-0.5">
+                    {allTermsPaid ? "All terms paid in full." : "No outstanding tuition for this student."}
+                  </p>
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {availableTerms.map((term) => (
-                  <div key={term.term} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          id={`term-${term.term}`}
-                          checked={selectedTerms.includes(term.term)}
-                          onCheckedChange={(checked) => handleTermSelection(term.term, checked as boolean)}
-                          disabled={!canSelectTerm(term.term)}
-                        />
-                      <Label htmlFor={`term-${term.term}`} className="flex items-center gap-2">
-                        <span className="font-medium">Term {term.term}</span>
+                  <div
+                    key={term.term}
+                    className={`rounded-lg border p-3 transition-colors ${
+                      selectedTerms.includes(term.term)
+                        ? "border-blue-300 bg-blue-50/60"
+                        : "border-gray-200 bg-white hover:border-gray-300"
+                    } ${!canSelectTerm(term.term) ? "opacity-75" : ""}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id={`term-${term.term}`}
+                        checked={selectedTerms.includes(term.term)}
+                        onCheckedChange={(checked) => handleTermSelection(term.term, checked as boolean)}
+                        disabled={!canSelectTerm(term.term)}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Label htmlFor={`term-${term.term}`} className="font-medium text-sm cursor-pointer">
+                            Term {term.term}
+                          </Label>
+                          {term.outstanding <= 0 && term.paid && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Paid</Badge>
+                          )}
+                          {term.paid && term.outstanding > 0 && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-orange-600 border-orange-300">Partial</Badge>
+                          )}
+                          {term.term > 1 && !canSelectTerm(term.term) && term.outstanding > 0 && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-amber-600">Prev first</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5">Outstanding: {formatAmount(term.outstanding)}</p>
                         {selectedTerms.includes(term.term) && (
-                          <Badge 
-                            variant={lockedTerms.includes(term.term) ? "secondary" : "default"}
-                            className={`text-xs ${
-                              lockedTerms.includes(term.term) 
-                                ? 'bg-gray-200 text-gray-600' 
-                                : 'bg-green-100 text-green-700'
-                            }`}
-                          >
-                            {lockedTerms.includes(term.term) ? 'Locked' : 'Editable'}
-                          </Badge>
+                          <div className="mt-2">
+                            <div className="relative flex items-center rounded-md border border-input bg-background">
+                              <span className="pl-2.5 text-sm font-medium text-muted-foreground">₹</span>
+                              <Input
+                                id={`amount-term-${term.term}`}
+                                type="text"
+                                placeholder="0"
+                                value={termAmounts[term.term] || ""}
+                                onChange={(e) => handleTermAmountChange(term.term, e.target.value)}
+                                disabled={lockedTerms.includes(term.term)}
+                                className={`h-8 border-0 bg-transparent pl-1 pr-2 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 ${lockedTerms.includes(term.term) ? "bg-muted/50 cursor-not-allowed" : ""} ${termErrors[term.term] ? "text-destructive" : ""}`}
+                              />
+                            </div>
+                            {termErrors[term.term] && (
+                              <p className="text-[10px] text-red-500 mt-0.5">Max {formatAmount(term.outstanding)}</p>
+                            )}
+                          </div>
                         )}
-                        {/* Only show "Paid" badge if term is fully paid (no outstanding balance) */}
-                        {term.outstanding <= 0 && term.paid && (
-                          <Badge variant="secondary" className="text-xs">
-                            Paid
-                          </Badge>
-                        )}
-                        {/* Show "Partially Paid" if there's payment but still outstanding */}
-                        {term.paid && term.outstanding > 0 && (
-                          <Badge variant="outline" className="text-xs text-orange-600 border-orange-300 bg-orange-50">
-                            Partially Paid
-                          </Badge>
-                        )}
-                        {term.outstanding <= 0 && !term.paid && (
-                          <Badge variant="outline" className="text-xs text-gray-500">
-                            No Outstanding
-                          </Badge>
-                        )}
-                        {term.term > 1 && !canSelectTerm(term.term) && term.outstanding > 0 && (
-                          <Badge variant="outline" className="text-xs text-orange-500">
-                            Complete Previous Terms First
-                          </Badge>
-                        )}
-                      </Label>
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Outstanding: {formatAmount(term.outstanding)}
                       </div>
                     </div>
-                    
-                  {selectedTerms.includes(term.term) && (
-                    <div className="space-y-2">
-                      <Label htmlFor={`amount-term-${term.term}`} className="text-sm font-medium">
-                        Payment Amount for Term {term.term} *
-                        {lockedTerms.includes(term.term) && (
-                          <span className="text-xs text-gray-500 ml-2">(Locked - Full Amount)</span>
-                        )}
-                      </Label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                          ₹
-                        </span>
-                        <Input
-                          id={`amount-term-${term.term}`}
-                          type="text"
-                          placeholder="Enter amount"
-                          value={termAmounts[term.term] || ''}
-                          onChange={(e) => {
-                            handleTermAmountChange(term.term, e.target.value);
-                          }}
-                          disabled={lockedTerms.includes(term.term)}
-                          className={`pl-8 ${lockedTerms.includes(term.term) ? 'bg-gray-100 cursor-not-allowed' : ''} ${termErrors[term.term] ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                        />
-                      </div>
-                      {lockedTerms.includes(term.term) && (
-                        <p className="text-xs text-gray-500">
-                          This term is locked with the full outstanding amount
-                        </p>
-                      )}
-                      {!lockedTerms.includes(term.term) && (
-                        <p className="text-xs text-gray-500">
-                          Maximum amount: {formatAmount(term.outstanding)}
-                        </p>
-                      )}
-                      {termErrors[term.term] && (
-                        <p className="text-xs text-red-500 mt-1">
-                          Amount cannot exceed outstanding balance of {formatAmount(term.outstanding)}
-                        </p>
-                      )}
-                    </div>
-                  )}
                   </div>
                 ))}
               </div>
@@ -458,29 +410,20 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
             </Select>
           </div> */}
 
-          {/* Warning Message */}
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Important:</strong> Terms must be paid sequentially (1 → 2
-              → 3). Previous terms that are already paid or have no outstanding
-              balance can be skipped.
+          {/* Hint */}
+          <Alert className="py-2">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            <AlertDescription className="text-xs">
+              Pay terms in order (1 → 2 → 3). Paid terms can be skipped.
               {selectedTerms.length > 0 && (
-                <span className="block mt-1">
-                  Selected Terms:{" "}
-                  {selectedTerms.map((term) => `Term ${term}`).join(", ")} -
-                  Total Outstanding:{" "}
-                  <strong>
-                    {formatAmount(
-                      selectedTerms.reduce(
-                        (sum, term) =>
-                          sum +
-                          (availableTerms.find((t) => t.term === term)
-                            ?.outstanding || 0),
-                        0
-                      )
-                    )}
-                  </strong>
+                <span className="block mt-1 font-medium">
+                  Total: {formatAmount(
+                    selectedTerms.reduce(
+                      (sum, term) =>
+                        sum + (availableTerms.find((t) => t.term === term)?.outstanding || 0),
+                      0
+                    )
+                  )}
                 </span>
               )}
             </AlertDescription>

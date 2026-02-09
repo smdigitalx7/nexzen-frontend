@@ -1,22 +1,10 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import {
-  CreditCard,
-  User,
-  GraduationCap,
-  Users,
-  BookOpen,
-  Bus,
-  Loader2,
-  Search,
-} from "lucide-react";
-import { Loader } from "@/common/components/ui/ProfessionalLoader";
+import { CreditCard, User, Search, ArrowRight } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/common/components/ui/card";
-import { Badge } from "@/common/components/ui/badge";
+import { Card, CardContent } from "@/common/components/ui/card";
 import { Label } from "@/common/components/ui/label";
-import { cn } from "@/common/utils";
 import { formatCurrency } from "@/common/utils";
 import { CollegeEnrollmentsService, CollegeTuitionBalancesService, CollegeTransportBalancesService } from "@/features/college/services";
 import { CollegeClassDropdown, CollegeGroupDropdown } from "@/common/components/shared/Dropdowns";
@@ -78,16 +66,19 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
 
     try {
       const enrollment = await CollegeEnrollmentsService.getByAdmission(searchTerm.trim());
-      
-      const [tuitionBalance, transportBalance] = await Promise.all([
+
+      const [tuitionBalance, transportSummary, transportExpectedPayments] = await Promise.all([
         CollegeTuitionBalancesService.getById(enrollment.enrollment_id).catch(() => null),
-        CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(enrollment.enrollment_id).catch(() => null)
+        CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(enrollment.enrollment_id).catch(() => null),
+        CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(enrollment.enrollment_id).catch(() => undefined),
       ]);
 
       const studentDetails: StudentFeeDetails = {
         enrollment,
         tuitionBalance,
-        transportBalance,
+        transportSummary,
+        transportExpectedPayments,
+        transportBalance: transportSummary ?? null,
       };
 
       setSearchResults([studentDetails]);
@@ -95,8 +86,8 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
       console.error("Search error:", error);
       toast({
         title: "Student Not Found",
-        description: "No student found with the provided admission number or name. Please try again.",
-        variant: "destructive",
+        description: "No student found with the provided admission number or name.",
+        variant: "default",
       });
       setSearchResults([]);
     } finally {
@@ -127,50 +118,38 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
       setIsLoadingSuggestions(true);
       try {
         const query = debouncedSearchQuery.trim();
-        
+
         // If class_id is selected, use list endpoint with admission_no filter
         if (selectedClassId && selectedGroupId && query.length >= 2) {
-          try {
             const response = await CollegeEnrollmentsService.list({
               class_id: selectedClassId,
               group_id: selectedGroupId,
               page: 1,
               pageSize: 10,
             });
-            
+
             if (response?.enrollments && response.enrollments.length > 0) {
-              const allSuggestions: Array<{ admission_no: string; student_name: string; enrollment_id: number }> = [];
-              
-              response.enrollments.forEach((classGroup: any) => {
-                if (classGroup.students && Array.isArray(classGroup.students)) {
-                  classGroup.students.forEach((student: any) => {
-                    // Filter by admission number or name
-                    const matchesAdmission = student.admission_no?.toLowerCase().includes(query.toLowerCase());
-                    const matchesName = student.student_name?.toLowerCase().includes(query.toLowerCase());
-                    
-                    if (matchesAdmission || matchesName) {
-                      allSuggestions.push({
-                        admission_no: student.admission_no,
-                        student_name: student.student_name,
-                        enrollment_id: student.enrollment_id,
-                      });
-                    }
-                  });
-                }
-              });
-              
-              setSuggestions(allSuggestions.slice(0, 10)); // Limit to 10 suggestions
+              const list = response.enrollments;
+              const allSuggestions = (Array.isArray(list) ? list : [])
+                .filter((e: any) => {
+                  const matchesAdmission = e.admission_no?.toLowerCase().includes(query.toLowerCase());
+                  const matchesName = e.student_name?.toLowerCase().includes(query.toLowerCase());
+                  return matchesAdmission || matchesName;
+                })
+                .slice(0, 5)
+                .map((e: any) => ({
+                  admission_no: e.admission_no,
+                  student_name: e.student_name,
+                  enrollment_id: e.enrollment_id,
+                }));
+              setSuggestions(allSuggestions);
               setShowSuggestions(true);
               return;
             }
-          } catch {
-            // Fall through to try exact match
-          }
         }
-        
+
         // Try exact match by admission number (works for any length >= 3)
         if (query.length >= 3) {
-          try {
             const enrollment = await CollegeEnrollmentsService.getByAdmission(query);
             setSuggestions([{
               admission_no: enrollment.admission_no,
@@ -178,14 +157,10 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
               enrollment_id: enrollment.enrollment_id,
             }]);
             setShowSuggestions(true);
-          } catch {
-            setSuggestions([]);
-          }
         } else {
           setSuggestions([]);
         }
       } catch (error) {
-        // Silently fail for suggestions
         setSuggestions([]);
       } finally {
         setIsLoadingSuggestions(false);
@@ -218,7 +193,6 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
   const handleSuggestionSelect = useCallback((suggestion: { admission_no: string; student_name: string; enrollment_id: number }) => {
     setSearchQuery(suggestion.admission_no);
     setShowSuggestions(false);
-    // Trigger search automatically when suggestion is selected
     void handleSearch(suggestion.admission_no);
   }, [setSearchQuery, handleSearch]);
 
@@ -237,10 +211,7 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
 
       if (studentDetails.transportBalance) {
         const transport = studentDetails.transportBalance;
-        const pending =
-          typeof transport.total_amount_pending === "string"
-            ? Number(transport.total_amount_pending)
-            : (transport.total_amount_pending ?? 0);
+        const pending = typeof transport.total_amount_pending === "string" ? Number(transport.total_amount_pending) : (transport.total_amount_pending ?? 0);
         total += Number.isFinite(pending) ? Math.max(0, pending) : 0;
       }
 
@@ -249,444 +220,131 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
     []
   );
 
-  // Helper function to calculate tuition outstanding breakdown
-  const getTuitionOutstanding = useCallback(
-    (studentDetails: StudentFeeDetails) => {
-      const tuition = studentDetails.tuitionBalance;
-      if (!tuition) return { total: 0, breakdown: [] };
-
-      const bookOutstanding = Math.max(
-        0,
-        (tuition.book_fee || 0) - (tuition.book_paid || 0)
-      );
-      const term1Outstanding = Math.max(
-        0,
-        (tuition.term1_amount || 0) - (tuition.term1_paid || 0)
-      );
-      const term2Outstanding = Math.max(
-        0,
-        (tuition.term2_amount || 0) - (tuition.term2_paid || 0)
-      );
-      const term3Outstanding = Math.max(
-        0,
-        (tuition.term3_amount || 0) - (tuition.term3_paid || 0)
-      );
-
-      const breakdown = [
-        { label: "Book Fee", amount: bookOutstanding },
-        { label: "Term 1", amount: term1Outstanding },
-        { label: "Term 2", amount: term2Outstanding },
-        { label: "Term 3", amount: term3Outstanding },
-      ].filter((item) => item.amount > 0);
-
-      return {
-        total:
-          bookOutstanding +
-          term1Outstanding +
-          term2Outstanding +
-          term3Outstanding,
-        breakdown,
-      };
-    },
-    []
-  );
-
-  // Helper function to calculate transport outstanding breakdown
-  const getTransportOutstanding = useCallback(
-    (studentDetails: StudentFeeDetails) => {
-      const transport = studentDetails.transportBalance;
-      if (!transport) return { total: 0, breakdown: [] };
-
-      const pending =
-        typeof transport.total_amount_pending === "string"
-          ? Number(transport.total_amount_pending)
-          : (transport.total_amount_pending ?? 0);
-      const pendingAmount = Number.isFinite(pending) ? Math.max(0, pending) : 0;
-
-      const breakdown = [
-        { label: "Pending Transport", amount: pendingAmount },
-      ].filter((item) => item.amount > 0);
-
-      return {
-        total: pendingAmount,
-        breakdown,
-      };
-    },
-    []
-  );
-
   return (
-    <div className="space-y-6">
-      {/* Student Selection Section with Dropdowns */}
-      <Card className="w-full border-2 shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center justify-center gap-2 text-xl">
-            <User className="h-5 w-5 text-blue-600" />
-            Select Student for Fee Collection
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="w-full px-6 pb-6">
-          <div className="space-y-4">
-            {/* Class and Group Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="class-select" className="text-sm font-medium">
-                  Class <span className="text-muted-foreground">(Optional)</span>
-                </Label>
-                <CollegeClassDropdown
-                  id="class-select"
-                  value={selectedClassId}
-                  onChange={handleClassChange}
-                  placeholder="Select class (optional)"
-                  className="w-full"
-                  emptyValue
-                  emptyValueLabel="All Classes"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="group-select" className="text-sm font-medium">
-                  Group <span className="text-muted-foreground">(Optional)</span>
-                </Label>
-                <CollegeGroupDropdown
-                  id="group-select"
-                  classId={selectedClassId || 0}
-                  value={selectedGroupId}
-                  onChange={handleGroupChange}
-                  disabled={!selectedClassId}
-                  placeholder={selectedClassId ? "Select group (optional)" : "Select class first"}
-                  className="w-full"
-                  emptyValue
-                  emptyValueLabel="All Groups"
-                />
-              </div>
-            </div>
-
-            {/* Student Search Input with Suggestions */}
-            <div className="space-y-2">
-              <Label htmlFor="student-search" className="text-sm font-medium">
-                Search Student <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-                  {isLoadingSuggestions && (
-                    <Loader.Button size="xs" className="absolute right-3 top-1/2 -translate-y-1/2 z-10" />
-                  )}
-                  <Input
-                    ref={searchInputRef}
-                    id="student-search"
-                    placeholder="Enter admission number or student name..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setShowSuggestions(true);
-                    }}
-                    onKeyPress={handleKeyPress}
-                    onFocus={() => {
-                      if (suggestions.length > 0) {
-                        setShowSuggestions(true);
-                      }
-                    }}
-                    className="pl-9 pr-9 h-12"
-                    disabled={isSearching}
-                  />
-                  
-                  {/* Suggestions Dropdown */}
-                  {showSuggestions && (suggestions.length > 0 || isLoadingSuggestions) && (
-                    <div
-                      ref={suggestionsRef}
-                      className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-border rounded-md shadow-lg max-h-60 overflow-y-auto"
-                    >
-                      {isLoadingSuggestions ? (
-                        <div className="flex items-center justify-center py-4">
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
-                          <span className="text-sm text-muted-foreground">Searching...</span>
-                        </div>
-                      ) : suggestions.length > 0 ? (
-                        <div className="py-1">
-                          {suggestions.map((suggestion, index) => (
-                            <button
-                              key={`${suggestion.enrollment_id}-${index}`}
-                              type="button"
-                              onClick={() => handleSuggestionSelect(suggestion)}
-                              className="w-full px-4 py-2 text-left hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3 cursor-pointer"
-                            >
-                              <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                              <div className="flex flex-col flex-1 min-w-0">
-                                <span className="font-medium text-sm truncate">{suggestion.student_name}</span>
-                                <span className="text-xs text-muted-foreground truncate">
-                                  {suggestion.admission_no}
-                                </span>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  )}
-                </div>
-                <Button
-                  onClick={() => {
-                    setShowSuggestions(false);
-                    void handleSearch();
-                  }}
-                  disabled={isSearching || !searchQuery.trim()}
-                  size="lg"
-                  className="h-12 px-6"
-                >
-                  {isSearching ? (
-                    <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-                      Searching...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="h-4 w-4 mr-2" />
-                      Search
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Search Results - Professional Cards */}
-      {searchResults.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-            Search Results ({searchResults.length})
-          </h2>
-          <div className="grid gap-4">
-            {searchResults.map((studentDetails, index) => {
-              const totalOutstanding = getTotalOutstanding(studentDetails);
-              const hasOutstanding = totalOutstanding > 0;
-              const tuitionOutstanding = getTuitionOutstanding(studentDetails);
-              const transportOutstanding =
-                getTransportOutstanding(studentDetails);
-
-              return (
-                <motion.div
-                  key={studentDetails.enrollment.admission_no || index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card className="border-2 hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="space-y-6">
-                        {/* Student Information Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pb-4 border-b">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                              <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                Admission No
-                              </p>
-                              <p className="font-semibold">
-                                {studentDetails.enrollment.admission_no}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                              <User className="h-5 w-5 text-green-600 dark:text-green-400" />
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                Student Name
-                              </p>
-                              <p className="font-semibold">
-                                {studentDetails.enrollment.student_name}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                              <GraduationCap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                Class
-                              </p>
-                              <Badge variant="outline">
-                                {studentDetails.enrollment.class_name || "N/A"}
-                              </Badge>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                              <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                Group / Course
-                              </p>
-                              <div className="flex flex-wrap gap-2 ">
-                                <Badge variant="outline">
-                                  {studentDetails.enrollment.group_name ||
-                                    "N/A"}
-                                </Badge>
-
-                                {studentDetails.enrollment.course_name && (
-                                  <Badge variant="outline">
-                                    {studentDetails.enrollment.course_name}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                              <Users className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                Roll Number
-                              </p>
-                              <p className="font-semibold">
-                                {studentDetails.enrollment.roll_number || "N/A"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Fee Breakdown Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* Tuition Fee Card */}
-                          <Card className="border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
-                            <CardHeader className="pb-3">
-                              <div className="flex items-center gap-2">
-                                <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                <CardTitle className="text-lg">
-                                  Tuition Fee
-                                </CardTitle>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                  Total Outstanding
-                                </span>
-                                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                                  {formatCurrency(tuitionOutstanding.total)}
-                                </span>
-                              </div>
-                              {tuitionOutstanding.breakdown.length > 0 && (
-                                <div className="space-y-2 pt-2 border-t">
-                                  {tuitionOutstanding.breakdown.map(
-                                    (item, idx) => (
-                                      <div
-                                        key={idx}
-                                        className="flex justify-between text-sm"
-                                      >
-                                        <span className="text-muted-foreground">
-                                          {item.label}:
-                                        </span>
-                                        <span className="font-medium">
-                                          {formatCurrency(item.amount)}
-                                        </span>
-                                      </div>
-                                    )
-                                  )}
-                                </div>
-                              )}
-                              {tuitionOutstanding.total === 0 && (
-                                <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                                  All fees paid
-                                </p>
-                              )}
-                            </CardContent>
-                          </Card>
-
-                          {/* Transport Fee Card */}
-                          <Card className="border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
-                            <CardHeader className="pb-3">
-                              <div className="flex items-center gap-2">
-                                <Bus className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                <CardTitle className="text-lg">
-                                  Transport Fee
-                                </CardTitle>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                  Total Outstanding
-                                </span>
-                                <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                                  {formatCurrency(transportOutstanding.total)}
-                                </span>
-                              </div>
-                              {transportOutstanding.breakdown.length > 0 && (
-                                <div className="space-y-2 pt-2 border-t">
-                                  {transportOutstanding.breakdown.map(
-                                    (item: { label: string; amount: number }, idx: number) => (
-                                      <div
-                                        key={idx}
-                                        className="flex justify-between text-sm"
-                                      >
-                                        <span className="text-muted-foreground">
-                                          {item.label}:
-                                        </span>
-                                        <span className="font-medium">
-                                          {formatCurrency(item.amount)}
-                                        </span>
-                                      </div>
-                                    )
-                                  )}
-                                </div>
-                              )}
-                              {transportOutstanding.total === 0 && (
-                                <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                                  All fees paid
-                                </p>
-                              )}
-                            </CardContent>
-                          </Card>
-                        </div>
-
-                        {/* Total Outstanding and Action */}
-                        <div className="flex items-center justify-between pt-4 border-t">
-                          <div>
-                            <p className="text-sm text-muted-foreground mb-1">
-                              Total Outstanding
-                            </p>
-                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                              {formatCurrency(totalOutstanding)}
-                            </p>
-                          </div>
-                          <Button
-                            onClick={() => onStartPayment(studentDetails)}
-                            disabled={!hasOutstanding}
-                            size="lg"
-                            className={
-                              hasOutstanding
-                                ? "bg-green-600 hover:bg-green-700 text-white"
-                                : "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
-                            }
-                          >
-                            <CreditCard className="h-5 w-5 mr-2" />
-                            {hasOutstanding ? "Collect Fee" : "No Outstanding"}
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </div>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-4xl mx-auto w-full px-4">
+      <div className="w-full space-y-8">
+        <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Collect Fees</h1>
+            <p className="text-lg text-muted-foreground">Search for a student to view details and collect payments.</p>
         </div>
-      )}
 
+        <Card className="border-0 shadow-lg ring-1 ring-gray-200 bg-white/50 backdrop-blur-sm">
+          <CardContent className="p-8">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="space-y-2">
+                  <Label htmlFor="class-select">Class Filter (Optional)</Label>
+                  <CollegeClassDropdown
+                    id="class-select"
+                    value={selectedClassId}
+                    onChange={handleClassChange}
+                    placeholder="All classes"
+                    className="w-full"
+                    emptyValue
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="group-select">Group Filter (Optional)</Label>
+                  <CollegeGroupDropdown
+                    id="group-select"
+                    classId={selectedClassId || 0}
+                    value={selectedGroupId}
+                    onChange={handleGroupChange}
+                    disabled={!selectedClassId}
+                    placeholder={selectedClassId ? "All groups" : "Select class first"}
+                    className="w-full"
+                    emptyValue
+                  />
+                </div>
+             </div>
+
+             <div className="relative">
+                <div className="absolute left-4 top-3.5 pointer-events-none z-10 text-muted-foreground">
+                    <Search className="h-5 w-5" />
+                </div>
+                <Input
+                     ref={searchInputRef}
+                     id="student-search"
+                     placeholder="Enter admission number (e.g. 2024001) or name..."
+                     value={searchQuery}
+                     onChange={(e) => {
+                       setSearchQuery(e.target.value);
+                       setShowSuggestions(true);
+                     }}
+                     onKeyPress={handleKeyPress}
+                     className="pl-12 h-12 text-lg shadow-sm"
+                     autoComplete="off"
+                     disabled={isSearching}
+                />
+                 {showSuggestions && suggestions.length > 0 && (
+                     <div ref={suggestionsRef} className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden ring-1 ring-black/5">
+                        {suggestions.map((s, i) => (
+                           <button
+                              key={i}
+                              onClick={() => handleSuggestionSelect(s)}
+                              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors border-b last:border-0 border-gray-50"
+                           >
+                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+                                  <User className="h-4 w-4" />
+                              </div>
+                              <div>
+                                  <div className="font-medium text-gray-900">{s.student_name}</div>
+                                  <div className="text-xs text-muted-foreground font-mono">{s.admission_no}</div>
+                              </div>
+                           </button>
+                        ))}
+                     </div>
+                 )}
+                 <div className="mt-4 flex justify-end">
+                      <Button size="lg" onClick={() => handleSearch()} disabled={isSearching || !searchQuery.trim()} className="px-8 font-semibold">
+                          {isSearching ? "Searching..." : "Search Student"}
+                      </Button>
+                 </div>
+             </div>
+          </CardContent>
+        </Card>
+
+        {/* Result Card */}
+        {searchResults.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+             {searchResults.map((details, i) => {
+                 const total = getTotalOutstanding(details);
+                 return (
+                     <div key={i} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow">
+                          <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+                              <div className="flex items-center gap-4">
+                                  <div className="h-16 w-16 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-2xl border-4 border-white shadow-sm">
+                                      {details.enrollment.student_name.charAt(0)}
+                                  </div>
+                                  <div className="text-center sm:text-left">
+                                      <h3 className="text-xl font-bold text-gray-900">{details.enrollment.student_name}</h3>
+                                      <p className="text-sm text-gray-500">{details.enrollment.admission_no} • {details.enrollment.class_name}</p>
+                                  </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-6">
+                                  <div className="text-center sm:text-right">
+                                      <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Outstanding</p>
+                                      <p className="text-2xl font-bold text-gray-900">{formatCurrency(total)}</p>
+                                  </div>
+                                  <Button size="lg" className="h-12 px-6 gap-2 shadow-sm" onClick={() => onStartPayment(details)}>
+                                      <CreditCard className="h-4 w-4" />
+                                      Collect Fees
+                                      <ArrowRight className="h-4 w-4 opacity-50" />
+                                  </Button>
+                              </div>
+                          </div>
+                          {total === 0 && (
+                              <div className="bg-green-50 px-6 py-2 flex items-center gap-2 text-green-700 text-sm font-medium">
+                                  <div className="h-2 w-2 rounded-full bg-green-500" />
+                                  All fees paid! You can still review details or collect extra fees.
+                              </div>
+                          )}
+                     </div>
+                 );
+             })}
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 };

@@ -26,7 +26,6 @@ import type {
   BulkMultipleStudentsSubject,
   BulkMultipleStudentsStudent,
 } from "@/features/school/types";
-import type { SchoolEnrollmentWithStudentDetails } from "@/features/school/types";
 
 // Session storage key prefix
 const STORAGE_KEY_PREFIX = "complete_marks_";
@@ -113,13 +112,14 @@ const CompleteMarksTab = () => {
   }, [selectedExam, examsData]);
 
   // Initialize marks data when students/subjects change (only if not already initialized)
+  const enrollmentsList = enrollmentsData?.enrollments ?? [];
   useEffect(() => {
-    if (!enrollmentsData?.items || !subjectsData?.items) {
+    if (!enrollmentsList.length || !subjectsData?.items) {
       return;
     }
 
     // Check if we already have data for all students - if so, don't overwrite
-    const hasAllStudents = enrollmentsData.items.every((enrollment) => 
+    const hasAllStudents = enrollmentsList.every((enrollment) => 
       marksData[enrollment.enrollment_id]
     );
     if (hasAllStudents && Object.keys(marksData).length > 0) {
@@ -138,7 +138,7 @@ const CompleteMarksTab = () => {
     setMarksData((prev) => {
       const newMarksData: Record<number, StudentMarksData> = { ...prev };
       
-      enrollmentsData.items!.forEach((enrollment: SchoolEnrollmentWithStudentDetails) => {
+      enrollmentsList.forEach((enrollment) => {
         const existingData = prev[enrollment.enrollment_id];
         const marks: Record<number, { marks_obtained: number; remarks: string }> = 
           existingData?.marks ? { ...existingData.marks } : {};
@@ -172,15 +172,15 @@ const CompleteMarksTab = () => {
 
       return newMarksData;
     });
-  }, [enrollmentsData?.items, subjectsData?.items]);
+  }, [enrollmentsList, subjectsData?.items]);
 
-  // Memoized students list
+  // Memoized students list (flat enrollments from API)
   const students = useMemo(() => {
-    if (!enrollmentsData?.items) return [];
-    return [...enrollmentsData.items].sort((a, b) => 
+    if (!enrollmentsList.length) return [];
+    return [...enrollmentsList].sort((a, b) => 
       a.roll_number.localeCompare(b.roll_number, undefined, { numeric: true, sensitivity: 'base' })
     );
-  }, [enrollmentsData?.items]);
+  }, [enrollmentsList]);
 
   // Memoized subjects list
   const subjects = useMemo(() => {

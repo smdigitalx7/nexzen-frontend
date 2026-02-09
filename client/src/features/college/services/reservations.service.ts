@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import {
   CollegeReservationCreate,
   CollegeReservationRead,
@@ -17,6 +17,8 @@ export interface CollegeReservationsListParams {
   page?: number;
   page_size?: number;
   status?: string;
+  /** Full-text search (student name, reservation number). Optional. */
+  search?: string | null;
 }
 
 export const CollegeReservationsService = {

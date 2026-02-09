@@ -23,11 +23,12 @@ export function useSchoolReservationsList(params?: {
   page_size?: number;
   class_id?: number;
   status?: string;
+  search?: string | null;
 }) {
   // ✅ OPTIMIZATION: Stabilize query key to prevent unnecessary refetches
   const stableParams = useMemo(
     () => params,
-    [params?.page, params?.page_size, params?.class_id, params?.status]
+    [params?.page, params?.page_size, params?.class_id, params?.status, params?.search]
   );
   const queryKey = useMemo(
     () => schoolKeys.reservations.list(stableParams as Record<string, unknown> | undefined),
@@ -42,7 +43,8 @@ export function useSchoolReservationsList(params?: {
     refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
     refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
     refetchOnMount: true, // Only refetch on mount if data is stale
-    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
+    // Return full API response { reservations, total_count, current_page, page_size, total_pages }
+    // so ConfirmedReservationsTab and ReservationManagement can use data.reservations
   });
 }
 

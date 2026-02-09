@@ -7,10 +7,10 @@ import type {
   DropoutRequest 
 } from "@/features/college/types";
 
-export function useCollegePromotionEligibility(enabled = true) {
+export function useCollegePromotionEligibility(params?: { search?: string | null }, enabled = true) {
   return useQuery({
-    queryKey: collegeKeys.promotion.eligibility(),
-    queryFn: () => CollegeEnrollmentsService.getPromotionEligibility(),
+    queryKey: collegeKeys.promotion.eligibility(params),
+    queryFn: () => CollegeEnrollmentsService.getPromotionEligibility(params),
     enabled,
     staleTime: 5 * 60 * 1000,
   });

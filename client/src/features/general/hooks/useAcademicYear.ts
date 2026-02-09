@@ -1,4 +1,4 @@
-﻿import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { AcademicYearService } from '@/features/general/services/academic-year.service';
 import { AcademicYearCreate, AcademicYearUpdate } from '@/features/general/types/academic-year';
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
@@ -45,6 +45,7 @@ export const useCreateAcademicYear = () => {
     mutationFn: (data: AcademicYearCreate) => AcademicYearService.createAcademicYear(data),
     onSuccess: () => {
       invalidateEntity("academicYears");
+      invalidateEntity("academicTotal");
     },
   }, "Academic year created successfully");
 };
@@ -57,6 +58,7 @@ export const useUpdateAcademicYear = () => {
       AcademicYearService.updateAcademicYear(id, data),
     onSuccess: () => {
       invalidateEntity("academicYears");
+      invalidateEntity("academicTotal");
     },
   }, "Academic year updated successfully");
 };
@@ -68,6 +70,7 @@ export const useDeleteAcademicYear = () => {
     mutationFn: (id: number) => AcademicYearService.deleteAcademicYear(id),
     onSuccess: () => {
       invalidateEntity("academicYears");
+      invalidateEntity("academicTotal");
     },
   }, "Academic year deleted successfully");
 };

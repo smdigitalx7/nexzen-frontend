@@ -19,6 +19,8 @@ export interface PaymentItem {
 export interface MultiplePaymentData {
   studentId: string;
   admissionNo: string;
+  /** Required for Pay by Enrollment (recurring fees). Used when calling pay-fee-by-enrollment API. */
+  enrollmentId?: number;
   details: PaymentItem[];
   remarks?: string;
   totalAmount: number;

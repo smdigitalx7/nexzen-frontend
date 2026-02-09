@@ -70,3 +70,21 @@ export interface DropoutResponse {
   message: string;
   success: boolean;
 }
+
+/** GET /school/enrollments/promoted-students response (paginated) */
+export interface SchoolPromotedStudentsResponse {
+  items: Array<Record<string, unknown>>;
+  total_count: number;
+  current_page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+/** GET /school/enrollments/dropped-out-students response (paginated) */
+export interface SchoolDroppedOutStudentsResponse {
+  items: Array<Record<string, unknown>>;
+  total_count: number;
+  current_page: number;
+  page_size: number;
+  total_pages: number;
+}

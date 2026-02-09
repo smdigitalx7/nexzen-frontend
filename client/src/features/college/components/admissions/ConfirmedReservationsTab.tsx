@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useCallback, memo, useEffect } from "react";
+import React, { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
@@ -34,6 +34,8 @@ import { toast } from "@/common/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { ReceiptPreviewModal } from "@/common/components/shared";
 import { handleCollegePayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/core/api/api-college";
+import { getReceiptNoFromResponse } from "@/core/api/payment-types";
+import { openReceiptInNewTab } from "@/common/utils/payment";
 import { DataTable } from "@/common/components/shared/DataTable";
 import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { startTransition } from "react";
@@ -1168,29 +1170,23 @@ const ConfirmedReservationsTabComponent = () => {
         remarks: "Admission fee payment",
       });
 
-      const { blobUrl } = result;
+      const { blobUrl, paymentData } = result;
 
+      setShowPaymentDialog(false);
       if (blobUrl) {
-        setReceiptBlobUrl(blobUrl);
-        // Close payment dialog immediately
-        setShowPaymentDialog(false);
-        // Open receipt modal after ensuring payment dialog is fully closed and unmounted
-        // Use requestAnimationFrame to ensure DOM updates are complete
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            setShowReceiptModal(true);
-          }, 200);
+        openReceiptInNewTab(blobUrl, getReceiptNoFromResponse(paymentData));
+        toast({
+          title: "Payment successful",
+          description: "Receipt opened in new tab.",
+          variant: "success",
         });
       } else {
-        // If no blob URL, still close the payment dialog
-        setShowPaymentDialog(false);
+        toast({
+          title: "Payment Successful",
+          description: "Admission fee payment processed successfully",
+          variant: "success",
+        });
       }
-
-      toast({
-        title: "Payment Successful",
-        description: "Admission fee payment processed successfully",
-        variant: "success",
-      });
 
       // Small delay to ensure backend has processed the payment
       await new Promise(resolve => setTimeout(resolve, 100));

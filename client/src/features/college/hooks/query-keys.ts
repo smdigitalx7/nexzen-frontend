@@ -12,6 +12,7 @@ export const collegeKeys = {
       [...collegeKeys.enrollments.root(), "list", params ?? {}] as const,
     detail: (enrollmentId: number) => [...collegeKeys.enrollments.root(), "detail", enrollmentId] as const,
     byAdmission: (admissionNo: string) => [...collegeKeys.enrollments.root(), "by-admission", admissionNo] as const,
+    academicTotal: () => [...collegeKeys.enrollments.root(), "dashboard", "academic-total"] as const,
   },
   classes: {
     root: () => [...collegeKeys.root, "classes"] as const,
@@ -79,10 +80,12 @@ export const collegeKeys = {
     root: () => [...collegeKeys.root, "transport-balances"] as const,
     list: (params?: { page?: number; pageSize?: number }) => [...collegeKeys.transport.root(), "list", params ?? {}] as const,
     detail: (id: number) => [...collegeKeys.transport.root(), "detail", id] as const,
+    summaryByEnrollment: (enrollmentId: number) => [...collegeKeys.transport.root(), "summary", enrollmentId] as const,
+    expectedByEnrollment: (enrollmentId: number) => [...collegeKeys.transport.root(), "expected", enrollmentId] as const,
   },
   income: {
     root: () => [...collegeKeys.root, "income"] as const,
-    list: (params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) => [...collegeKeys.income.root(), "list", params ?? {}] as const,
+    list: (params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string; page?: number; page_size?: number; search?: string | null }) => [...collegeKeys.income.root(), "list", params ?? {}] as const,
     detail: (id: number) => [...collegeKeys.income.root(), "detail", id] as const,
   },
   expenditure: {
@@ -118,7 +121,9 @@ export const collegeKeys = {
   },
   promotion: {
     root: () => [...collegeKeys.root, "promotion"] as const,
-    eligibility: () => [...collegeKeys.promotion.root(), "eligibility"] as const,
+    eligibility: (params?: Record<string, unknown>) => [...collegeKeys.promotion.root(), "eligibility", params ?? {}] as const,
+    promotedStudents: (params?: Record<string, unknown>) => [...collegeKeys.promotion.root(), "promoted-students", params ?? {}] as const,
+    droppedOutStudents: (params?: Record<string, unknown>) => [...collegeKeys.promotion.root(), "dropped-out-students", params ?? {}] as const,
   },
 };
 

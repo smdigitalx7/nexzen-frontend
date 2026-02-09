@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolTeacherClassSubjectsService } from "@/features/school/services/teacher-class-subjects.service";
 import type { 
   SchoolTeacherClassSubjectCreate, 
@@ -35,12 +35,10 @@ export function useCreateTeacherClassSubject() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTeacherClassSubjectCreate) => SchoolTeacherClassSubjectsService.create(payload),
     onSuccess: () => {
-      // Invalidate teacher assignment queries
       qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() }).catch(console.error);
-      // Invalidate cross-module caches that may show teacher info
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() }).catch(console.error);
-      // Refetch active queries
       qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);
     },
@@ -54,12 +52,10 @@ export function useDeleteTeacherClassSubject() {
       return SchoolTeacherClassSubjectsService.delete(teacherId, classId, subjectId, sectionId);
     },
     onSuccess: () => {
-      // Invalidate teacher assignment queries
       qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() }).catch(console.error);
-      // Invalidate cross-module caches that may show teacher info
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() }).catch(console.error);
-      // Refetch active queries
       qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);
     },
@@ -72,6 +68,7 @@ export function useCreateClassTeacher() {
     mutationFn: (payload: ClassTeacherCreate) => SchoolTeacherClassSubjectsService.createClassTeacher(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);
@@ -85,6 +82,7 @@ export function useDeleteClassTeacher() {
     mutationFn: (payload: ClassTeacherDelete) => SchoolTeacherClassSubjectsService.deleteClassTeacher(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);

@@ -1,9 +1,7 @@
-﻿import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
-import { useNavigate } from "react-router-dom";
-
 import { Button } from "@/common/components/ui/button";
 import {
   DropdownMenu,
@@ -15,56 +13,45 @@ import { Badge } from "@/common/components/ui/badge";
 import { useAuthStore } from "@/core/auth/authStore";
 import { getEquivalentUrl } from "@/common/utils/navigation";
 import { getLogoByBranchType, getLogoAltByBranchType } from "@/lib/config";
+import type { Branch } from "@/core/auth/authStore";
 
 const BranchSwitcher = () => {
   const { currentBranch, branches, switchBranch, isBranchSwitching } =
     useAuthStore();
-  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
 
   const handleBranchSwitch = useCallback(
-    async (branch: any) => {
+    async (branch: Branch) => {
       try {
-        // Get current URL
         const currentUrl = window.location.pathname;
         const currentBranchType = currentBranch?.branch_type || "COLLEGE";
         const targetBranchType = branch.branch_type;
-
-        // Switch branch first (this will clear cache and refetch)
-        await switchBranch(branch);
-
-        // Calculate equivalent URL for the new branch type
         const equivalentUrl = getEquivalentUrl(
           currentUrl,
           currentBranchType,
           targetBranchType
         );
 
-        // ✅ SMOOTH SWITCH: Use smooth navigation instead of full page reload
-        // This preserves React state and provides better UX
+        await switchBranch(branch);
+        setOpen(false);
+
+        // Total refresh so all API calls use new X-Branch-ID / X-Branch-Type cookies
+        const fullUrl =
+          equivalentUrl + (window.location.search || "");
         if (window.location.pathname !== equivalentUrl) {
-          // Navigate smoothly to the equivalent URL
-          // The cache has already been cleared and queries refetched by switchBranch
-          navigate(equivalentUrl);
-          
-          // Small delay to ensure navigation completes before any potential refetch
-          // This prevents race conditions
-          await new Promise(resolve => setTimeout(resolve, 100));
+          window.location.href = fullUrl;
         } else {
-          // URL didn't change, just trigger a refresh event for components that listen
-          window.dispatchEvent(new Event('branch-switched'));
+          window.location.reload();
         }
-      } catch (error) {
-         
-        console.error("Failed to switch branch:", error);
-        // Don't logout on error - just show error
-        // The error handling in switchBranch should preserve auth state
+      } catch {
+        // Error toast shown by switchBranch; keep dropdown open so user can retry
       }
     },
-    [switchBranch, currentBranch?.branch_type, navigate]
+    [switchBranch, currentBranch?.branch_type]
   );
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
@@ -112,7 +99,8 @@ const BranchSwitcher = () => {
             {branches.map((branch) => (
               <DropdownMenuItem
                 key={branch.branch_id}
-                onClick={() => handleBranchSwitch(branch)}
+                disabled={isBranchSwitching}
+                onClick={() => void handleBranchSwitch(branch)}
                 className="hover-elevate"
                 data-testid={`menuitem-branch-${branch.branch_id}`}
               >

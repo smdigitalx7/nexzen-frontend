@@ -1,118 +1,93 @@
-﻿import { motion } from "framer-motion";
-import { BookOpen, GraduationCap, Award, Users, School } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/common/components/ui/card";
+import { motion } from "framer-motion";
+import { BookOpen, GraduationCap, Layers, Award } from "lucide-react";
+import { StatsCard } from "@/common/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/common/components/shared/dashboard/DashboardGrid";
 
-interface AcademicOverviewCardsProps {
+export interface CollegeAcademicOverviewCardsProps {
   totalClasses: number;
   totalSubjects: number;
+  totalGroups: number;
+  totalCourses: number;
   activeExams: number;
-  completedExams: number;
-  totalGroups?: number;
-  totalCourses?: number;
+  totalTests: number;
+  loading?: boolean;
+  className?: string;
 }
 
 export const AcademicOverviewCards = ({
   totalClasses,
   totalSubjects,
+  totalGroups,
+  totalCourses,
   activeExams,
-  completedExams,
-  totalGroups = 0,
-  totalCourses = 0,
-}: AcademicOverviewCardsProps) => {
+  totalTests,
+  loading = false,
+  className,
+}: CollegeAcademicOverviewCardsProps) => {
+  const stats = [
+    {
+      title: "Total Classes",
+      value: totalClasses,
+      icon: BookOpen,
+      color: "blue" as const,
+      description: "Active classes",
+      variant: "elevated" as const,
+      size: "sm" as const,
+    },
+    {
+      title: "Total Subjects",
+      value: totalSubjects,
+      icon: GraduationCap,
+      color: "green" as const,
+      description: "Available subjects",
+      variant: "bordered" as const,
+      size: "sm" as const,
+    },
+    {
+      title: "Academic Groups",
+      value: totalGroups,
+      icon: Layers,
+      color: "purple" as const,
+      description: "Defined groups",
+      variant: "bordered" as const,
+      size: "sm" as const,
+    },
+    {
+      title: "Available Courses",
+      value: totalCourses,
+      icon: BookOpen,
+      color: "indigo" as const,
+      description: "Primary courses",
+      variant: "bordered" as const,
+      size: "sm" as const,
+    },
+    {
+      title: "Active Exams",
+      value: activeExams,
+      icon: Award,
+      color: "orange" as const,
+      description: "Scheduled/Ongoing",
+      variant: "elevated" as const,
+      size: "sm" as const,
+    },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"
+      className={className}
     >
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Total Classes
-          </CardTitle>
-          <BookOpen className="h-4 w-4 text-blue-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-blue-600">
-            {totalClasses}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Active classes
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Total Subjects
-          </CardTitle>
-          <GraduationCap className="h-4 w-4 text-green-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-600">
-            {totalSubjects}
-          </div>
-          <p className="text-xs text-muted-foreground">Available subjects</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Total Groups
-          </CardTitle>
-          <Users className="h-4 w-4 text-purple-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-purple-600">
-            {totalGroups}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Academic groups
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Total Courses
-          </CardTitle>
-          <School className="h-4 w-4 text-indigo-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-indigo-600">
-            {totalCourses}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Available courses
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Active Exams
-          </CardTitle>
-          <Award className="h-4 w-4 text-orange-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-orange-600">
-            {activeExams}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Scheduled/Ongoing
-          </p>
-        </CardContent>
-      </Card>
+      <DashboardGrid columns={5} gap="md">
+        {stats.map((stat) => (
+          <StatsCard
+            key={stat.title}
+            {...stat}
+            loading={loading}
+          />
+        ))}
+      </DashboardGrid>
     </motion.div>
   );
 };

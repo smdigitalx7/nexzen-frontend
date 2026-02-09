@@ -71,21 +71,14 @@ const TransportTabComponent = () => {
   const busRoutes = Array.isArray(routesData) ? routesData : [];
   const slabs = distanceSlabs || [];
   
-  // Extract enrollments - flatten the grouped response and add class_name
+  // Extract enrollments (flat list from API) and add class_name from dropdown if needed
   const enrollments = useMemo(() => {
-    if (!enrollmentsData?.enrollments) return [];
-    const allEnrollments: (SchoolEnrollmentRead & { class_name: string })[] = [];
-    enrollmentsData.enrollments.forEach((group: SchoolEnrollmentWithClassSectionDetails) => {
-      if (group.students && Array.isArray(group.students)) {
-        group.students.forEach((student: SchoolEnrollmentRead) => {
-          allEnrollments.push({
-            ...student,
-            class_name: group.class_name || student.class_name || '',
-          });
-        });
-      }
-    });
-    return allEnrollments;
+    const list = enrollmentsData?.enrollments ?? [];
+    if (!Array.isArray(list) || list.length === 0) return [];
+    return list.map((e) => ({
+      ...e,
+      class_name: e.class_name ?? '',
+    }));
   }, [enrollmentsData]);
 
   // Memoized API parameters

@@ -1,6 +1,7 @@
 // General hooks barrel export
 export * from "./useAcademicYear";
 export * from "./useAdvances";
+export * from "./useAuthMe";
 export * from "./useAnnouncements";
 export * from "./useAuditLogs";
 export * from "./useAuth";

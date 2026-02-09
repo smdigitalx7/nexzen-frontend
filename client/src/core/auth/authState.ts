@@ -10,6 +10,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   isBranchSwitching: boolean;
+  isAcademicYearSwitching: boolean;
   isTokenRefreshing: boolean;
   isAuthInitializing: boolean; // For initial app load / refresh check
   isLoggingOut: boolean; // Flag to prevent race conditions during logout

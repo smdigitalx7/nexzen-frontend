@@ -1,70 +1,94 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Alert, AlertDescription } from '@/common/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, Hash, LayoutGrid } from 'lucide-react';
 import { SchoolClassDropdown, SchoolSectionDropdown } from '@/common/components/shared/Dropdowns';
-import { useSchoolEnrollmentsForSectionAssignment, useAssignSectionsToEnrollments } from '@/features/school/hooks';
+import {
+  useSchoolEnrollmentsForSectionAssignment,
+  useAssignSectionsToEnrollments,
+  useGenerateRollNumbers,
+} from '@/features/school/hooks';
 import { useSchoolSections } from '@/features/school/hooks/use-school-dropdowns';
-import { Checkbox } from '@/common/components/ui/checkbox';
 import { Button } from '@/common/components/ui/button';
 import { useToast } from '@/common/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { DataTable } from '@/common/components/shared';
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ActionConfig } from '@/common/components/shared/DataTable/types';
+import type { ColumnDef } from '@tanstack/react-table';
 import type { SchoolEnrollmentForSectionAssignment, AssignSectionsRequest } from '@/features/school/types';
+import { ChangeSectionDialog } from './enrollments/ChangeSectionDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/common/components/ui/alert-dialog';
 
 const SectionMappingTab = () => {
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [selectedEnrollments, setSelectedEnrollments] = useState<Set<number>>(new Set());
+  const [changeSectionRow, setChangeSectionRow] = useState<SchoolEnrollmentForSectionAssignment | null>(null);
+  const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: enrollments = [], isLoading, isError, error, refetch } = useSchoolEnrollmentsForSectionAssignment(selectedClassId);
-  const { data: sectionsData } = useSchoolSections(selectedClassId || 0);
+  const { data: enrollments = [], isLoading, isError, error, refetch } =
+    useSchoolEnrollmentsForSectionAssignment(selectedClassId);
+  const { data: sectionsData } = useSchoolSections(selectedClassId ?? 0);
+  const sections = sectionsData?.items ?? [];
   const assignSectionsMutation = useAssignSectionsToEnrollments();
+  const generateRollNumbersMutation = useGenerateRollNumbers();
 
-  // Handle selection change from DataTable
   const onSelectionChange = useCallback((rows: SchoolEnrollmentForSectionAssignment[]) => {
-    setSelectedEnrollments(new Set(rows.map(r => r.enrollment_id)));
+    setSelectedEnrollments(new Set(rows.map((r) => r.enrollment_id)));
   }, []);
 
-  // Define columns
-  const columns: ColumnDef<SchoolEnrollmentForSectionAssignment>[] = useMemo(() => [
-    { accessorKey: "alphabetical_order", header: "Alphabetical Order" },
-    { accessorKey: "admission_no", header: "Admission No" },
-    { accessorKey: "student_name", header: "Student Name" },
-    { 
-      accessorKey: "current_section_name", 
-      header: "Current Section", 
-      cell: ({ row }) => row.original.current_section_name || 'Not assigned' 
-    },
-    { 
-      accessorKey: "current_roll_number", 
-      header: "Current Roll Number", 
-      cell: ({ row }) => row.original.current_roll_number || '-' 
-    },
-  ], []);
-  
+  const columns: ColumnDef<SchoolEnrollmentForSectionAssignment>[] = useMemo(
+    () => [
+      { accessorKey: 'alphabetical_order', header: 'Sl.No', cell: ({ row }) => row.original.alphabetical_order },
+      { accessorKey: 'admission_no', header: 'Admission No' },
+      { accessorKey: 'student_name', header: 'Student Name' },
+      {
+        accessorKey: 'current_section_name',
+        header: 'Current Section',
+        cell: ({ row }) => row.original.current_section_name ?? 'Not assigned',
+      },
+      {
+        accessorKey: 'current_roll_number',
+        header: 'Current Roll No',
+        cell: ({ row }) => row.original.current_roll_number || '-',
+      },
+    ],
+    []
+  );
 
-
-  // Get selected enrollments with their data, sorted by alphabetical order
   const selectedEnrollmentsData = useMemo(() => {
     return enrollments
       .filter((e) => selectedEnrollments.has(e.enrollment_id))
       .sort((a, b) => a.alphabetical_order - b.alphabetical_order);
   }, [enrollments, selectedEnrollments]);
 
-  // Handle section assignment
+  const handleGenerateRollNumbers = useCallback(async () => {
+    if (!selectedClassId) return;
+    setShowGenerateConfirm(false);
+    try {
+      await generateRollNumbersMutation.mutateAsync(selectedClassId);
+      await refetch();
+      queryClient.invalidateQueries({ queryKey: ['school-dropdowns', 'sections', selectedClassId] });
+    } catch {
+      // Error toast handled by mutation / API
+    }
+  }, [selectedClassId, generateRollNumbersMutation, refetch, queryClient]);
+
   const handleAssignSections = async () => {
     if (!selectedClassId) {
-      toast({
-        title: 'Error',
-        description: 'Please select a class first.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: 'Please select a class first.', variant: 'destructive' });
       return;
     }
-
     if (!selectedSectionId) {
       toast({
         title: 'Error',
@@ -73,7 +97,6 @@ const SectionMappingTab = () => {
       });
       return;
     }
-
     if (selectedEnrollmentsData.length === 0) {
       toast({
         title: 'Error',
@@ -82,124 +105,205 @@ const SectionMappingTab = () => {
       });
       return;
     }
-
     try {
-      const enrollmentIds = selectedEnrollmentsData.map((e) => e.enrollment_id);
-
       const payload: AssignSectionsRequest = {
         class_id: selectedClassId,
-        section_groups: [
-          {
-            section_id: selectedSectionId,
-            enrollment_ids: enrollmentIds,
-          },
-        ],
+        section_groups: [{ section_id: selectedSectionId, enrollment_ids: selectedEnrollmentsData.map((e) => e.enrollment_id) }],
       };
-
       await assignSectionsMutation.mutateAsync(payload);
-      
-      // Clear selection and refresh data
       setSelectedEnrollments(new Set());
-      // Reset section selection to allow selecting a different section
       setSelectedSectionId(null);
-      
-      // Wait a bit for cache invalidation to complete, then refetch
-      await new Promise(resolve => setTimeout(resolve, 100));
       await refetch();
-      
-      // Also refetch sections dropdown to ensure it's up to date
-      if (selectedClassId) {
-        queryClient.invalidateQueries({
-          queryKey: ["school-dropdowns", "sections", selectedClassId]
-        });
-      }
-    } catch (error) {
-      // Error toast is handled by mutation hook
+      queryClient.invalidateQueries({ queryKey: ['school-dropdowns', 'sections', selectedClassId] });
+    } catch {
+      // Error toast handled by mutation
     }
   };
 
+  const handleChangeSectionSuccess = useCallback(() => {
+    setChangeSectionRow(null);
+    refetch();
+  }, [refetch]);
+
+  const actions: ActionConfig<SchoolEnrollmentForSectionAssignment>[] = useMemo(
+    () => [
+      {
+        id: 'change-section',
+        label: 'Change section',
+        icon: LayoutGrid,
+        onClick: (row) => setChangeSectionRow(row),
+        showLabel: false,
+      },
+    ],
+    []
+  );
+
+  const errorMessage =
+    error instanceof Error ? error.message : 'Failed to load students. Please try again.';
+
+  const assignButtonLabel =
+    selectedEnrollments.size === 1
+      ? 'Assign 1 student to section'
+      : `Assign ${selectedEnrollments.size} students to section`;
+
+  if (!selectedClassId) {
+    return (
+      <div className="space-y-6">
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Select a class to manage roll numbers and section assignment.
+          </AlertDescription>
+        </Alert>
+        <div className="w-[280px]">
+          <SchoolClassDropdown
+            value={null}
+            onChange={(value) => setSelectedClassId(value)}
+            placeholder="Select class"
+            required={false}
+            emptyValue={true}
+            emptyValueLabel="Select class"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      {/* Class and Section Selection */}
-      <div className="flex items-center gap-4 flex-wrap">
-            <div className="w-[200px]">
-              <SchoolClassDropdown
-                value={selectedClassId}
-                onChange={(value) => {
-                  setSelectedClassId(value);
-                  setSelectedSectionId(null); // Reset section when class changes
-                  setSelectedEnrollments(new Set()); // Clear selection when class changes
-                }}
-                placeholder="Select class"
-                required={true}
-                emptyValue={true}
-                emptyValueLabel="Select class"
-              />
-            </div>
-            {selectedClassId && (
-              <div className="w-[200px]">
-                <SchoolSectionDropdown
-                  classId={selectedClassId}
-                  value={selectedSectionId}
-                  onChange={setSelectedSectionId}
-                  disabled={!selectedClassId}
-                  placeholder="Select section"
-                  required={false}
-                  emptyValue={true}
-                  emptyValueLabel="Select section"
-                />
-              </div>
-            )}
-            {selectedClassId && (
-              <div className="text-sm text-muted-foreground">
-                {enrollments.length} student{enrollments.length !== 1 ? 's' : ''} found
-                {selectedEnrollments.size > 0 && ` • ${selectedEnrollments.size} selected`}
-              </div>
-            )}
-            {selectedEnrollments.size > 0 && selectedSectionId && (
-              <Button
-                onClick={handleAssignSections}
-                disabled={assignSectionsMutation.isPending}
-                className="ml-auto"
-              >
-                {assignSectionsMutation.isPending ? 'Assigning...' : `Assign ${selectedEnrollments.size} Student${selectedEnrollments.size !== 1 ? 's' : ''} to Section`}
-              </Button>
-            )}
+    <div className="space-y-8">
+      {/* Shared class selector */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="w-[280px]">
+          <SchoolClassDropdown
+            value={selectedClassId}
+            onChange={(value) => {
+              setSelectedClassId(value);
+              setSelectedSectionId(null);
+              setSelectedEnrollments(new Set());
+              setChangeSectionRow(null);
+            }}
+            placeholder="Select class"
+            required={true}
+            emptyValue={true}
+            emptyValueLabel="Select class"
+          />
+        </div>
       </div>
 
-      {/* Students Table */}
-      {!selectedClassId ? (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            Please select a class to view students for section assignment.
-          </AlertDescription>
-        </Alert>
-      ) : isLoading ? (
-        <div className="py-8 text-center text-muted-foreground">Loading students...</div>
-      ) : isError ? (
-        <Alert variant="destructive">
-          <AlertDescription>
-            {error instanceof Error ? error.message : 'Failed to load students. Please try again.'}
-          </AlertDescription>
-        </Alert>
-      ) : enrollments.length === 0 ? (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            No students found for this class.
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <DataTable
-          data={enrollments}
-          columns={columns}
-          selectable={true}
-          onSelectionChange={onSelectionChange}
-          searchKey="student_name"
-          searchPlaceholder="Search students..."
-        />
-      )}
+      {/* Block 1: Roll numbers */}
+      <section className="space-y-3">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Hash className="h-5 w-5" />
+          Roll numbers
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Re-sequence roll numbers 001, 002, … by student name (alphabetical) for this class.
+        </p>
+        <Button
+          variant="default"
+          onClick={() => setShowGenerateConfirm(true)}
+          disabled={generateRollNumbersMutation.isPending || enrollments.length === 0}
+        >
+          {generateRollNumbersMutation.isPending ? 'Generating...' : 'Generate roll numbers'}
+        </Button>
+      </section>
+
+      {/* Block 2: Section assignment */}
+      <section className="space-y-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <LayoutGrid className="h-5 w-5" />
+          Section assignment
+        </h3>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="w-[200px]">
+            <SchoolSectionDropdown
+              classId={selectedClassId}
+              value={selectedSectionId}
+              onChange={setSelectedSectionId}
+              disabled={!selectedClassId}
+              placeholder="Select section"
+              required={false}
+              emptyValue={true}
+              emptyValueLabel="Select section"
+            />
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {enrollments.length} student{enrollments.length === 1 ? '' : 's'} found
+            {selectedEnrollments.size > 0 && ` • ${selectedEnrollments.size} selected`}
+          </span>
+          {selectedEnrollments.size > 0 && selectedSectionId ? (
+            <Button
+              onClick={handleAssignSections}
+              disabled={assignSectionsMutation.isPending}
+              className="ml-auto"
+            >
+              {assignSectionsMutation.isPending ? 'Assigning...' : assignButtonLabel}
+            </Button>
+          ) : null}
+        </div>
+
+        {isLoading && (
+          <div className="py-8 text-center text-muted-foreground">Loading students...</div>
+        )}
+        {!isLoading && isError && (
+          <Alert variant="destructive">
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+        {!isLoading && !isError && enrollments.length === 0 && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>No students found for this class.</AlertDescription>
+          </Alert>
+        )}
+        {!isLoading && !isError && enrollments.length > 0 ? (
+          <DataTable<SchoolEnrollmentForSectionAssignment>
+            data={enrollments}
+            columns={columns}
+            title="Students for section assignment"
+            selectable={true}
+            onSelectionChange={onSelectionChange}
+            searchKey="student_name"
+            searchPlaceholder="Search students..."
+            loading={isLoading}
+            actions={actions}
+            actionsHeader="Actions"
+            emptyMessage="No students to show."
+          />
+        ) : null}
+      </section>
+
+      {/* Change section dialog (minimal props from row action) */}
+      <ChangeSectionDialog
+        open={changeSectionRow != null}
+        onOpenChange={(open) => !open && setChangeSectionRow(null)}
+        enrollment={null}
+        enrollmentId={changeSectionRow?.enrollment_id ?? 0}
+        classId={selectedClassId ?? 0}
+        currentSectionId={changeSectionRow?.current_section_id ?? null}
+        studentName={changeSectionRow?.student_name}
+        sections={sections}
+        onSuccess={handleChangeSectionSuccess}
+      />
+
+      {/* Confirm generate roll numbers */}
+      <AlertDialog open={showGenerateConfirm} onOpenChange={setShowGenerateConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Generate roll numbers?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will re-sequence roll numbers 001, 002, … by student name (alphabetical order) for
+              this class. Existing roll numbers will be replaced. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleGenerateRollNumbers()}>
+              Generate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

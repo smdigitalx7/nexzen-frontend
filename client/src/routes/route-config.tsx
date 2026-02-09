@@ -21,6 +21,9 @@ export const EmployeeManagement = lazy(
 export const PayrollManagement = lazy(
   () => import("@/features/general/pages/PayrollManagementPage")
 );
+export const SupportPage = lazy(
+  () => import("@/features/general/pages/SupportPage")
+);
 export const TransportManagement = lazy(
   () => import("@/features/general/pages/TransportManagementPage")
 );
@@ -129,6 +132,11 @@ export const routes: RouteConfig[] = [
     path: "/audit-log",
     roles: ["ADMIN", "INSTITUTE_ADMIN"],
     component: AuditLog,
+  },
+  {
+    path: "/support",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT", "ACADEMIC"],
+    component: SupportPage,
   },
   // School routes
   {

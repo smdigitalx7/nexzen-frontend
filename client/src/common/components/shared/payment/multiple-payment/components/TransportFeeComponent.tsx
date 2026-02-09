@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Transport Fee Component
  * Handles transport fee payment input for multiple payment form
  */
@@ -28,12 +28,6 @@ import type {
   PaymentItem,
   PaymentMethod,
 } from "../../types/PaymentTypes";
-import {
-  PAYMENT_METHOD_OPTIONS,
-  calculateCardCharges,
-  calculateTotalWithCardCharges,
-  formatAmount as formatAmountUtil,
-} from "../../utils/paymentUtils";
 import { useCollegeExpectedTransportPaymentsByEnrollmentId } from "@/features/college/hooks/use-college-transport-balances";
 
 interface TransportFeeComponentProps extends PurposeSpecificComponentProps {
@@ -1083,201 +1077,81 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
               </div>
             ) : (
               <>
-                {/* Fee Information - Enhanced */}
-                {/* <div className="border border-blue-200 rounded-lg p-5 bg-gradient-to-br from-blue-50 to-indigo-50"> */}
-                {/* <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-blue-600" />
-                  Transport Fee Information
-                </h3> */}
-                <div className="grid grid-cols-2 gap-4">
-                  {availableTerms.map((term) => (
-                    <div
-                      key={term.term}
-                      className={`text-center p-3 rounded-lg border ${
-                        term.outstanding > 0
-                          ? "bg-white border-red-200 bg-red-50/30"
-                          : "bg-white border-blue-100"
-                      }`}
-                    >
-                      <p className="text-xs text-gray-500 mb-1.5">
-                        Term {term.term}
-                      </p>
-                      <p
-                        className={`font-semibold text-sm ${
-                          term.outstanding > 0
-                            ? "text-red-600"
-                            : "text-blue-600"
-                        }`}
-                      >
-                        {formatAmount(term.outstanding)}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">Outstanding</p>
-                    </div>
-                  ))}
-                </div>
-                {/* </div> */}
-
-                {/* Term Selection */}
-                <div className="space-y-3">
+                {/* Term Selection - Compact term boxes (school) */}
+                <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">
                     Select Terms <span className="text-red-500">*</span>
                   </Label>
-
                   {!hasOutstandingPayments ? (
-                    <div className="text-center py-8">
-                      <div className="flex flex-col items-center space-y-4">
-                        <div className="p-4 bg-green-100 rounded-full">
-                          <CheckCircle2 className="h-8 w-8 text-green-600" />
-                        </div>
-                        <div className="text-center">
-                          <h3 className="text-lg font-semibold text-green-800 mb-2">
-                            {allTermsPaid
-                              ? "All Transport Fees Paid!"
-                              : "No Outstanding Transport Fees"}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {allTermsPaid
-                              ? "All transport fee terms have been paid in full."
-                              : "There are no outstanding transport fee payments for this student."}
-                          </p>
-                        </div>
+                    <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50/80 p-4">
+                      <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium text-green-800">
+                          {allTermsPaid ? "All Transport Fees Paid" : "No Outstanding Transport Fees"}
+                        </p>
+                        <p className="text-xs text-green-700 mt-0.5">
+                          {allTermsPaid ? "All terms paid in full." : "No outstanding transport for this student."}
+                        </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {availableTerms.map((term) => (
                         <div
                           key={term.term}
-                          className="border border-gray-200 rounded-lg p-4 bg-white hover:border-blue-300 transition-colors"
+                          className={`rounded-lg border p-3 transition-colors ${
+                            selectedTerms.includes(term.term)
+                              ? "border-blue-300 bg-blue-50/60"
+                              : "border-gray-200 bg-white hover:border-gray-300"
+                          } ${!canSelectTerm(term.term) ? "opacity-75" : ""}`}
                         >
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center space-x-3">
-                              <Checkbox
-                                id={`term-${term.term}`}
-                                checked={selectedTerms.includes(term.term)}
-                                onCheckedChange={(checked) =>
-                                  handleTermSelection(
-                                    term.term,
-                                    checked as boolean
-                                  )
-                                }
-                                disabled={!canSelectTerm(term.term)}
-                              />
-                              <Label
-                                htmlFor={`term-${term.term}`}
-                                className="flex items-center gap-2"
-                              >
-                                <span className="font-medium">
+                            <div className="flex items-start gap-3">
+                            <Checkbox
+                              id={`term-${term.term}`}
+                              checked={selectedTerms.includes(term.term)}
+                              onCheckedChange={(checked) =>
+                                handleTermSelection(term.term, checked as boolean)
+                              }
+                              disabled={!canSelectTerm(term.term)}
+                              className="mt-0.5 shrink-0"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <Label htmlFor={`term-${term.term}`} className="font-medium text-sm cursor-pointer">
                                   Term {term.term}
-                                </span>
-                                {selectedTerms.includes(term.term) && (
-                                  <Badge
-                                    variant={
-                                      lockedTerms.includes(term.term)
-                                        ? "secondary"
-                                        : "default"
-                                    }
-                                    className={`text-xs ${
-                                      lockedTerms.includes(term.term)
-                                        ? "bg-gray-200 text-gray-600"
-                                        : "bg-green-100 text-green-700"
-                                    }`}
-                                  >
-                                    {lockedTerms.includes(term.term)
-                                      ? "Locked"
-                                      : "Editable"}
-                                  </Badge>
-                                )}
-                                {/* Only show "Paid" badge if term is fully paid (no outstanding balance) */}
+                                </Label>
                                 {term.outstanding <= 0 && term.paid && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    Paid
-                                  </Badge>
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Paid</Badge>
                                 )}
-                                {/* Show "Partially Paid" if there's payment but still outstanding */}
                                 {term.paid && term.outstanding > 0 && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs text-orange-600 border-orange-300 bg-orange-50"
-                                  >
-                                    Partially Paid
-                                  </Badge>
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-orange-600 border-orange-300">Partial</Badge>
                                 )}
-                                {term.outstanding <= 0 && !term.paid && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs text-gray-500"
-                                  >
-                                    No Outstanding
-                                  </Badge>
+                                {term.term > 1 && !canSelectTerm(term.term) && term.outstanding > 0 && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-amber-600">Prev first</Badge>
                                 )}
-                                {term.term > 1 &&
-                                  !canSelectTerm(term.term) &&
-                                  term.outstanding > 0 && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs text-orange-500"
-                                    >
-                                      Complete Previous Terms First
-                                    </Badge>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-0.5">Outstanding: {formatAmount(term.outstanding)}</p>
+                              {selectedTerms.includes(term.term) && (
+                                <div className="mt-2">
+                                  <div className="relative flex items-center rounded-md border border-input bg-background">
+                                    <span className="pl-2.5 text-sm font-medium text-muted-foreground">₹</span>
+                                    <Input
+                                      id={`amount-term-${term.term}`}
+                                      type="text"
+                                      placeholder="0"
+                                      value={termAmounts[term.term] || ""}
+                                      onChange={(e) => handleTermAmountChange(term.term, e.target.value)}
+                                      disabled={lockedTerms.includes(term.term)}
+                                      className={`h-8 border-0 bg-transparent pl-1 pr-2 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 ${lockedTerms.includes(term.term) ? "bg-muted/50 cursor-not-allowed" : ""} ${termErrors[term.term] ? "text-destructive" : ""}`}
+                                    />
+                                  </div>
+                                  {termErrors[term.term] && (
+                                    <p className="text-[10px] text-red-500 mt-0.5">Max {formatAmount(term.outstanding)}</p>
                                   )}
-                              </Label>
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              Outstanding: {formatAmount(term.outstanding)}
+                                </div>
+                              )}
                             </div>
                           </div>
-
-                          {selectedTerms.includes(term.term) && (
-                            <div className="space-y-2">
-                              <Label
-                                htmlFor={`amount-term-${term.term}`}
-                                className="text-sm font-medium"
-                              >
-                                Payment Amount for Term {term.term} *
-                              </Label>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium">
-                                  ₹
-                                </span>
-                                <Input
-                                  id={`amount-term-${term.term}`}
-                                  type="text"
-                                  placeholder="Enter amount"
-                                  value={termAmounts[term.term] || ""}
-                                  onChange={(e) => {
-                                    handleTermAmountChange(
-                                      term.term,
-                                      e.target.value
-                                    );
-                                  }}
-                                  disabled={lockedTerms.includes(term.term)}
-                                  className={`pl-8 ${lockedTerms.includes(term.term) ? "bg-blue-50/50 border-blue-300 cursor-not-allowed" : "bg-blue-50/50 border-blue-300"} ${termErrors[term.term] ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                                />
-                              </div>
-                              {lockedTerms.includes(term.term) && (
-                                <p className="text-xs text-gray-500">
-                                  This term is locked with the full outstanding
-                                  amount
-                                </p>
-                              )}
-                              {!lockedTerms.includes(term.term) && (
-                                <p className="text-xs text-gray-500">
-                                  Maximum amount:{" "}
-                                  {formatAmount(term.outstanding)}
-                                </p>
-                              )}
-                              {termErrors[term.term] && (
-                                <p className="text-xs text-red-500 mt-1">
-                                  Amount cannot exceed outstanding balance of{" "}
-                                  {formatAmount(term.outstanding)}
-                                </p>
-                              )}
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -1286,131 +1160,7 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
               </>
             )}
 
-            {/* Payment Method - Radio Buttons */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-gray-700">
-                Payment Method <span className="text-red-500">*</span>
-              </Label>
-              <div className="grid grid-cols-3 gap-3">
-                {PAYMENT_METHOD_OPTIONS.map((option) => {
-                  const isSelected = paymentMethod === option.value;
-                  const colorClasses = {
-                    green: isSelected
-                      ? "border-green-500 bg-green-50"
-                      : "border-gray-200 hover:border-green-300 hover:bg-green-50/30",
-                    blue: isSelected
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/30",
-                    purple: isSelected
-                      ? "border-purple-500 bg-purple-50"
-                      : "border-gray-200 hover:border-purple-300 hover:bg-purple-50/30",
-                  };
-                  return (
-                    <label
-                      key={option.value}
-                      className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                        colorClasses[option.color as keyof typeof colorClasses]
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 w-full">
-                        <input
-                          type="radio"
-                          name="payment-method"
-                          value={option.value}
-                          checked={isSelected}
-                          onChange={(e) =>
-                            setPaymentMethod(e.target.value as PaymentMethod)
-                          }
-                          className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-2xl">{option.icon}</span>
-                        <span
-                          className={`font-semibold flex-1 ${
-                            isSelected
-                              ? option.color === "green"
-                                ? "text-green-700"
-                                : option.color === "blue"
-                                  ? "text-blue-700"
-                                  : "text-purple-700"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          {option.label}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-xs ${
-                          isSelected
-                            ? option.color === "green"
-                              ? "text-green-600"
-                              : option.color === "blue"
-                                ? "text-blue-600"
-                                : "text-purple-600"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {option.description}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-              
-              {/* Card Charges Display */}
-              {paymentMethod === "CARD" && (() => {
-                // Calculate total amount from selected terms/months
-                let totalAmount = 0;
-                if (isCollege && selectedExpectedMonths.length > 0) {
-                  totalAmount = selectedExpectedMonths.reduce((sum, month) => {
-                    const amount = parseFloat(expectedMonthAmounts[month] || "0");
-                    return sum + (isNaN(amount) ? 0 : amount);
-                  }, 0);
-                } else if (!isCollege && selectedTerms.length > 0) {
-                  totalAmount = selectedTerms.reduce((sum, term) => {
-                    const amount = parseFloat(termAmounts[term] || "0");
-                    return sum + (isNaN(amount) ? 0 : amount);
-                  }, 0);
-                }
-                
-                if (totalAmount > 0) {
-                  return (
-                    <div className="border border-purple-200 bg-purple-50/50 rounded-lg p-4 space-y-2 mt-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Truck className="h-4 w-4 text-purple-600" />
-                        <span className="text-sm font-semibold text-purple-800">
-                          Card Processing Charges
-                        </span>
-                      </div>
-                      <div className="space-y-1.5 text-sm">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Base Amount:</span>
-                          <span className="font-medium text-gray-900">
-                            {formatAmountUtil(totalAmount)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Processing Charges (1.2%):</span>
-                          <span className="font-medium text-purple-700">
-                            +{formatAmountUtil(calculateCardCharges(totalAmount))}
-                          </span>
-                        </div>
-                        <div className="h-px bg-purple-200"></div>
-                        <div className="flex justify-between items-center pt-1">
-                          <span className="font-semibold text-purple-900">Total Amount:</span>
-                          <span className="text-lg font-bold text-purple-900">
-                            {formatAmountUtil(calculateTotalWithCardCharges(totalAmount))}
-                          </span>
-                        </div>
-                        <p className="text-xs text-purple-600 mt-2 italic">
-                          Note: Charges shown for display only. Payment amount: {formatAmountUtil(totalAmount)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-            </div>
+            {/* Hint: payment method defaults to CASH; no selection needed */}
 
             {/* Warning Message */}
             <Alert>

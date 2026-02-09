@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import {
   CalendarDays,
   FileText,
@@ -71,11 +71,11 @@ export const CollegeIncomeStatsCards: React.FC<
       size: "sm" as const,
     },
     {
-      title: "Reservation Fee Income",
-      value: formatCurrency(stats?.reservation_fee_income || 0),
+      title: "Application / Reservation Fee Income",
+      value: formatCurrency((stats as { application_fee_income?: number })?.application_fee_income ?? stats?.reservation_fee_income ?? 0),
       icon: CreditCard,
       color: "teal" as const,
-      description: "From reservation fees",
+      description: "From reservation/application fees",
       variant: "elevated" as const,
       size: "sm" as const,
     },
@@ -85,6 +85,15 @@ export const CollegeIncomeStatsCards: React.FC<
       icon: Wallet,
       color: "emerald" as const,
       description: "Miscellaneous income",
+      variant: "elevated" as const,
+      size: "sm" as const,
+    },
+    {
+      title: "Income Records This Month",
+      value: stats?.income_records_this_month ?? 0,
+      icon: FileText,
+      color: "sky" as const,
+      description: "Transactions this month",
       variant: "elevated" as const,
       size: "sm" as const,
     },
@@ -109,7 +118,7 @@ export const CollegeIncomeStatsCards: React.FC<
   ];
 
   return (
-    <DashboardGrid columns={6} gap="md" className={className}>
+    <DashboardGrid columns={5} gap="md" className={className}>
       {statsCards.map((stat, index) => (
         <StatsCard key={stat.title} {...stat} loading={loading} />
       ))}

@@ -1,4 +1,4 @@
-﻿import { useCallback } from "react";
+import { useCallback } from "react";
 import { startTransition } from "react";
 import { queryClient } from "@/core/query";
 import type { QueryKey } from "@tanstack/react-query";
@@ -69,6 +69,11 @@ export const ENTITY_QUERY_MAP = {
   announcements: [["announcements"]] as QueryKey[],
   distanceSlabs: [["distance-slabs"]] as QueryKey[],
   grades: [["grades"]] as QueryKey[],
+  /** School/college Academic Management stats — invalidate when grades or academic years change */
+  academicTotal: [
+    ["school", "enrollments", "dashboard", "academic-total"],
+    ["college", "enrollments", "dashboard", "academic-total"],
+  ] as QueryKey[],
   roles: [["roles"]] as QueryKey[],
   advances: [["advances"]] as QueryKey[],
   leaves: [["employee-leaves"]] as QueryKey[],

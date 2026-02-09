@@ -262,23 +262,35 @@ function ReservationManagementComponent() {
     };
   }, [receiptBlobUrl]);
 
-  // ✅ Server-side pagination state - CRITICAL: Prevents fetching ALL reservations at once
-  // This fixes UI freeze by limiting data fetched per request
+  // ✅ Server-side pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50); // Fetch 50 reservations at a time (prevents loading 1000+ at once)
+  const [pageSize, setPageSize] = useState(50);
 
-  // ✅ Reset to page 1 when filters change
+  // ✅ Server-side search: input value and debounced value for API (500ms)
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    const t = setTimeout(
+      () => setSearchQuery(trimmed === "" ? undefined : trimmed),
+      500
+    );
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // ✅ Reset to page 1 when filters or search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab]);
+  }, [activeTab, searchQuery]);
 
-  // ✅ OPTIMIZATION: Stabilize query params to prevent unnecessary refetches
+  // ✅ Stabilize query params (include search for full-text backend filter)
   const reservationParams = useMemo(
     () => ({
       page: currentPage,
       page_size: pageSize,
+      search: searchQuery ?? undefined,
     }),
-    [currentPage, pageSize]
+    [currentPage, pageSize, searchQuery]
   );
 
   // ✅ OPTIMIZATION: Stabilize query key
@@ -1478,11 +1490,13 @@ function ReservationManagementComponent() {
                 }}
                 onPageSizeChange={(newPageSize) => {
                   setPageSize(newPageSize);
-                  setCurrentPage(1); // Reset to first page when page size changes
+                  setCurrentPage(1);
                 }}
                 onRefetch={refetchReservations}
                 statusFilter={statusFilter}
                 onStatusFilterChange={setStatusFilter}
+                searchValue={searchInput}
+                onSearchChange={setSearchInput}
               />
             ),
           },
@@ -2107,38 +2121,16 @@ function ReservationManagementComponent() {
           <CollegeReservationPaymentProcessor
             reservationData={paymentData}
             onPaymentComplete={(
-              incomeRecord: CollegeIncomeRead,
-              blobUrl: string,
-              receiptNo?: string | null
+              _incomeRecord: CollegeIncomeRead,
+              _blobUrl: string,
+              _receiptNo?: string | null
             ) => {
-              // ✅ CRITICAL: Close payment modal immediately (no blocking)
               setShowPaymentProcessor(false);
-
-              // ✅ CRITICAL: Set receipt data immediately (needed for receipt modal)
-              setPaymentIncomeRecord(incomeRecord);
-              setReceiptBlobUrl(blobUrl);
-              setReceiptNo(receiptNo || incomeRecord.receipt_no || null);
-
-              // ✅ DEFER: Clear payment data (not critical, defer to next tick)
-              setTimeout(() => {
-                setPaymentData(null);
-              }, 0);
-
-              // ✅ DEFER: Query invalidation (low priority, defer to next tick)
+              setTimeout(() => setPaymentData(null), 0);
               setTimeout(() => {
                 invalidateAndRefetch(collegeKeys.reservations.root());
-
-                // ✅ DEFER: Refetch callback (low priority)
-                if (refetchReservations) {
-                  void refetchReservations();
-                }
+                if (refetchReservations) void refetchReservations();
               }, 0);
-
-              // ✅ DEFER: Receipt modal (wait for payment modal to close completely)
-              // Radix UI Dialog has ~200ms close animation, wait for it to complete
-              setTimeout(() => {
-                setShowReceipt(true);
-              }, 250);
             }}
             onPaymentFailed={(error: string) => {
               toast({

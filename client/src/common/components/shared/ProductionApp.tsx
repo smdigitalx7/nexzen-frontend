@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/core/query";
 import { TooltipProvider } from "@/common/components/ui/tooltip";
@@ -16,7 +16,6 @@ const config = {
 };
 const configUtils = {};
 import { productionUtils } from "@/common/utils/performance/production-optimizations";
-import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { useAuthStore } from "@/core/auth/authStore";
 import { useIdleTimeout } from "@/common/hooks/useIdleTimeout";
 import { IdleTimeoutWarningDialog } from "./IdleTimeoutWarningDialog";
@@ -29,38 +28,13 @@ interface ProductionAppProps {
 }
 
 export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
-  // ✅ PERF: Selector prevents whole app rerender on unrelated auth state changes
-  const isBranchSwitching = useAuthStore((s) => s.isBranchSwitching);
   const user = useAuthStore((s) => s.user);
-  const [isAcademicYearSwitching, setIsAcademicYearSwitching] = useState(false);
 
   // Setup idle timeout (5 mins total, 1 min warning)
   const { isWarning, remainingTime, resetTimer, logout } = useIdleTimeout(
     5 * 60 * 1000,
     60 * 1000
   );
-
-  // MutationObserver and body overflow safety mechanism removed - caused infinite loops
-  // Accessibilty fixes should be handled by Radix primitives or targeted fixes, not global observers
-
-  // Listen for academic year switch events
-  useEffect(() => {
-    const handleAcademicYearSwitch = () => {
-      setIsAcademicYearSwitching(true);
-      // Reset after a short delay to allow queries to refetch
-      setTimeout(() => {
-        setIsAcademicYearSwitching(false);
-      }, 500);
-    };
-
-    globalThis.addEventListener("academic-year-switched", handleAcademicYearSwitch);
-    return () => {
-      globalThis.removeEventListener(
-        "academic-year-switched",
-        handleAcademicYearSwitch
-      );
-    };
-  }, []);
 
   // Initialize production utilities
   useEffect(() => {
@@ -148,20 +122,6 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <div className="min-h-screen bg-background text-foreground relative">
-            {/* Global loading overlay during branch/academic year switch */}
-            {(isBranchSwitching || isAcademicYearSwitching) && (
-              <div className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <Loader.Page
-                    message={
-                      isBranchSwitching
-                        ? "Switching branch and refreshing data..."
-                        : "Switching academic year and refreshing data..."
-                    }
-                  />
-                </div>
-              </div>
-            )}
             {children}
           </div>
           

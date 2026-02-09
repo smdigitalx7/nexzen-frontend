@@ -1,9 +1,10 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { EnrollmentsService } from "@/features/school/services/enrollments.service";
-import type { SchoolEnrollmentCreate, SchoolEnrollmentFilterParams, SchoolEnrollmentWithStudentDetails, SchoolEnrollmentsPaginatedResponse, SchoolEnrollmentForSectionAssignment, AssignSectionsRequest, ChangeEnrollmentSectionRequest } from "@/features/school/types";
+import type { SchoolEnrollmentCreate, SchoolEnrollmentFilterParams, AssignSectionsRequest } from "@/features/school/types";
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
+import { useToast } from "@/common/hooks/use-toast";
 
 /**
  * ✅ OPTIMIZATION: Query key stabilized, supports enabled flag for tab gating
@@ -37,6 +38,17 @@ export function useSchoolEnrollmentsList(params?: SchoolEnrollmentFilterParams &
   });
 }
 
+/** GET /school/enrollments/dashboard/academic-total — used by Academic Management stats cards. Invalidate on any Academic CRUD. */
+export function useSchoolEnrollmentsAcademicTotal(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: schoolKeys.enrollments.academicTotal(),
+    queryFn: () => EnrollmentsService.getAcademicTotal(),
+    enabled: options?.enabled !== false,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+}
+
 export function useSchoolEnrollment(enrollmentId: number | null | undefined) {
   return useQuery({
     queryKey: typeof enrollmentId === "number" ? schoolKeys.enrollments.detail(enrollmentId) : [...schoolKeys.enrollments.root(), "detail", "nil"],
@@ -51,6 +63,7 @@ export function useCreateSchoolEnrollment() {
     mutationFn: (payload: SchoolEnrollmentCreate) => EnrollmentsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: schoolKeys.enrollments.root(), type: 'active' });
     },
   }, "Enrollment created successfully");
@@ -72,26 +85,43 @@ export function useSchoolEnrollmentsForSectionAssignment(classId: number | null 
   });
 }
 
+export function useGenerateRollNumbers() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (class_id: number) => EnrollmentsService.generateRollNumbers(class_id),
+    onSuccess: (data, class_id) => {
+      void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+      void qc.invalidateQueries({
+        queryKey: [...schoolKeys.enrollments.root(), "for-section-assignment", class_id],
+      });
+      void qc.refetchQueries({ queryKey: schoolKeys.enrollments.root(), type: "active" });
+      toast({
+        title: "Success",
+        description: `Roll numbers generated successfully (${data.updated_count} updated).`,
+        variant: "success",
+      });
+    },
+  });
+}
+
 export function useAssignSectionsToEnrollments() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: AssignSectionsRequest) => EnrollmentsService.assignSections(payload),
     onSuccess: (_, variables) => {
-      // Invalidate enrollment queries to refresh the data
       void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() });
       void qc.invalidateQueries({ 
         queryKey: [...schoolKeys.enrollments.root(), "for-section-assignment", variables.class_id] 
       });
-      // Invalidate sections dropdown cache to refresh filter options
       void qc.invalidateQueries({ 
         queryKey: ["school-dropdowns", "sections", variables.class_id] 
       });
-      // Also invalidate sections list cache
       void qc.invalidateQueries({ 
         queryKey: schoolKeys.sections.listByClass(variables.class_id) 
       });
       void qc.refetchQueries({ queryKey: schoolKeys.enrollments.root(), type: 'active' });
-      // Refetch sections dropdown for the class
       void qc.refetchQueries({ 
         queryKey: ["school-dropdowns", "sections", variables.class_id],
         type: 'active' 
@@ -104,11 +134,22 @@ export function useChangeEnrollmentSection() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast(
     {
-      mutationFn: ({ enrollment_id, payload }: { enrollment_id: number; payload: ChangeEnrollmentSectionRequest }) =>
-        EnrollmentsService.changeEnrollmentSection(enrollment_id, payload),
+      mutationFn: ({
+        enrollment_id,
+        section_id,
+        class_id,
+      }: {
+        enrollment_id: number;
+        section_id: number;
+        class_id: number;
+      }) => EnrollmentsService.changeEnrollmentSection(enrollment_id, section_id),
       onSuccess: (_, variables) => {
         void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+        void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() });
         void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.detail(variables.enrollment_id) });
+        void qc.invalidateQueries({
+          queryKey: [...schoolKeys.enrollments.root(), "for-section-assignment", variables.class_id],
+        });
         void qc.refetchQueries({ queryKey: schoolKeys.enrollments.root(), type: "active" });
       },
     },

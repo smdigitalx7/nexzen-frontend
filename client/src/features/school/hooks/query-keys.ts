@@ -32,6 +32,7 @@ export const schoolKeys = {
     root: () => [...schoolKeys.root, "enrollments"] as const,
     list: (params?: Record<string, unknown>) => [...schoolKeys.enrollments.root(), "list", params ?? {}] as const,
     detail: (enrollmentId: number) => [...schoolKeys.enrollments.root(), "detail", enrollmentId] as const,
+    academicTotal: () => [...schoolKeys.enrollments.root(), "dashboard", "academic-total"] as const,
   },
   attendance: {
     root: () => [...schoolKeys.root, "attendance"] as const,
@@ -104,7 +105,9 @@ export const schoolKeys = {
   },
   promotion: {
     root: () => [...schoolKeys.root, "promotion"] as const,
-    eligibility: () => [...schoolKeys.promotion.root(), "eligibility"] as const,
+    eligibility: (params?: Record<string, unknown>) => [...schoolKeys.promotion.root(), "eligibility", params ?? {}] as const,
+    promotedStudents: (params?: Record<string, unknown>) => [...schoolKeys.promotion.root(), "promoted-students", params ?? {}] as const,
+    droppedOutStudents: (params?: Record<string, unknown>) => [...schoolKeys.promotion.root(), "dropped-out-students", params ?? {}] as const,
   },
 };
 

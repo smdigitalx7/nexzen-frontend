@@ -1,5 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Badge } from '@/common/components/ui/badge';
+import { Input } from '@/common/components/ui/input';
 import { 
   EnrollmentSearchForm,
   EnrollmentViewDialog,
@@ -15,7 +16,7 @@ import type { CollegeEnrollmentRead, CollegeEnrollmentFilterParams } from '@/fea
 import { formatDate } from '@/common/utils/formatting/date';
 import { ActionConfig } from '@/common/components/shared/DataTable/types';
 import { DataTable } from '@/common/components/shared/DataTable';
-import { Eye } from 'lucide-react';
+import { Eye, Search as SearchIcon } from 'lucide-react';
 
 export const EnrollmentsTabComponent = () => {
   // State management
@@ -25,6 +26,14 @@ export const EnrollmentsTabComponent = () => {
     course_id: '',
     admission_no: ''
   });
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    const t = setTimeout(() => setSearchQuery(trimmed === "" ? undefined : trimmed), 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   // Fetch dropdown data
   const { data: classesData } = useCollegeClasses({ enabled: true });
@@ -50,10 +59,11 @@ export const EnrollmentsTabComponent = () => {
     const params: CollegeEnrollmentFilterParams = {
       class_id: Number(query.class_id),
       group_id: Number(query.group_id),
+      search: searchQuery ?? undefined,
     };
     if (query.course_id) params.course_id = Number(query.course_id);
     return params;
-  }, [query.class_id, query.group_id, query.course_id]);
+  }, [query.class_id, query.group_id, query.course_id, searchQuery]);
 
   const result = useCollegeEnrollmentsList(apiParams);
   const shouldUseAdmissionNo = Boolean(query.admission_no?.trim());
@@ -115,22 +125,52 @@ export const EnrollmentsTabComponent = () => {
         class_name: classInfo?.class_name || '',
       }];
     }
-    
-    if (!result.data?.enrollments) return [];
-    const flattened: any[] = [];
-    result.data.enrollments.forEach((classGroup) => {
-      if (classGroup.students && Array.isArray(classGroup.students)) {
-        classGroup.students.forEach((student) => {
-          flattened.push({
-            ...student,
-            class_name: classGroup.class_name,
-            group_name: classGroup.group_name,
-            course_name: classGroup.course_name || undefined,
-          });
-        });
-      }
-    });
-    return flattened;
+    // List endpoint returns enrollments as array of { class_id, class_name, group_id, group_name, course_id?, course_name?, students: [...] }
+    const list = result.data?.enrollments ?? [];
+    if (!Array.isArray(list) || list.length === 0) return [];
+    const raw = list as Array<{
+      class_id?: number;
+      class_name?: string;
+      group_id?: number;
+      group_name?: string;
+      course_id?: number | null;
+      course_name?: string | null;
+      students?: Array<{
+        enrollment_id: number;
+        student_id: number;
+        admission_no: string;
+        student_name: string;
+        roll_number: string;
+        enrollment_date?: string | null;
+        is_active?: boolean | null;
+        promoted?: boolean | null;
+      }>;
+    }>;
+    const hasNestedStudents = raw.some((e) => Array.isArray(e.students) && e.students.length > 0);
+    if (hasNestedStudents) {
+      return raw.flatMap((e) => {
+        const students = e.students ?? [];
+        const class_name = e.class_name ?? classes.find((c) => c.class_id === e.class_id)?.class_name ?? '';
+        const group_name = e.group_name ?? allGroups.find((g) => g.group_id === e.group_id)?.group_name ?? '';
+        const course_name = e.course_name ?? allCourses.find((c) => c.course_id === e.course_id)?.course_name ?? '-';
+        return students.map((s) => ({
+          ...s,
+          class_id: e.class_id,
+          group_id: e.group_id,
+          course_id: e.course_id ?? null,
+          class_name,
+          group_name,
+          course_name,
+        }));
+      });
+    }
+    // Fallback: treat as flat list (each item is a row)
+    return list.map((e: Record<string, unknown>) => ({
+      ...e,
+      class_name: (e.class_name as string) ?? classes.find((c) => c.class_id === e.class_id)?.class_name ?? '',
+      group_name: (e.group_name as string) ?? allGroups.find((g) => g.group_id === e.group_id)?.group_name ?? '',
+      course_name: (e.course_name as string) ?? allCourses.find((c) => c.course_id === e.course_id)?.course_name ?? '-',
+    }));
   }, [shouldUseAdmissionNo, admissionNoResult.data, result.data?.enrollments, classes, allGroups, allCourses]);
 
   const actions: ActionConfig<any>[] = useMemo(() => [
@@ -214,9 +254,23 @@ export const EnrollmentsTabComponent = () => {
         actions={actions}
         title="Student Enrollments"
         searchKey="student_name"
-        searchPlaceholder="Search by student name..."
+        searchPlaceholder="Search by admission no or student name..."
+        showSearch={!apiParams}
         loading={isLoading}
         export={{ enabled: true, filename: 'enrollments_list' }}
+        toolbarLeftContent={
+          apiParams ? (
+            <div className="w-full sm:flex-1 min-w-0">
+              <Input
+                placeholder="Search by admission no or student name..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="h-9 w-full"
+                leftIcon={<SearchIcon className="h-4 w-4 text-muted-foreground" />}
+              />
+            </div>
+          ) : undefined
+        }
       />
 
       <EnrollmentViewDialog

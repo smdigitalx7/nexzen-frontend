@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeTestsService } from "@/features/college/services/tests.service";
 import type { CollegeTestCreate, CollegeTestRead, CollegeTestResponse, CollegeTestUpdate } from "@/features/college/types/index.ts";
 import { collegeKeys } from "./query-keys";
@@ -44,6 +44,7 @@ export function useCreateCollegeTest() {
     mutationFn: (payload: CollegeTestCreate) => CollegeTestsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.tests.root(), type: 'active' });
     },
   }, "Test created successfully");
@@ -56,6 +57,7 @@ export function useUpdateCollegeTest(testId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.tests.detail(testId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.tests.root(), type: 'active' });
     },
   }, "Test updated successfully");
@@ -67,6 +69,7 @@ export function useDeleteCollegeTest() {
     mutationFn: (testId: number) => CollegeTestsService.delete(testId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.tests.root(), type: 'active' });
     },
   }, "Test deleted successfully");

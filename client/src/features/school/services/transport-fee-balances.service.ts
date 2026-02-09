@@ -33,6 +33,7 @@ export const SchoolTransportFeeBalancesService = {
   updateTermPayment(enrollment_id: number, payload: SchoolTransportTermPaymentUpdate) {
     return Api.put<SchoolTransportFeeBalanceFullRead>(`/school/transport-fee-balances/${enrollment_id}/pay-term`, payload);
   },
+  // PUT .../transport-fee-balances/{enrollment_id}/concession — path param is enrollment_id
   updateConcession(enrollment_id: number, payload: TransportConcessionUpdateRequest) {
     return Api.put<TransportConcessionUpdateResponse>(`/school/transport-fee-balances/${enrollment_id}/concession`, payload);
   },

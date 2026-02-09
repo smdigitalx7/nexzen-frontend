@@ -7,10 +7,10 @@ import type {
   DropoutRequest 
 } from "@/features/school/types";
 
-export function useSchoolPromotionEligibility(enabled = true) {
+export function useSchoolPromotionEligibility(params?: { search?: string | null }, enabled = true) {
   return useQuery({
-    queryKey: schoolKeys.promotion.eligibility(),
-    queryFn: () => EnrollmentsService.getPromotionEligibility(),
+    queryKey: schoolKeys.promotion.eligibility(params),
+    queryFn: () => EnrollmentsService.getPromotionEligibility(params),
     enabled,
     staleTime: 5 * 60 * 1000,
   });

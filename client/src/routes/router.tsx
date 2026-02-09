@@ -7,15 +7,26 @@ import { DashboardRouter } from "./DashboardRouter";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { useAuthStore } from "@/core/auth/authStore";
 import { RouterErrorElement } from "@/common/components/shared/RouterErrorElement";
+import { ContentSkeleton } from "@/common/components/shared/ContentSkeleton";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 
-// Wrapper to protect routes using the existing ProtectedRoute logic (adapted)
-// Note: We might need to refactor ProtectedRoute to be RRD compatible.
-// For now, let's create a simple wrapper for the router.
+// Wrapper to protect routes. Shows Sidebar + Header on refresh; main area shows simple "Refreshing..." loader.
 const RequireAuth = ({ children }: { children: JSX.Element }) => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
-  
+  const isAuthInitializing = useAuthStore((s) => s.isAuthInitializing);
+
+  // While auth is initializing (e.g. on refresh), keep sidebar/header; show simple circle loader in main only
+  if (isAuthInitializing) {
+    return (
+      <AuthenticatedLayout>
+        <div className="flex-1 flex items-center justify-center bg-card">
+          <Loader.Inline size="lg" message="Loading..." />
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
   if (!isAuthenticated && !user) {
     return <Navigate to="/login" replace />;
   }
@@ -45,11 +56,10 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     errorElement: <RouterErrorElement />,
     children: [
-        // Public Routes (Suspense so lazy components don't suspend during sync input)
         {
             path: "login",
             element: (
-              <Suspense fallback={<Loader.Page message="Loading..." />}>
+              <Suspense fallback={<ContentSkeleton />}>
                 <Login />
               </Suspense>
             ),
@@ -64,52 +74,37 @@ export const router = createBrowserRouter([
                 {
                     index: true,
                     element: (
-                      <Suspense fallback={<Loader.Container message="Loading..." />}>
+                      <Suspense fallback={<ContentSkeleton />}>
                         <DashboardRouter />
                       </Suspense>
                     ),
                 },
                 {
                     path: "profile",
-                    element: (
-                      <Suspense fallback={<Loader.Container message="Loading..." />}>
-                        <ProfilePage />
-                      </Suspense>
-                    ),
+                    element: <ProfilePage />,
                 },
                 {
                     path: "settings",
-                    element: (
-                      <Suspense fallback={<Loader.Container message="Loading..." />}>
-                        <SettingsPage />
-                      </Suspense>
-                    ),
+                    element: <SettingsPage />,
                 },
                 {
                     path: "college", // existing placeholder
                     element: null, 
                 },
-                // Spread the config routes (Suspense so lazy route components don't suspend during sync input)
+                // RouteSuspense in AuthenticatedLayout catches lazy suspend and shows ContentSkeleton
                 ...appRoutes.map((route) => ({
                     path: route.path.startsWith("/") ? route.path.substring(1) : route.path,
                     element: (
-                        <Suspense fallback={<Loader.Container message="Loading..." />}>
-                          <RoleGuard 
-                              roles={route.roles} 
-                              component={route.component} 
-                              preventDirectAccess={route.preventDirectAccess} 
-                          />
-                        </Suspense>
+                        <RoleGuard 
+                            roles={route.roles} 
+                            component={route.component} 
+                            preventDirectAccess={route.preventDirectAccess} 
+                        />
                     ),
                 })),
-                // 404 for authenticated context
                 {
                     path: "*",
-                    element: (
-                      <Suspense fallback={<Loader.Container message="Loading..." />}>
-                        <NotFound />
-                      </Suspense>
-                    ),
+                    element: <NotFound />,
                 },
             ],
         },
@@ -118,7 +113,7 @@ export const router = createBrowserRouter([
   {
       path: "*",
       element: (
-        <Suspense fallback={<Loader.Page message="Loading..." />}>
+        <Suspense fallback={<ContentSkeleton />}>
           <NotFound />
         </Suspense>
       ),

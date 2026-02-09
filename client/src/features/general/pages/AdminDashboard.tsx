@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import {
   UserCheck,
@@ -6,6 +5,7 @@ import {
   Bus,
   Receipt,
   MoreHorizontal,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
 import {
@@ -35,8 +35,14 @@ import { IncomeChart } from "@/features/general/components/dashboard/IncomeChart
 
 const AdminDashboard = () => {
   const { user } = useAuthStore();
-  const { dashboardData, loading, error, auditLogSummary } =
-    useAdminDashboardData();
+  const {
+    dashboardData,
+    loading,
+    isFetching,
+    error,
+    refetch,
+    auditLogSummary,
+  } = useAdminDashboardData();
   const navigate = useNavigate();
 
   const auditLogSummaryForUi = useMemo(() => {
@@ -91,6 +97,22 @@ const AdminDashboard = () => {
     },
   ];
 
+  const refreshButton = (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-9"
+      onClick={() => refetch()}
+      disabled={isFetching || loading}
+      title="Refresh dashboard"
+    >
+      <RefreshCw
+        className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`}
+      />
+      Refresh
+    </Button>
+  );
+
   const quickLinksDropdown = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -119,15 +141,25 @@ const AdminDashboard = () => {
     </DropdownMenu>
   );
 
+  const headerRight = (
+    <div className="flex items-center gap-2">
+      {refreshButton}
+      {quickLinksDropdown}
+    </div>
+  );
+
   if (loading) {
     return (
-      <DashboardContainer loading={loading}>
-        <DashboardHeader
-          title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Admin"}!`}
-          description="Here's what's happening today."
-          showBranchBadge={true}
-          rightContent={quickLinksDropdown}
-        />
+      <DashboardContainer loading={true} loadingMessage="Loading dashboard...">
+        {null}
+      </DashboardContainer>
+    );
+  }
+
+  if (isFetching && dashboardData) {
+    return (
+      <DashboardContainer loading={true} loadingMessage="Refreshing dashboard...">
+        {null}
       </DashboardContainer>
     );
   }
@@ -139,7 +171,7 @@ const AdminDashboard = () => {
           title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Admin"}!`}
           description="Here's what's happening today."
           showBranchBadge={true}
-          rightContent={quickLinksDropdown}
+          rightContent={headerRight}
         />
         <DashboardError error={error} />
       </DashboardContainer>
@@ -153,7 +185,7 @@ const AdminDashboard = () => {
           title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Admin"}!`}
           description="Here's what's happening today."
           showBranchBadge={true}
-          rightContent={quickLinksDropdown}
+          rightContent={headerRight}
         />
         <div className="flex items-center justify-center py-12">
           <div className="text-muted-foreground">
@@ -170,18 +202,28 @@ const AdminDashboard = () => {
         title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Admin"}!`}
         description="Here's what's happening today."
         showBranchBadge={true}
-        rightContent={quickLinksDropdown}
+        rightContent={headerRight}
       />
 
       <DashboardError error={error} />
 
-      <div className="space-y-6">
-        <DashboardOverview data={dashboardData.data.overview} />
-        <FinancialSummary data={dashboardData.data.financial} />
-        <AcademicSummary data={dashboardData.data} />
-        <EnrollmentStats data={dashboardData.data} />
-        <AuditLogSummary data={auditLogSummaryForUi as any} />
-        <IncomeChart data={incomeByCategoryForUi as any} />
+      <div className="space-y-8">
+        <section aria-label="Institutional overview">
+          <DashboardOverview data={dashboardData.data.overview} />
+        </section>
+        <section aria-label="Financial performance">
+          <FinancialSummary data={dashboardData.data.financial} />
+        </section>
+        <section aria-label="Academic and enrollment" className="grid grid-cols-1 gap-8 lg:grid-cols-1">
+          <AcademicSummary data={dashboardData.data} />
+          <EnrollmentStats data={dashboardData.data} />
+        </section>
+        <section aria-label="Activity and insights" className="space-y-8">
+          <AuditLogSummary data={auditLogSummaryForUi as any} />
+          <div className="w-full">
+            <IncomeChart data={incomeByCategoryForUi as any} />
+          </div>
+        </section>
       </div>
     </DashboardContainer>
   );

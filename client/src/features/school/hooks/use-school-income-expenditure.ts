@@ -5,15 +5,15 @@ import type { SchoolExpenditureCreate, SchoolExpenditureRead, SchoolExpenditureU
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
 
-export function useSchoolIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }, options?: { enabled?: boolean }) {
+export function useSchoolIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string; page?: number; page_size?: number; search?: string | null }, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: schoolKeys.income.list(params as Record<string, unknown> | undefined),
     queryFn: () => SchoolIncomeService.list(params),
-    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow disabling for on-demand fetching
+    enabled: options?.enabled !== false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    refetchOnMount: true, // Refetch on mount if enabled and data is stale
-    select: (data: any) => (Array.isArray(data) ? data : data.data || data.items || []), // Handle array, paginated .data, and .items
+    refetchOnMount: true,
+    // Return raw response so callers can use both data and total_count (no select)
   });
 }
 
@@ -42,10 +42,11 @@ export function useSchoolIncomeDashboard(options?: { enabled?: boolean }) {
   });
 }
 
-export function useSchoolIncomeRecent(limit?: number) {
+export function useSchoolIncomeRecent(limit?: number, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...schoolKeys.income.root(), "recent", limit ?? undefined],
     queryFn: () => SchoolIncomeService.getRecent(limit),
+    enabled: options?.enabled !== false,
   });
 }
 

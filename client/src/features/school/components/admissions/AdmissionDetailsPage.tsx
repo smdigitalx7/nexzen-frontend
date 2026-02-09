@@ -22,7 +22,9 @@ import {
 import type { SchoolAdmissionDetails } from "@/features/school/types/admissions";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { handleSchoolPayByAdmissionWithIncomeId } from "@/core/api/api-school";
+import { getReceiptNoFromResponse } from "@/core/api/payment-types";
 import { batchInvalidateAndRefetch } from "@/common/hooks/useGlobalRefetch";
+import { openReceiptInNewTab } from "@/common/utils/payment";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/common/components/ui/dialog";
 import { ReceiptPreviewModal } from "@/common/components/shared";
 
@@ -455,27 +457,23 @@ const AdmissionDetailsPage = () => {
         }
       );
 
-      const { blobUrl } = paymentResponse;
+      const { blobUrl, paymentData } = paymentResponse;
 
+      setShowPaymentDialog(false);
       if (blobUrl) {
-        setReceiptBlobUrl(blobUrl);
-        // Close payment dialog immediately
-        setShowPaymentDialog(false);
-        // Open receipt modal
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            setShowReceiptModal(true);
-          }, 200);
+        openReceiptInNewTab(blobUrl, getReceiptNoFromResponse(paymentData));
+        toast({
+          title: "Payment successful",
+          description: "Receipt opened in new tab.",
+          variant: "success",
         });
       } else {
-        setShowPaymentDialog(false);
+        toast({
+          title: "Payment Successful",
+          description: "Admission fee payment processed successfully",
+          variant: "success",
+        });
       }
-
-      toast({
-        title: "Payment Successful",
-        description: "Admission fee payment processed successfully",
-        variant: "success",
-      });
 
       // Invalidate queries
       const keysToInvalidate: any[] = [["school", "admissions"]];

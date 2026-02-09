@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { ReceiptPreviewModal } from "@/common/components/shared";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/core/api/api-college";
+import { getReceiptNoFromResponse } from "@/core/api/payment-types";
+import { openReceiptInNewTab } from "@/common/utils/payment";
 import { DataTable } from "@/common/components/shared/DataTable";
 import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import {
@@ -59,14 +61,14 @@ const StatusBadge = memo(({ status }: { status: string }) => {
 StatusBadge.displayName = "StatusBadge";
 
 const AdmissionsList = () => {
-  // ✅ Server-side pagination state
+  // Server-side pagination (minimum page size 25)
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 500);
     return () => clearTimeout(t);
   }, [search]);
 
@@ -194,23 +196,25 @@ const AdmissionsList = () => {
         }
       );
 
-      const { blobUrl } = paymentResponse;
+      const { blobUrl, paymentData } = paymentResponse;
 
+      setShowPaymentDialog(false);
+      setShowDetailsDialog(false);
+      setPaymentError(null);
       if (blobUrl) {
-        setReceiptBlobUrl(blobUrl);
-        setShowPaymentDialog(false);
-        // Close details dialog after successful payment
-        setShowDetailsDialog(false);
-        setShowReceiptModal(true);
-        // Clear error on success
-        setPaymentError(null);
+        openReceiptInNewTab(blobUrl, getReceiptNoFromResponse(paymentData));
+        toast({
+          title: "Payment successful",
+          description: "Receipt opened in new tab.",
+          variant: "success",
+        });
+      } else {
+        toast({
+          title: "Payment Successful",
+          description: "Admission fee payment processed successfully",
+          variant: "success",
+        });
       }
-
-      toast({
-        title: "Payment Successful",
-        description: "Admission fee payment processed successfully",
-        variant: "success",
-      });
 
       // ✅ FIX: Batch invalidate queries to prevent UI freeze
       const keysToInvalidate: any[] = [["college", "admissions"]];
@@ -355,6 +359,7 @@ const AdmissionsList = () => {
         totalCount={admissionsResp?.total_count || 0}
         currentPage={currentPage}
         pageSize={pageSize}
+        pageSizeOptions={[25, 50, 100]}
         onPageChange={(page) => {
           setCurrentPage(page);
           window.scrollTo({ top: 0, behavior: "smooth" });
@@ -363,17 +368,25 @@ const AdmissionsList = () => {
           setPageSize(newSize);
           setCurrentPage(1);
         }}
-        showSearch={true}
-        searchPlaceholder="Search admissions (no, name, group)..."
-        searchValue={search}
-        onSearchChange={setSearch}
+        showSearch={false}
+        searchPlaceholder="Search by admission no or student name..."
+        toolbarLeftContent={
+          <div className="w-full sm:flex-1 min-w-0">
+            <Input
+              placeholder="Search by admission no or student name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9 w-full"
+              leftIcon={<Search className="h-4 w-4 text-muted-foreground" />}
+            />
+          </div>
+        }
         actions={actions}
-        export={{ 
-          enabled: true, 
-          filename: 'college_admissions',
-          onExport: handleExportAll 
+        export={{
+          enabled: true,
+          filename: "college_admissions",
+          onExport: handleExportAll,
         }}
-        selectable={true}
       />
 
       {/* Admission Details Dialog */}

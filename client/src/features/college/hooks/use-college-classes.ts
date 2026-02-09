@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeClassesService } from "@/features/college/services/classes.service";
 import type {
   CollegeClassCreate,
@@ -57,6 +57,7 @@ export function useCreateCollegeClass() {
       CollegeClassesService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.classes.root(), type: 'active' });
     },
   }, "Class created successfully");
@@ -73,6 +74,7 @@ export function useUpdateCollegeClass(classId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.classes.detail(classId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.classes.root(), type: 'active' });
     },
   }, "Class updated successfully");
@@ -106,6 +108,7 @@ export function useRemoveCollegeClassGroup(classId: number) {
       void qc.invalidateQueries({
         queryKey: [...collegeKeys.classes.detail(classId), "groups"],
       });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({
         queryKey: [...collegeKeys.classes.detail(classId), "groups"],
         type: 'active'

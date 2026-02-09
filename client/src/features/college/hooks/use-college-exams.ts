@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeExamsService } from "@/features/college/services/exams.service";
 import type {
   CollegeExamCreate,
@@ -62,6 +62,7 @@ export function useCreateCollegeExam() {
       CollegeExamsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.exams.root(), type: 'active' });
     },
   }, "Exam created successfully");
@@ -78,6 +79,7 @@ export function useUpdateCollegeExam(examId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.exams.detail(examId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.exams.root(), type: 'active' });
     },
   }, "Exam updated successfully");
@@ -89,6 +91,7 @@ export function useDeleteCollegeExam() {
     mutationFn: (examId: number) => CollegeExamsService.delete(examId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.exams.root(), type: 'active' });
     },
   }, "Exam deleted successfully");

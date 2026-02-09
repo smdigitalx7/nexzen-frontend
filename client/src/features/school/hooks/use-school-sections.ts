@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolSectionsService } from "@/features/school/services/sections.service";
 import type { SchoolSectionCreate, SchoolSectionRead, SchoolSectionUpdate } from "@/features/school/types";
 import { schoolKeys } from "./query-keys";
@@ -24,8 +24,8 @@ export function useCreateSchoolSection(classId: number) {
     mutationFn: (payload: SchoolSectionCreate) => SchoolSectionsService.create(classId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.sections.listByClass(classId), type: 'active' }).catch(console.error);
-      // Invalidate dropdown cache
       qc.invalidateQueries({ queryKey: ["school-dropdowns", "sections", classId] }).catch(console.error);
     },
   }, "Section created successfully");
@@ -38,8 +38,8 @@ export function useUpdateSchoolSection(classId: number, sectionId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.sections.detail(classId, sectionId) }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.sections.listByClass(classId), type: 'active' }).catch(console.error);
-      // Invalidate dropdown cache
       qc.invalidateQueries({ queryKey: ["school-dropdowns", "sections", classId] }).catch(console.error);
     },
   }, "Section updated successfully");
@@ -51,8 +51,8 @@ export function useDeleteSchoolSection(classId: number) {
     mutationFn: (sectionId: number) => SchoolSectionsService.delete(classId, sectionId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.sections.listByClass(classId), type: 'active' }).catch(console.error);
-      // Invalidate dropdown cache
       qc.invalidateQueries({ queryKey: ["school-dropdowns", "sections", classId] }).catch(console.error);
     },
   }, "Section deleted successfully");

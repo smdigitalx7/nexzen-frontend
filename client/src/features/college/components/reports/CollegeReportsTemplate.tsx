@@ -7,7 +7,6 @@ import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/common/components/shared";
 import { useTabNavigation, useTabEnabled } from "@/common/hooks/use-tab-navigation";
 import {
-  useCollegeIncomeList,
   useCollegeIncomeDashboard,
   useCollegeIncome,
   useCollegeExpenditureList,
@@ -40,22 +39,12 @@ export const CollegeReportsTemplate = () => {
   // ✅ OPTIMIZATION: Use static empty arrays
   const EMPTY_ARRAY = useMemo(() => [], []);
 
-  // ✅ OPTIMIZATION: Only fetch income data when Income tab is active
-  const {
-    data: incomeData = EMPTY_ARRAY,
-    isLoading: incomeLoading,
-    error: incomeError,
-  } = useCollegeIncomeList(undefined, { enabled: incomeTabEnabled });
-
   // ✅ OPTIMIZATION: Only fetch expenditure data when Expenditure tab is active
   const {
     data: expenditureData = EMPTY_ARRAY,
     isLoading: expenditureLoading,
     error: expenditureError,
   } = useCollegeExpenditureList(undefined, { enabled: expenditureTabEnabled });
-
-  // ✅ OPTIMIZATION: Stabilize params
-  const incomeParams = useMemo(() => ({}), []);
 
   // ✅ OPTIMIZATION: Only fetch dashboard data when respective tabs are active
   const {
@@ -113,20 +102,9 @@ export const CollegeReportsTemplate = () => {
       value: "income",
       label: "Income",
       icon: IndianRupeeIcon,
-      content: incomeLoading ? (
-        <div className="flex items-center justify-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      ) : incomeError ? (
-        <div className="text-center py-8">
-          <p className="text-red-600">
-            Error loading income data: {incomeError.message}
-          </p>
-        </div>
-      ) : (
+      content: (
         <IncomeTable
           onViewIncome={handleViewIncome}
-          params={incomeParams}
           enabled={incomeTabEnabled}
         />
       ),
@@ -166,11 +144,8 @@ export const CollegeReportsTemplate = () => {
       ),
     },
   ], [
-    handleViewIncome, 
-    incomeParams, 
-    incomeTabEnabled, 
-    incomeLoading, 
-    incomeError,
+    handleViewIncome,
+    incomeTabEnabled,
     expenditureLoading,
     expenditureError,
     expenditureData,

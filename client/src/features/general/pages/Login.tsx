@@ -29,10 +29,17 @@ const Login = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const { login } = useAuthStore();
+  const { login, isAuthenticated } = useAuthStore();
   const { toast } = useToast();
   const forgotMutation = useForgotPassword();
   const verifyMutation = useVerifyOtp();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   // Load remembered email on component mount
   useEffect(() => {
@@ -42,6 +49,18 @@ const Login = () => {
       setRememberMe(true);
     }
   }, []);
+
+  // Show "Successfully logged out" toast when arriving from logout
+  useEffect(() => {
+    if (sessionStorage.getItem("showLogoutToast") === "1") {
+      sessionStorage.removeItem("showLogoutToast");
+      toast({
+        title: "Successfully logged out",
+        description: "You have been logged out.",
+        variant: "success",
+      });
+    }
+  }, [toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,7 +308,6 @@ const Login = () => {
                         id="remember-me"
                         checked={rememberMe}
                         onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                        className="border-2 border-gray-300"
                       />
                       <Label htmlFor="remember-me" className="text-sm font-medium cursor-pointer">Remember me</Label>
                     </div>

@@ -112,16 +112,17 @@ const CompleteMarksEntry = ({ selectedClass, selectedSection, onClose, onSaveRea
     }
   }, [selectedExam, examsData]);
 
-  // Initialize marks data when students/subjects change
+  // Initialize marks data when students/subjects change (flat enrollments from API)
+  const enrollmentsList = enrollmentsData?.enrollments ?? [];
   useEffect(() => {
-    if (!enrollmentsData?.items || !subjectsData?.items) {
+    if (!enrollmentsList.length || !subjectsData?.items) {
       return;
     }
 
     setMarksData((prev) => {
       const newMarksData: Record<number, StudentMarksData> = { ...prev };
       
-      enrollmentsData.items!.forEach((enrollment: SchoolEnrollmentWithStudentDetails) => {
+      enrollmentsList.forEach((enrollment) => {
         const existingData = prev[enrollment.enrollment_id];
         const marks: Record<number, { marks_obtained: number; remarks: string }> = 
           existingData?.marks ? { ...existingData.marks } : {};
@@ -153,15 +154,15 @@ const CompleteMarksEntry = ({ selectedClass, selectedSection, onClose, onSaveRea
 
       return newMarksData;
     });
-  }, [enrollmentsData?.items, subjectsData?.items]);
+  }, [enrollmentsList, subjectsData?.items]);
 
-  // Memoized students list
+  // Memoized students list (flat enrollments from API)
   const students = useMemo(() => {
-    if (!enrollmentsData?.items) return [];
-    return [...enrollmentsData.items].sort((a, b) => 
+    if (!enrollmentsList.length) return [];
+    return [...enrollmentsList].sort((a, b) => 
       a.roll_number.localeCompare(b.roll_number, undefined, { numeric: true, sensitivity: 'base' })
     );
-  }, [enrollmentsData?.items]);
+  }, [enrollmentsList]);
 
   // Memoized subjects list
   const subjects = useMemo(() => {

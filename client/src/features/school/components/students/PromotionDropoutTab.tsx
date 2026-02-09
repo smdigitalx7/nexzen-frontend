@@ -1,12 +1,14 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Users, 
   UserMinus, 
   ArrowUpCircle, 
-  AlertCircle,
   FileCheck2,
   AlertTriangle,
-  Info
+  Info,
+  Search as SearchIcon,
+  UserCheck
 } from "lucide-react";
 import { 
   useSchoolPromotionEligibility, 
@@ -17,7 +19,7 @@ import {
 import { useAcademicYears } from "@/features/general/hooks/useAcademicYear";
 import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import { Checkbox } from "@/common/components/ui/checkbox";
-import { DataTable } from "@/common/components/shared";
+import { DataTable, TabSwitcher } from "@/common/components/shared";
 import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
@@ -34,12 +36,129 @@ import { Label } from "@/common/components/ui/label";
 import { Textarea } from "@/common/components/ui/textarea";
 import { DatePicker } from "@/common/components/ui/date-picker";
 import { Alert, AlertDescription, AlertTitle } from "@/common/components/ui/alert";
-import { cn } from "@/common/utils";
+import { schoolKeys } from "@/features/school/hooks/query-keys";
+import { EnrollmentsService } from "@/features/school/services/enrollments.service";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { SchoolPromotionEligibility } from "@/features/school/types";
 
+const formatDate = (dateString: string | null | undefined) => {
+  if (!dateString) return "-";
+  if (typeof dateString !== "string") return "-";
+  if (dateString.includes("T")) return dateString.split("T")[0];
+  return dateString;
+};
+
+function SchoolPromotedStudentsList() {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(searchInput.trim() || undefined), 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+  useEffect(() => setPage(1), [searchQuery]);
+  const params = useMemo(() => ({ page, page_size: pageSize, search: searchQuery }), [page, pageSize, searchQuery]);
+  const { data, isLoading } = useQuery({
+    queryKey: schoolKeys.promotion.promotedStudents(params),
+    queryFn: () => EnrollmentsService.getPromotedStudents(params),
+  });
+  const items = data?.items ?? [];
+  const columns: ColumnDef<Record<string, unknown>>[] = useMemo(() => [
+    { accessorKey: "admission_no", header: "Admission No" },
+    { accessorKey: "student_name", header: "Student Name" },
+    { accessorKey: "promoted_from_class", header: "From Class", cell: ({ row }) => row.original.promoted_from_class ?? "-" },
+    { accessorKey: "promoted_from_section", header: "From Section", cell: ({ row }) => row.original.promoted_from_section ?? "-" },
+    { accessorKey: "roll_number", header: "Roll No", cell: ({ row }) => row.original.roll_number ?? "-" },
+    { accessorKey: "enrollment_date", header: "Enrollment Date", cell: ({ row }) => formatDate(String(row.original.enrollment_date ?? "")) },
+    { accessorKey: "promoted_at", header: "Promoted At", cell: ({ row }) => formatDate(String(row.original.promoted_at ?? "")) },
+  ], []);
+  return (
+    <DataTable
+      data={items}
+      columns={columns}
+      title="Promoted Students"
+      loading={isLoading}
+      showSearch={false}
+      toolbarLeftContent={
+        <div className="w-full sm:flex-1 min-w-0">
+          <Input placeholder="Search by admission no or student name..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="h-9 w-full" leftIcon={<SearchIcon className="h-4 w-4 text-muted-foreground" />} />
+        </div>
+      }
+      pagination="server"
+      totalCount={data?.total_count ?? 0}
+      currentPage={data?.current_page ?? page}
+      pageSize={data?.page_size ?? pageSize}
+      onPageChange={setPage}
+      onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+      pageSizeOptions={[25, 50, 100]}
+    />
+  );
+}
+
+function SchoolDroppedOutStudentsList() {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(searchInput.trim() || undefined), 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+  useEffect(() => setPage(1), [searchQuery]);
+  const params = useMemo(() => ({ page, page_size: pageSize, search: searchQuery }), [page, pageSize, searchQuery]);
+  const { data, isLoading } = useQuery({
+    queryKey: schoolKeys.promotion.droppedOutStudents(params),
+    queryFn: () => EnrollmentsService.getDroppedOutStudents(params),
+  });
+  const items = data?.items ?? [];
+  const columns: ColumnDef<Record<string, unknown>>[] = useMemo(() => [
+    { accessorKey: "admission_no", header: "Admission No" },
+    { accessorKey: "student_name", header: "Student Name" },
+    { accessorKey: "last_class_name", header: "Last Class", cell: ({ row }) => row.original.last_class_name ?? "-" },
+    { accessorKey: "last_section_name", header: "Last Section", cell: ({ row }) => row.original.last_section_name ?? "-" },
+    { accessorKey: "last_roll_number", header: "Roll No", cell: ({ row }) => row.original.last_roll_number ?? "-" },
+    { accessorKey: "last_academic_year_name", header: "Academic Year", cell: ({ row }) => row.original.last_academic_year_name ?? "-" },
+    { accessorKey: "student_status", header: "Status", cell: ({ row }) => <Badge variant="outline">{String(row.original.student_status ?? "Dropped")}</Badge> },
+  ], []);
+  return (
+    <DataTable
+      data={items}
+      columns={columns}
+      title="Dropped Out Students"
+      loading={isLoading}
+      showSearch={false}
+      toolbarLeftContent={
+        <div className="w-full sm:flex-1 min-w-0">
+          <Input placeholder="Search by admission no or student name..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="h-9 w-full" leftIcon={<SearchIcon className="h-4 w-4 text-muted-foreground" />} />
+        </div>
+      }
+      pagination="server"
+      totalCount={data?.total_count ?? 0}
+      currentPage={data?.current_page ?? page}
+      pageSize={data?.page_size ?? pageSize}
+      onPageChange={setPage}
+      onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+      pageSizeOptions={[25, 50, 100]}
+    />
+  );
+}
+
 export const PromotionDropoutTab = () => {
-  const { data: eligibilityData, isLoading, refetch } = useSchoolPromotionEligibility();
+  const [subTab, setSubTab] = useState<"eligibility" | "promoted" | "dropped-out">("eligibility");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    const t = setTimeout(() => setSearchQuery(trimmed === "" ? undefined : trimmed), 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const { data: eligibilityData, isLoading, refetch } = useSchoolPromotionEligibility(
+    { search: searchQuery ?? undefined },
+    true
+  );
   const { data: classesData } = useSchoolClasses();
   const { data: yearsData } = useAcademicYears();
   
@@ -176,7 +295,7 @@ export const PromotionDropoutTab = () => {
     setSelectedEnrollments(selectedRows.map(r => r.enrollment_id));
   }, []);
 
-  return (
+  const eligibilityContent = (
     <div className="space-y-6">
       <Alert variant={"default" as any} className="bg-primary/5 border-primary/20">
         <Info className="h-4 w-4 text-primary" />
@@ -188,13 +307,11 @@ export const PromotionDropoutTab = () => {
       </Alert>
 
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col">
-            <h2 className="text-xl font-semibold">Promotion Eligibility</h2>
-            <p className="text-sm text-muted-foreground">
-              {students.length} students found in current session
-            </p>
-          </div>
+        <div className="flex flex-col">
+          <h2 className="text-xl font-semibold">Promotion Eligibility</h2>
+          <p className="text-sm text-muted-foreground">
+            {students.length} students found in current session
+          </p>
         </div>
 
         <Button
@@ -214,7 +331,19 @@ export const PromotionDropoutTab = () => {
         selectable={true}
         onSelectionChange={onSelectionChange}
         searchKey="student_name"
-        searchPlaceholder="Filter students..."
+        searchPlaceholder="Search by admission no or student name..."
+        showSearch={false}
+        toolbarLeftContent={
+          <div className="w-full sm:flex-1 min-w-0">
+            <Input
+              placeholder="Search by admission no or student name..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="h-9 w-full"
+              leftIcon={<SearchIcon className="h-4 w-4 text-muted-foreground" />}
+            />
+          </div>
+        }
         actions={actions}
         actionsHeader="Actions"
       />
@@ -331,5 +460,19 @@ export const PromotionDropoutTab = () => {
         </DialogContent>
       </Dialog>
     </div>
+  );
+
+  return (
+    <TabSwitcher
+      tabs={[
+        { value: "eligibility", label: "Promotion Eligibility", icon: FileCheck2, content: eligibilityContent },
+        { value: "promoted", label: "Promoted Students", icon: UserCheck, content: <SchoolPromotedStudentsList /> },
+        { value: "dropped-out", label: "Dropped Out Students", icon: UserMinus, content: <SchoolDroppedOutStudentsList /> },
+      ]}
+      activeTab={subTab}
+      onTabChange={(v) => setSubTab(v as "eligibility" | "promoted" | "dropped-out")}
+      variant="subtab"
+      showBadges={false}
+    />
   );
 };

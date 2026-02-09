@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import type { 
   SchoolIncomeCreate, 
   SchoolIncomeCreateReservation, 
@@ -23,7 +23,7 @@ export const SchoolIncomeService = {
     return Api.get<SchoolRecentIncome[]>(`/school/income/recent${limit ? `?limit=${limit}` : ''}`);
   },
 
-  list(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string; page?: number; page_size?: number }) {
+  list(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string; page?: number; page_size?: number; /** Full-text search (receipt_no, student name). Optional. */ search?: string | null }) {
     return Api.get<{ data: SchoolIncomeRead[]; total_count: number }>(`/school/income`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
   
@@ -67,8 +67,9 @@ export const SchoolIncomeService = {
     return Api.post<SchoolIncomeRead>(`/school/income/pay-fee/${admission_no}`, payload);
   },
 
-  payFeeByReservation(reservation_no: string, payload: { details: Array<{ purpose: string; custom_purpose_name?: string; term_number?: number; paid_amount: number; payment_method: string }>; remarks?: string }) {
-    return Api.post<any>(`/school/income/pay-fee-by-reservation/${reservation_no}`, payload);
+  /** POST /api/v1/school/income/pay-fee-by-reservation/{reservation_id} - path uses reservation_id (integer). */
+  payFeeByReservation(reservation_id: number, payload: { details: Array<{ purpose: string; custom_purpose_name?: string; term_number?: number; paid_amount: number; payment_method: string }>; remarks?: string }) {
+    return Api.post<any>(`/school/income/pay-fee-by-reservation/${reservation_id}`, payload);
   },
 
   getIncomeWithDetails(income_id: number) {

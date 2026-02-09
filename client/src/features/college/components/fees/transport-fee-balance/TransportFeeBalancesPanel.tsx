@@ -1,9 +1,16 @@
-﻿import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/common/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/common/components/ui/sheet";
+import { Separator } from "@/common/components/ui/separator";
 import { Badge } from "@/common/components/ui/badge";
-import { User } from "lucide-react";
+import { User, Wallet, Calendar } from "lucide-react";
 import { useCollegeStudentTransportPaymentSummary, useCollegeStudentTransportPaymentSummaryByEnrollmentId } from "@/features/college/hooks";
 import { useCollegeClasses, useCollegeGroups } from "@/features/college/hooks/use-college-dropdowns";
 import type { 
@@ -338,72 +345,127 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
         export={{ enabled: true, filename: 'transport_fee_balances' }}
       />
 
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
-            <DialogTitle>Transport Payment Summary</DialogTitle>
-            <DialogDescription className="sr-only">View detailed transport payment summary information</DialogDescription>
-          </DialogHeader>
-          {isLoadingDetails ? (
-            <div className="p-8 text-center text-muted-foreground">Loading payment details...</div>
-          ) : !selectedSummary ? (
-            <div className="p-2 text-sm text-muted-foreground">No summary selected.</div>
-          ) : (
-            <div className="space-y-6">
-              <div className="bg-slate-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Student Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Admission No:</span> <span className="font-medium">{selectedSummary?.admission_no || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Roll Number:</span> <span className="font-medium">{selectedSummary?.roll_number || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Student Name:</span> <span className="font-medium">{selectedSummary?.student_name}</span></div>
-                  <div><span className="text-muted-foreground">Class:</span> <span className="font-medium">{selectedSummary?.class_name}</span></div>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Transport Assignment</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Bus Route:</span> <span className="font-medium">{selectedSummary?.bus_route_name || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Route No:</span> <span className="font-medium">{selectedSummary?.bus_route_no || 'N/A'}</span></div>
-                </div>
-              </div>
-
-              {selectedSummary && (() => {
-                const totalPaid = typeof selectedSummary.total_amount_paid === 'string' 
-                  ? parseFloat(selectedSummary.total_amount_paid) || 0 
-                  : (selectedSummary.total_amount_paid || 0);
-                const totalPending = typeof selectedSummary.total_amount_pending === 'string' 
-                  ? parseFloat(selectedSummary.total_amount_pending) || 0 
-                  : (selectedSummary.total_amount_pending || 0);
-                
-                return (
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3">Payment Summary</h3>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Months Paid:</span> 
-                        <span className="font-medium text-green-600 ml-1">{selectedSummary.months_paid_count}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Months Pending:</span> 
-                        <span className="font-medium text-red-600 ml-1">{selectedSummary.months_pending_count}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Total Paid:</span> 
-                        <span className="font-medium text-lg text-green-600 ml-1">{formatCurrency(totalPaid)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Total Pending:</span> 
-                        <span className="font-medium text-lg text-red-600 ml-1">{formatCurrency(totalPending)}</span>
-                      </div>
+      {/* Details: right-side sheet (same as school) */}
+      <Sheet open={detailsOpen} onOpenChange={(open) => { if (!open) setDetailsOpen(false); }}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-0 flex flex-col">
+          <SheetHeader className="px-6 pt-6 pb-4 border-b bg-muted/30 shrink-0">
+            <SheetTitle>Transport Fee Balance</SheetTitle>
+            <SheetDescription className="sr-only">Detailed transport fee balance for the selected student</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-6 pb-6">
+            {selectedEnrollmentId == null ? (
+              <p className="text-sm text-muted-foreground py-8">No student selected.</p>
+            ) : isLoadingDetails ? (
+              <p className="text-sm text-muted-foreground py-8">Loading...</p>
+            ) : !selectedSummary ? (
+              <p className="text-sm text-muted-foreground py-8">No summary selected.</p>
+            ) : (
+              <div className="space-y-6 pt-4">
+                {/* Student info */}
+                <section>
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                    <User className="h-4 w-4" />
+                    Student
+                  </div>
+                  <div className="rounded-lg border bg-card p-4 space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Admission No</span>
+                      <span className="font-medium tabular-nums">{selectedSummary.admission_no || "–"}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Roll No</span>
+                      <span className="font-medium">{selectedSummary.roll_number || "–"}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Name</span>
+                      <span className="font-medium">{selectedSummary.student_name}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Class</span>
+                      <span className="font-medium">{selectedSummary.class_name || "–"}</span>
                     </div>
                   </div>
-                );
-              })()}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+                </section>
+
+                <Separator />
+
+                {/* Transport assignment */}
+                <section>
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                    <Wallet className="h-4 w-4" />
+                    Transport Assignment
+                  </div>
+                  <div className="rounded-lg border bg-card p-4 space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Bus Route</span>
+                      <span className="font-medium">{selectedSummary.bus_route_name || "–"}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Route No</span>
+                      <span className="font-medium">{selectedSummary.bus_route_no || "–"}</span>
+                    </div>
+                  </div>
+                </section>
+
+                <Separator />
+
+                {/* Payment summary */}
+                <section>
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                    <Wallet className="h-4 w-4" />
+                    Payment Summary
+                  </div>
+                  <div className="rounded-lg border bg-card p-4 space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Months Paid</span>
+                      <span className="font-medium text-green-600">{selectedSummary.months_paid_count}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Months Pending</span>
+                      <span className="font-medium text-red-600">{selectedSummary.months_pending_count}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-medium">
+                      <span>Total Paid</span>
+                      <span className="text-green-600">
+                        {formatCurrency(
+                          typeof selectedSummary.total_amount_paid === "string"
+                            ? parseFloat(selectedSummary.total_amount_paid) || 0
+                            : selectedSummary.total_amount_paid || 0
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm font-medium text-destructive">
+                      <span>Total Pending</span>
+                      <span>
+                        {formatCurrency(
+                          typeof selectedSummary.total_amount_pending === "string"
+                            ? parseFloat(selectedSummary.total_amount_pending) || 0
+                            : selectedSummary.total_amount_pending || 0
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                    <Calendar className="h-4 w-4" />
+                    Record
+                  </div>
+                  <div className="rounded-lg border bg-card p-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Last updated</span>
+                      <span className="font-medium">–</span>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </motion.div>
   );
 }

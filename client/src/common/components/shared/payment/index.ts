@@ -29,5 +29,12 @@ export { schoolPaymentConfig, collegePaymentConfig, getPaymentConfig } from './c
 export { ReservationPaymentProcessor } from './ReservationPaymentProcessor';
 export type { ReservationPaymentData } from './ReservationPaymentProcessor';
 
+// Collect Fee Payment View (shared School & College)
+export {
+  CollectFeePaymentView,
+  type FeeItemShape,
+  type CollectFeePaymentViewProps,
+} from './CollectFeePaymentView';
+
 // Types
 export type * from './types/PaymentTypes';

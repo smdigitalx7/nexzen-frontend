@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useEffect, memo, useCallback } from "react";
+import { useMemo, useState, useEffect, memo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   useDeleteSchoolReservation,
@@ -631,10 +631,22 @@ const ReservationManagementComponent = () => {
   // Status filter state
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // ✅ Reset to page 1 when filters change
+  // ✅ Server-side search: input value (immediate) and debounced value for API
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    const t = setTimeout(
+      () => setSearchQuery(trimmed === "" ? undefined : trimmed),
+      500
+    );
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // ✅ Reset to page 1 when filters or search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, selectedClassId]);
+  }, [statusFilter, selectedClassId, searchQuery]);
 
   // ✅ Server-side pagination state - CRITICAL: Prevents fetching ALL reservations at once
   // This fixes UI freeze by limiting data fetched per request
@@ -648,8 +660,9 @@ const ReservationManagementComponent = () => {
       page_size: pageSize,
       class_id: selectedClassId || undefined,
       status: statusFilter !== "all" ? statusFilter : undefined,
+      search: searchQuery ?? undefined,
     }),
-    [currentPage, pageSize, selectedClassId, statusFilter]
+    [currentPage, pageSize, selectedClassId, statusFilter, searchQuery]
   );
 
   // ✅ OPTIMIZATION: Stabilize query key
@@ -1254,16 +1267,8 @@ const ReservationManagementComponent = () => {
         value: "all",
         label: "All Reservations",
         icon: List,
-        content: isLoadingReservations ? (
-          <div className="flex items-center justify-center p-12">
-            <div className="flex flex-col items-center gap-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <p className="text-sm text-muted-foreground">
-                Loading reservations...
-              </p>
-            </div>
-          </div>
-        ) : (
+        // Always render table so search bar and toolbar stay visible; loading shows skeleton in table body only
+        content: (
           <AllReservationsTable
             reservations={allReservations}
             isLoading={isLoadingReservations}
@@ -1301,8 +1306,10 @@ const ReservationManagementComponent = () => {
             }}
             onPageSizeChange={(newPageSize) => {
               setPageSize(newPageSize);
-              setCurrentPage(1); // Reset to first page when page size changes
+              setCurrentPage(1);
             }}
+            searchValue={searchInput}
+            onSearchChange={setSearchInput}
           />
         ),
       },
@@ -1343,6 +1350,7 @@ const ReservationManagementComponent = () => {
       handleEdit,
       handleUpdateConcession,
       statusFilter,
+      searchInput,
       reservationsData?.total_count,
     ]
   );
@@ -1634,38 +1642,16 @@ const ReservationManagementComponent = () => {
           <ReservationPaymentProcessor
             reservationData={paymentData}
             onPaymentComplete={(
-              incomeRecord: SchoolIncomeRead,
-              blobUrl: string,
-              receiptNo?: string | null
+              _incomeRecord: SchoolIncomeRead,
+              _blobUrl: string,
+              _receiptNo?: string | null
             ) => {
-              // ✅ CRITICAL: Close payment modal immediately (no blocking)
               setShowPaymentProcessor(false);
-
-              // ✅ CRITICAL: Set receipt data immediately (needed for receipt modal)
-              setPaymentIncomeRecord(incomeRecord);
-              setReceiptBlobUrl(blobUrl);
-              setReceiptNo(receiptNo || incomeRecord.receipt_no || null);
-
-              // ✅ DEFER: Clear payment data (not critical, defer to next tick)
-              setTimeout(() => {
-                setPaymentData(null);
-              }, 0);
-
-              // ✅ DEFER: Query invalidation (low priority, defer to next tick)
+              setTimeout(() => setPaymentData(null), 0);
               setTimeout(() => {
                 invalidateAndRefetch(schoolKeys.reservations.root());
-
-                // ✅ DEFER: Refetch callback (low priority)
-                if (refetchReservations) {
-                  void refetchReservations();
-                }
+                if (refetchReservations) void refetchReservations();
               }, 0);
-
-              // ✅ DEFER: Receipt modal (wait for payment modal to close completely)
-              // Radix UI Dialog has ~200ms close animation, wait for it to complete
-              setTimeout(() => {
-                setShowReceipt(true);
-              }, 250);
             }}
             onPaymentFailed={(error: string) => {
               toast({

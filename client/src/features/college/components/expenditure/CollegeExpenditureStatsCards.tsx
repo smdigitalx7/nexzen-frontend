@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import {
   TrendingUp,
   CalendarDays,
@@ -119,7 +119,7 @@ export const CollegeExpenditureStatsCards: React.FC<
   ];
 
   return (
-    <DashboardGrid columns={6} gap="md" className={className}>
+    <DashboardGrid columns={5} gap="md" className={className}>
       {statsCards.map((stat, index) => (
         <StatsCard key={stat.title} {...stat} loading={loading} />
       ))}

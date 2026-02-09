@@ -24,11 +24,11 @@ export function useCollegeReservationsList(params?: {
   page?: number;
   page_size?: number;
   status?: string;
+  search?: string | null;
 }) {
-  // ✅ OPTIMIZATION: Stabilize query key to prevent unnecessary refetches
   const stableParams = useMemo(
     () => params,
-    [params?.group_id, params?.course_id, params?.page, params?.page_size, params?.status]
+    [params?.group_id, params?.course_id, params?.page, params?.page_size, params?.status, params?.search]
   );
   const queryKey = useMemo(
     () => collegeKeys.reservations.list(stableParams),
@@ -43,7 +43,8 @@ export function useCollegeReservationsList(params?: {
     refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
     refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
     refetchOnMount: true, // Only refetch on mount if data is stale
-    select: (data: any) => (Array.isArray(data) ? data : data.reservations || data.data || []),
+    // Return full API response { reservations, total_count, current_page, page_size, total_pages }
+    // so ConfirmedReservationsTab and ReservationManagement can use data.reservations
   });
 }
 

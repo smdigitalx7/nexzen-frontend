@@ -58,7 +58,9 @@ export interface SchoolIncomeDashboardStats {
   tuition_fee_income: number;
   transport_fee_income: number;
   book_fee_income: number;
-  reservation_fee_income: number;
+  /** API may return application_fee_income (reservation/application fees) */
+  application_fee_income?: number;
+  reservation_fee_income?: number;
   other_income: number;
   income_this_month: number;
   income_this_year: number;

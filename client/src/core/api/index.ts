@@ -7,13 +7,10 @@ import type {
 } from "@/common/types/api";
 import { ApiError, isApiErrorResponse, isValidationErrorResponse } from "@/common/types/api";
 import { registerAbortController } from "./request-cancellation";
+import { getApiBaseUrl } from "./api";
 
-// For the simple API, we need to use /api/v1 since the proxy forwards /api to the external server
-// and the external server expects /v1 paths
-// ✅ FIX: Properly type import.meta.env
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL) || "/api/v1";
-
-// Debug: Log API configuration on module load
+// Single base URL from api.ts
+const API_BASE_URL = getApiBaseUrl();
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -408,10 +405,11 @@ export async function api<T = unknown>({
   const state = useAuthStore.getState();
   
   // CRITICAL: Don't make authenticated requests if:
-  // 1. Logout is in progress (race condition protection)
+  // 1. Logout is in progress (race condition protection) — EXCEPT allow POST /auth/logout so backend can clear session/cookies
   // 2. Auth is initializing (bootstrapAuth running)
   if (!noAuth) {
-    if (state.isLoggingOut) {
+    const isLogoutEndpoint = path === "/auth/logout" || path.includes("/auth/logout");
+    if (state.isLoggingOut && !isLogoutEndpoint) {
       throw new Error("Request cancelled: logout in progress");
     }
     if (state.isAuthInitializing) {
@@ -484,6 +482,7 @@ export async function api<T = unknown>({
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
+    // Auth and all API requests require credentials for cookie-based auth (refreshToken, X-Branch-ID, X-Academic-Year-ID, X-Branch-Type).
     const res = await fetch(url, {
       method,
       headers: requestHeaders,
@@ -1035,9 +1034,20 @@ export const Api = {
   },
 };
 
-export function getApiBaseUrl() {
-  return API_BASE_URL;
-}
+export { getApiBaseUrl } from "./api";
+export type {
+  PaymentPurpose,
+  PaymentMethodApi,
+  PaymentDetailItem,
+  PaymentRequestPayload,
+  PaymentSuccessContext,
+  PaymentSuccessResponse,
+} from "./payment-types";
+export {
+  isPaymentSuccessResponse,
+  getIncomeIdFromResponse,
+  getReceiptNoFromResponse,
+} from "./payment-types";
 
 /**
  * Unified receipt regeneration handler that works for both school and college

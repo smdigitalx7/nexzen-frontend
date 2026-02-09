@@ -260,7 +260,7 @@ export const TestMarksReport = () => {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
           <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
           <div className="text-red-600 text-sm">
-            {(error as Error)?.message ||
+            {(error)?.message ||
               "Failed to load test marks report. Please try again."}
           </div>
         </div>

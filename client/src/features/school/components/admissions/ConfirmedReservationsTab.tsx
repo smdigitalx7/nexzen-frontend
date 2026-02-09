@@ -1,4 +1,4 @@
-﻿ import { useState, useMemo, useCallback, memo, useEffect } from "react";
+ import { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
@@ -36,6 +36,8 @@ import { toast } from "@/common/hooks/use-toast";
 import { ReceiptPreviewModal } from "@/common/components/shared";
 import { handleRegenerateReceipt } from "@/core/api";
 import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/core/api/api-school";
+import { getReceiptNoFromResponse } from "@/core/api/payment-types";
+import { openReceiptInNewTab } from "@/common/utils/payment";
 import { DataTable } from "@/common/components/shared";
 import type { SchoolReservationListItem } from "@/features/school/types/reservations";
 import { useQueryClient } from "@tanstack/react-query";
@@ -1064,29 +1066,23 @@ const ConfirmedReservationsTabComponent = () => {
         }
       );
 
-      const { blobUrl } = paymentResponse;
+      const { blobUrl, paymentData } = paymentResponse;
 
+      setShowPaymentDialog(false);
       if (blobUrl) {
-        setReceiptBlobUrl(blobUrl);
-        // Close payment dialog immediately
-        setShowPaymentDialog(false);
-        // Open receipt modal after ensuring payment dialog is fully closed and unmounted
-        // Use requestAnimationFrame to ensure DOM updates are complete
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            setShowReceiptModal(true);
-          }, 200);
+        openReceiptInNewTab(blobUrl, getReceiptNoFromResponse(paymentData));
+        toast({
+          title: "Payment successful",
+          description: "Receipt opened in new tab.",
+          variant: "success",
         });
       } else {
-        // If no blob URL, still close the payment dialog
-        setShowPaymentDialog(false);
+        toast({
+          title: "Payment Successful",
+          description: "Admission fee payment processed successfully",
+          variant: "success",
+        });
       }
-
-      toast({
-        title: "Payment Successful",
-        description: "Admission fee payment processed successfully",
-        variant: "success",
-      });
 
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       requestAnimationFrame(() => {

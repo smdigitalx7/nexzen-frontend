@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeGroupsService } from "@/features/college/services/groups.service";
 import type { CollegeGroupCreate, CollegeGroupList, CollegeGroupResponse, CollegeGroupUpdate, CollegeGroupSubjectRead } from "@/features/college/types/index.ts";
 import { collegeKeys } from "./query-keys";
@@ -54,6 +54,7 @@ export function useCreateCollegeGroup() {
     mutationFn: (payload: CollegeGroupCreate) => CollegeGroupsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.groups.root(), type: 'active' });
     },
   }, "Group created successfully");
@@ -66,6 +67,7 @@ export function useUpdateCollegeGroup(groupId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.groups.detail(groupId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.groups.root(), type: 'active' });
     },
   }, "Group updated successfully");
@@ -77,6 +79,7 @@ export function useDeleteCollegeGroup() {
     mutationFn: (groupId: number) => CollegeGroupsService.delete(groupId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.groups.root(), type: 'active' });
     },
   }, "Group deleted successfully");

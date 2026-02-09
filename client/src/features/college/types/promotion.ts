@@ -75,3 +75,21 @@ export interface DropoutResponse {
   message: string;
   success: boolean;
 }
+
+/** GET /college/student-enrollments/promoted-students response (paginated) */
+export interface CollegePromotedStudentsResponse {
+  items: Array<Record<string, unknown>>;
+  total_count: number;
+  current_page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+/** GET /college/student-enrollments/dropped-out-students response (paginated) */
+export interface CollegeDroppedOutStudentsResponse {
+  items: Array<Record<string, unknown>>;
+  total_count: number;
+  current_page: number;
+  page_size: number;
+  total_pages: number;
+}

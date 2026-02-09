@@ -96,8 +96,16 @@ export default defineConfig(({ mode }) => {
             }
             return `assets/[name]-[hash].${ext}`;
           },
-          // Let Vite automatically handle code splitting based on dependencies
-          // This ensures proper module loading order and avoids initialization issues
+          manualChunks: (id) => {
+            if (id.includes("node_modules")) {
+              if (id.includes("react-dom") || id.includes("/react/")) return "vendor-react";
+              if (id.includes("@tanstack/react-query")) return "vendor-query";
+              if (id.includes("framer-motion")) return "vendor-motion";
+              if (id.includes("lucide-react")) return "vendor-lucide";
+              if (id.includes("zustand")) return "vendor-zustand";
+              if (id.includes("axios")) return "vendor-axios";
+            }
+          },
         },
         preserveEntrySignatures: false,
       },

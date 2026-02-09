@@ -6,8 +6,10 @@ export interface CollegeIncomeListParams {
   purpose?: string;
   start_date?: string; // YYYY-MM-DD
   end_date?: string;   // YYYY-MM-DD
-  page?: number;       // Optional pagination
-  page_size?: number;  // Optional pagination
+  page?: number;
+  page_size?: number;
+  /** Full-text search (receipt_no, student name). Optional. */
+  search?: string | null;
 }
 
 export const CollegeIncomeService = {
@@ -69,9 +71,9 @@ export const CollegeIncomeService = {
     return Api.post<CollegeIncomeRead>(`/college/income/pay-fee/${admission_no}`, payload);
   },
 
-  // POST /api/v1/college/income/pay-by-reservation/{reservation_id}
+  /** POST /api/v1/college/income/pay-fee-by-reservation/{reservation_id} - path uses reservation_id (integer). */
   payByReservation(reservation_id: number, payload: CollegeIncomeCreateReservation) {
-    return Api.post<CollegeIncomeRead>(`/college/income/pay-by-reservation/${reservation_id}`, payload);
+    return Api.post<CollegeIncomeRead>(`/college/income/pay-fee-by-reservation/${reservation_id}`, payload);
   },
 
   // GET /api/v1/college/income/{income_id}/details

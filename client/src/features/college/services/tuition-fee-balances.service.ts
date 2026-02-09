@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceCreate, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats, ConcessionUpdateRequest, ConcessionUpdateResponse } from "@/features/college/types";
 
 export interface CollegeTuitionBalancesListParams {
@@ -56,7 +56,7 @@ export const CollegeTuitionBalancesService = {
   updateBookPayment(enrollment_id: number, payload: CollegeBookFeePaymentUpdate) {
     return Api.put<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment_id}/book-payment`, payload);
   },
-  // PUT /api/v1/college/tuition-fee-balances/{enrollment_id}/concession
+  // PUT .../tuition-fee-balances/{enrollment_id}/concession — path param is enrollment_id
   updateConcession(enrollment_id: number, payload: ConcessionUpdateRequest) {
     return Api.put<ConcessionUpdateResponse>(`/college/tuition-fee-balances/${enrollment_id}/concession`, payload);
   },

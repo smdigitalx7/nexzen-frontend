@@ -1,5 +1,8 @@
 import type { AuthState } from "./authState";
 import type { PersistOptions, PersistStorage, StorageValue } from "zustand/middleware";
+import { getCookie } from "@/common/utils/cookie";
+import { extractPrimaryRole } from "@/common/utils/roles";
+import { normalizeRole } from "@/common/constants";
 
 /**
  * Storage configuration for authStore
@@ -24,14 +27,14 @@ export const createAuthStorageConfig = (): PersistOptions<AuthState, Partial<Aut
             try {
               const parsed = JSON.parse(raw) as StorageValue<Partial<AuthState>>;
               if (parsed && typeof parsed === "object" && "state" in parsed) {
-                // Ensure sensitive fields are not restored
-                // (Even if a legacy value exists from older builds)
                 const state = (parsed as any).state as Partial<AuthState> | undefined;
                 if (state && typeof state === "object") {
                   delete (state as any).accessToken;
-                  delete (state as any).token; // legacy alias
+                  delete (state as any).token;
                   delete (state as any).tokenExpireAt;
                   delete (state as any).refreshToken;
+                  // CRITICAL: Never restore currentBranch - backend (cookies → /auth/me) is source of truth
+                  delete (state as any).currentBranch;
                 }
               }
               return parsed;
@@ -68,17 +71,15 @@ export const createAuthStorageConfig = (): PersistOptions<AuthState, Partial<Aut
         } satisfies PersistStorage<Partial<AuthState>>)
       : undefined,
   partialize: (state: AuthState) => {
-    // CRITICAL: Only persist user info and branch data, NOT accessToken
-    // Access token is stored ONLY in memory (Zustand store) to reduce XSS risk
-    // Refresh token is in HttpOnly cookie (set by backend), JavaScript cannot read it
+    // CRITICAL: Only persist user info and branch list, NOT accessToken, NOT currentBranch
+    // currentBranch must always come from backend (cookies → /auth/me) so UI matches API context.
+    // Persisting currentBranch would overwrite correct branch after bootstrapAuth sync (rehydration race).
     return {
       user: state.user,
-      // Don't persist isAuthenticated - it will be recalculated during rehydration
       academicYear: state.academicYear,
       academicYears: state.academicYears,
-      // Don't persist accessToken - stored ONLY in memory
       branches: state.branches,
-      currentBranch: state.currentBranch,
+      // Do NOT persist currentBranch - set only from GET /auth/me after login/refresh
     };
   },
   version: 1,
@@ -118,13 +119,12 @@ export const createAuthStorageConfig = (): PersistOptions<AuthState, Partial<Aut
             const localStorageData = localStorage.getItem("enhanced-auth-storage");
             if (localStorageData) {
               const parsed = JSON.parse(localStorageData);
-              if (parsed.state?.user) {
+                if (parsed.state?.user) {
                 userData = parsed.state.user;
-                // Also restore other persisted data
                 if (parsed.state.branches) state.branches = parsed.state.branches;
-                if (parsed.state.currentBranch) state.currentBranch = parsed.state.currentBranch;
                 if (parsed.state.academicYear) state.academicYear = parsed.state.academicYear;
                 if (parsed.state.academicYears) state.academicYears = parsed.state.academicYears;
+                // Do NOT restore currentBranch - bootstrapAuth will set it from GET /auth/me (cookies)
               }
             }
           } catch (e) {
@@ -137,21 +137,46 @@ export const createAuthStorageConfig = (): PersistOptions<AuthState, Partial<Aut
         // Set user if we have it
         if (userData) {
           state.user = userData;
-          
-          // CRITICAL: Clear logout flag on successful manual login (via setUser)
-          // This allows bootstrapAuth to work normally again
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("__logout_initiated__");
-            sessionStorage.removeItem("__logout_initiated__");
+
+          // CRITICAL: Restore currentBranch from cookies immediately if branches exist
+          // This prevents Sidebar from showing wrong branch/empty until bootstrapAuth finishes
+          if (state.branches && state.branches.length > 0) {
+            const cookieBranchId = getCookie("X-Branch-ID") || getCookie("X-branch");
+            const cookieBranchType = getCookie("X-Branch-Type");
+            
+            let currentBranch = state.branches[0];
+            
+            if (cookieBranchId) {
+              const id = parseInt(cookieBranchId, 10);
+              const found = state.branches.find((b) => b.branch_id === id);
+              if (found) currentBranch = found;
+            } else if (cookieBranchType) {
+              const type = cookieBranchType.toUpperCase();
+              const found = state.branches.find((b) => b.branch_type === type);
+              if (found) currentBranch = found;
+            }
+            
+            state.currentBranch = currentBranch;
+            
+            // Sync user's role and branch ID to match the restored branch
+            if (currentBranch && state.user) {
+              state.user.current_branch_id = currentBranch.branch_id;
+              if (currentBranch.roles?.length) {
+                const roleFromBranch = extractPrimaryRole(currentBranch.roles);
+                if (roleFromBranch) {
+                  const normalized = normalizeRole(roleFromBranch);
+                  if (normalized) state.user.role = normalized;
+                }
+              }
+            }
           }
         }
 
         // Don't set isAuthenticated here - bootstrapAuth() will handle that
-        // after successfully calling /auth/refresh
         state.isAuthenticated = false;
         state.accessToken = null;
         state.tokenExpireAt = null;
-        
+
         // CRITICAL: Keep isAuthInitializing = true if we have user data
         // This ensures AppRouter shows loader instead of login page during bootstrapAuth
         // bootstrapAuth will set isAuthInitializing = false when it completes

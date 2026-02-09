@@ -18,6 +18,17 @@ export function useCollegeEnrollmentsList(params?: CollegeEnrollmentFilterParams
   });
 }
 
+/** GET /college/student-enrollments/dashboard/academic-total — used by Academic Management stats. Invalidate on any Academic CRUD. */
+export function useCollegeEnrollmentsAcademicTotal(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: collegeKeys.enrollments.academicTotal(),
+    queryFn: () => CollegeEnrollmentsService.getAcademicTotal(),
+    enabled: options?.enabled !== false,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+}
+
 export function useCollegeEnrollment(enrollmentId: number | null | undefined) {
   return useQuery({
     queryKey: typeof enrollmentId === "number" ? collegeKeys.enrollments.detail(enrollmentId) : [...collegeKeys.enrollments.root(), "detail", "nil"],
@@ -40,6 +51,7 @@ export function useCreateCollegeEnrollment() {
     mutationFn: (payload: CollegeEnrollmentCreate) => CollegeEnrollmentsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.enrollments.root(), type: 'active' });
     },
   }, "Enrollment created successfully");

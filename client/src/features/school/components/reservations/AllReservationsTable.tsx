@@ -1,7 +1,7 @@
-﻿import { useMemo, memo, useState, useEffect, useCallback } from "react";
+import { useMemo, memo, useState, useEffect, useCallback } from "react";
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
-import { Percent, CreditCard, Eye, Edit, Trash2 } from "lucide-react";
+import { Percent, CreditCard, Eye, Edit, Trash2, Search as SearchIcon } from "lucide-react";
 import { DataTable } from "@/common/components/shared";
 import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { ColumnDef } from "@tanstack/react-table";
@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/common/components/ui/dialog";
+import { Input } from "@/common/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -88,6 +89,9 @@ export type AllReservationsTableProps = {
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
   enableServerSidePagination?: boolean;
+  // ✅ Server-side search (when enabled, table uses API search instead of client-side filter)
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
 };
 
 // Memoized status badge component
@@ -177,6 +181,8 @@ const AllReservationsTableComponent = ({
   onPageChange,
   onPageSizeChange,
   enableServerSidePagination = false,
+  searchValue = "",
+  onSearchChange,
 }: AllReservationsTableProps) => {
   const { user } = useAuthStore();
 
@@ -454,10 +460,6 @@ const AllReservationsTableComponent = ({
     []
   );
 
-  if (isLoading) {
-    return <LoadingState />;
-  }
-
   if (isError) {
     return <ErrorState error={error} onRefetch={onRefetch} />;
   }
@@ -469,8 +471,8 @@ const AllReservationsTableComponent = ({
           data={reservations}
           columns={reservationColumns}
           title="All Reservations"
-          showSearch={true}
-          searchPlaceholder="Search by student name..."
+          showSearch={!enableServerSidePagination || !onSearchChange}
+          searchPlaceholder="Search by student name or reservation no..."
           searchKey="studentName"
           export={{
             enabled: true,
@@ -480,11 +482,22 @@ const AllReservationsTableComponent = ({
           actions={combinedActions}
           actionsHeader="Actions"
           
-          // Filters
+          // Filters and server-side search (full-width bar with icon, skeleton only in table when loading)
           toolbarLeftContent={
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium">Status:</span>
-              <div className="w-[180px]">
+            <div className="flex flex-1 flex-wrap items-center gap-2 min-w-0">
+              {enableServerSidePagination && onSearchChange && (
+                <div className="w-full sm:flex-1 min-w-0">
+                  <Input
+                    placeholder="Search by student name or reservation no..."
+                    value={searchValue}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    className="h-9 w-full"
+                    leftIcon={<SearchIcon className="h-4 w-4 text-muted-foreground" />}
+                  />
+                </div>
+              )}
+              <span className="text-sm font-medium shrink-0">Status:</span>
+              <div className="w-[180px] shrink-0">
                 <Select
                   value={statusFilter}
                   onValueChange={(value) => onStatusFilterChange(value)}
@@ -536,40 +549,14 @@ const AllReservationsTableComponent = ({
               <ReservationPaymentProcessor
                 reservationData={paymentData}
                 onPaymentComplete={(
-                  incomeRecord: SchoolIncomeRead,
-                  blobUrl: string
+                  _incomeRecord: SchoolIncomeRead,
+                  _blobUrl: string
                 ) => {
-                  // ✅ CRITICAL: Close payment modal immediately (no blocking)
                   setShowPaymentProcessor(false);
-
-                  // ✅ CRITICAL: Set receipt data immediately (needed for receipt modal)
-                  setReceiptBlobUrl(blobUrl);
-
-                  // ✅ DEFER: Query invalidation (low priority, defer to next tick)
                   setTimeout(() => {
                     invalidateAndRefetch(schoolKeys.reservations.root());
-                    
-                    // ✅ DEFER: Refetch callback (low priority)
-                    if (onRefetch) {
-                      void onRefetch();
-                    }
-                    
-                    // ✅ DEFER: Force table refresh (low priority)
+                    if (onRefetch) void onRefetch();
                     setRefreshKey((prev) => prev + 1);
-                  }, 0);
-
-                  // ✅ DEFER: Receipt modal (wait for payment modal to close completely)
-                  setTimeout(() => {
-                    setShowReceipt(true);
-                  }, 250);
-
-                  // ✅ DEFER: Toast notification (low priority)
-                  setTimeout(() => {
-                    toast({
-                      title: "Payment Successful",
-                      description: "Application fee has been paid successfully",
-                      variant: "success",
-                    });
                   }, 0);
                 }}
                 onPaymentFailed={(error: string) => {

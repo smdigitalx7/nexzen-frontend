@@ -1,9 +1,8 @@
-﻿import React from "react";
+import React from "react";
 import { useLocation, Navigate } from "react-router-dom";
 import { useAuthStore } from "@/core/auth/authStore";
 import { ROLES, type UserRole } from "@/common/constants/auth/roles";
 import { NotAuthorized } from "./NotAuthorized";
-import { Loader } from "@/common/components/ui/ProfessionalLoader";
 
 type ProtectedRouteProps = {
   path: string; // Kept for compatibility but unused
@@ -15,6 +14,7 @@ type ProtectedRouteProps = {
 /**
  * Protected route component that checks user roles before rendering
  * Supports preventing direct URL access for certain roles
+ * (Auth init loader is handled by RequireAuth in router.)
  */
 export function ProtectedRoute({
   roles,
@@ -23,14 +23,8 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user } = useAuthStore();
   const location = useLocation();
-  const { isAuthInitializing } = useAuthStore();
-  
-  const hasAccess = user && roles.includes(user.role);
 
-  // Show loading screen while auth is initializing (bootstrapAuth is running)
-  if (isAuthInitializing) {
-    return <Loader.Container message="Initializing..." />;
-  }
+  const hasAccess = user && roles.includes(user.role);
 
   if (!hasAccess) return <NotAuthorized />;
 

@@ -1,5 +1,4 @@
-import { useEffect, useMemo, startTransition } from "react";
-import { motion } from "framer-motion";
+import { useMemo, startTransition } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -254,13 +253,10 @@ const Sidebar = () => {
 
   const handleLogout = async () => {
     try {
-      // logoutAsync() already handles query cache invalidation
       await logoutAsync();
-      navigate("/");
     } catch (error) {
       console.error("Logout failed:", error);
-      // Still navigate to root even if logout fails
-      navigate("/");
+      navigate("/login", { replace: true });
     }
   };
 
@@ -344,28 +340,18 @@ const Sidebar = () => {
   );
 
   return (
-    <motion.aside
-      initial={{ x: -250, opacity: 0 }}
-      animate={{
-        x: 0,
-        opacity: 1,
-        width: sidebarOpen ? 250 : 72,
-      }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
+    <aside
       className={cn(
         "fixed left-0 top-0 z-40 h-screen bg-gradient-to-b from-slate-50 to-white border-r border-slate-200/80",
-        "flex flex-col overflow-hidden overflow-y-auto scrollbar-hide shadow-lg"
+        "flex flex-col overflow-hidden overflow-y-auto scrollbar-hide shadow-lg",
+        sidebarOpen ? "w-[250px]" : "w-[72px]"
       )}
     >
       {/* Logo Section */}
       <div className="p-4 border-b border-slate-200/80 bg-white/50 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           {sidebarOpen ? (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-3"
-            >
+            <div className="flex items-center gap-3">
               <div className="w-12 h-12 ">
                 <img
                   src={getLogoByBranchType(currentBranch?.branch_type)}
@@ -381,9 +367,9 @@ const Sidebar = () => {
                   {currentBranch?.branch_type || "Education"}
                 </span> */}
               </div>
-            </motion.div>
+            </div>
           ) : (
-            <div></div>
+            <div />
           )}
 
           {/* Toggle Button */}
@@ -619,7 +605,7 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
-    </motion.aside>
+    </aside>
   );
 };
 

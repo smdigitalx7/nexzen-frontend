@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeSubjectsService } from "@/features/college/services/subjects.service";
 import type {
   CollegeCreateSubject,
@@ -36,6 +36,7 @@ export function useCreateCollegeSubject() {
       CollegeSubjectsService.create(payload),
     onSuccess: () => {
       invalidateAndRefetch(collegeKeys.subjects.root());
+      invalidateAndRefetch(collegeKeys.enrollments.academicTotal());
     },
   }, "Subject created successfully");
 }
@@ -50,6 +51,7 @@ export function useUpdateCollegeSubject(subjectId: number) {
     onSuccess: () => {
       invalidateAndRefetch(collegeKeys.subjects.detail(subjectId));
       invalidateAndRefetch(collegeKeys.subjects.root());
+      invalidateAndRefetch(collegeKeys.enrollments.academicTotal());
     },
   }, "Subject updated successfully");
 }
@@ -59,6 +61,7 @@ export function useDeleteCollegeSubject() {
     mutationFn: (subjectId: number) => CollegeSubjectsService.delete(subjectId),
     onSuccess: () => {
       invalidateAndRefetch(collegeKeys.subjects.root());
+      invalidateAndRefetch(collegeKeys.enrollments.academicTotal());
     },
   }, "Subject deleted successfully");
 }

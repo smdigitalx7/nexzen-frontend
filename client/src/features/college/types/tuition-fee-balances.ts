@@ -48,6 +48,7 @@ export interface CollegeTuitionFeeBalanceUpdate {
 }
 
 export interface CollegeTuitionFeeBalanceRead {
+  enrollment_id: number;
   admission_no: string;
   roll_number: string;
   student_name: string;

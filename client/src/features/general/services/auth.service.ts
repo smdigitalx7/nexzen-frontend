@@ -13,10 +13,10 @@ export interface VerifyOTPResponse {
   verified: boolean;
 }
 
+/** POST /auth/reset-password - verify current password, send OTP to registered mobile */
 export interface ResetPasswordResponse {
   message: string;
-  otp_sent: boolean;
-  phone_number: string;
+  success: boolean;
 }
 
 
@@ -26,12 +26,41 @@ export interface RefreshTokenResponse {
   expiretime: string;
 }
 
+/** GET /api/v1/auth/me - Current user info (credentials + Bearer required) */
+export interface AuthMeResponse {
+  user_id: number;
+  institute_id: number;
+  current_branch_id: number;
+  branch_name: string;
+  current_branch: string;
+  is_institute_admin: boolean;
+  roles: Array<{ role: string; branch_id: number }>;
+  academic_year_id: number | null;
+  full_name: string;
+  email: string;
+}
+
+/** POST /auth/switch-branch/{branch_id} - Context only; no new access token. Backend sets X-Branch-ID, X-Academic-Year-ID, X-Branch-Type cookies. */
+export interface SwitchBranchResponse {
+  branch_id: number;
+  branch_type: string;
+  academic_year_id: number;
+}
+
+/** POST /auth/switch-academic-year/{academic_year_id} - Context only; no new access token. Backend updates X-Academic-Year-ID cookie. */
+export interface SwitchAcademicYearResponse {
+  branch_id: number;
+  branch_type: string;
+  academic_year_id: number;
+}
+
+/** All auth endpoints (login, refresh, logout, switch-branch, switch-academic-year, me) require credentials (Api uses credentials: "include"; apiClient uses withCredentials: true). */
 export const AuthService = {
   login: (identifier: string, password: string) => {
     return unifiedApi.post("/auth/login", { identifier, password }, {}, true);
   },
   me: () => {
-    return unifiedApi.get("/auth/me");
+    return unifiedApi.get<AuthMeResponse>("/auth/me");
   },
   refresh: async (): Promise<RefreshTokenResponse> => {
     // Refresh token should be in httpOnly cookie, so we don't send it in body
@@ -41,10 +70,10 @@ export const AuthService = {
     return unifiedApi.post("/auth/logout");
   },
   switchBranch: (branchId: number) => {
-    return unifiedApi.post(`/auth/switch-branch/${branchId}`);
+    return unifiedApi.post<SwitchBranchResponse>(`/auth/switch-branch/${branchId}`);
   },
   switchAcademicYear: (academicYearId: number) => {
-    return unifiedApi.post(`/auth/switch-academic-year/${academicYearId}`);
+    return unifiedApi.post<SwitchAcademicYearResponse>(`/auth/switch-academic-year/${academicYearId}`);
   },
   forgotPassword: (phone_number: string, purpose: "forget" = "forget") => {
     return unifiedApi.post<ForgotPasswordResponse>("/auth/forgot-password", { phone_number, purpose }, {}, true);

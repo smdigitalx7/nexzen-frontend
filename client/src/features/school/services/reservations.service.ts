@@ -17,6 +17,7 @@ export const SchoolReservationsService = {
     page_size?: number;
     class_id?: number;
     status?: string;
+    search?: string | null;
   }) {
     return Api.get<SchoolReservationListResponse>(
       `/school/reservations`,

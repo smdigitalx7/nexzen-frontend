@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { formatCurrency } from "@/common/utils";
@@ -445,7 +445,7 @@ const AccountantDashboard = () => {
 
               {/* Income by Category Chart */}
               {dashboardData.data.charts.income_by_category && dashboardData.data.charts.income_by_category.length > 0 && (
-                <Card className="hover-elevate">
+                <Card className="hover-elevate md:col-span-2">
                   <CardHeader className="p-4">
                     <div className="flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">

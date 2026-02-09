@@ -69,6 +69,7 @@ export const useMonthlyFeeConfig = () => {
       toast({
         title: "Success",
         description: "Monthly fee config created successfully",
+        variant: "success",
       });
     },
     onError: (error: any) => {

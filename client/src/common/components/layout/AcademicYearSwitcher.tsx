@@ -1,4 +1,4 @@
-﻿import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, ChevronDown } from "lucide-react";
 
@@ -12,27 +12,35 @@ import {
 import { Badge } from "@/common/components/ui/badge";
 import { useAuthStore, type AcademicYear } from "@/core/auth/authStore";
 import { useAcademicYears } from "@/features/general/hooks/useAcademicYear";
+import { Loader } from "@/common/components/ui/ProfessionalLoader";
 
 const AcademicYearSwitcher = () => {
-  const { academicYear, academicYears, switchAcademicYear, isAuthenticated, isLoggingOut } = useAuthStore();
-  // ✅ OPTIMIZATION: Enable query for switcher - it needs academic years to function
-  // CRITICAL: Disable query if logging out
-  const { data: academicYearsData } = useAcademicYears({ enabled: isAuthenticated && !isLoggingOut });
+  const {
+    academicYear,
+    academicYears,
+    switchAcademicYear,
+    isAuthenticated,
+    isLoggingOut,
+    isAcademicYearSwitching,
+  } = useAuthStore();
+  const { data: academicYearsData } = useAcademicYears({
+    enabled: isAuthenticated && !isLoggingOut,
+  });
+  const [open, setOpen] = useState(false);
 
-  const handleAcademicYearSwitch = async (year: any) => {
-    try {
-      // Switch academic year (this will call backend API, rotate token and reload page)
-      await switchAcademicYear(year);
-      
-      // Trigger custom event for components that need to react to academic year change
-      window.dispatchEvent(new Event('academic-year-switched'));
-      
-      console.log(`Academic year switch initiated for ${year.year_name}`);
-    } catch (error) {
-       
-      console.error("Failed to switch academic year:", error);
-    }
-  };
+  const handleAcademicYearSwitch = useCallback(
+    async (year: AcademicYear) => {
+      try {
+        await switchAcademicYear(year);
+        setOpen(false);
+        // Total refresh so all API calls use new X-Academic-Year-ID cookie
+        window.location.reload();
+      } catch {
+        // Error toast shown by switchAcademicYear
+      }
+    },
+    [switchAcademicYear]
+  );
 
   useEffect(() => {
     if (!academicYearsData || academicYearsData.length === 0) return;
@@ -59,10 +67,11 @@ const AcademicYearSwitcher = () => {
   }, [academicYearsData, academicYears.length, academicYear]);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
+          disabled={isAcademicYearSwitching}
           className="hover-elevate min-w-[200px] justify-between bg-white/80 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 shadow-sm rounded-xl px-4 py-2.5"
           data-testid="dropdown-academic-year-switcher"
           aria-label="Select academic year"
@@ -76,11 +85,17 @@ const AcademicYearSwitcher = () => {
                 className="truncate max-w-[100px] font-semibold text-base text-slate-700"
                 title={academicYear || "Select Academic Year"}
               >
-                {academicYear || "Select Academic Year"}
+                {isAcademicYearSwitching
+                  ? "Switching..."
+                  : academicYear || "Select Academic Year"}
               </span>
             </div>
           </div>
-          <ChevronDown className="h-4 w-4 text-slate-400" />
+          {isAcademicYearSwitching ? (
+            <Loader.Button size="sm" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-slate-400" />
+          )}
         </Button>
       </DropdownMenuTrigger>
       <AnimatePresence>
@@ -95,7 +110,8 @@ const AcademicYearSwitcher = () => {
               .map((year) => (
                 <DropdownMenuItem
                   key={year.academic_year_id}
-                  onClick={() => handleAcademicYearSwitch(year)}
+                  disabled={isAcademicYearSwitching}
+                  onClick={() => void handleAcademicYearSwitch(year)}
                   className="hover-elevate"
                   data-testid={`menuitem-academic-year-${year.academic_year_id}`}
                 >

@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import type { 
   SchoolBookFeePaymentUpdate, 
   SchoolTermPaymentUpdate, 
@@ -37,6 +37,7 @@ export const SchoolTuitionFeeBalancesService = {
   updateBookPayment(enrollment_id: number, payload: SchoolBookFeePaymentUpdate) {
     return Api.put<SchoolTuitionFeeBalanceFullRead>(`/school/tuition-fee-balances/${enrollment_id}/pay-book-fee`, payload);
   },
+  // PUT .../tuition-fee-balances/{enrollment_id}/concession — path param is enrollment_id
   updateConcession(enrollment_id: number, payload: ConcessionUpdateRequest) {
     return Api.put<ConcessionUpdateResponse>(`/school/tuition-fee-balances/${enrollment_id}/concession`, payload);
   },

@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Lock, KeyRound, Eye, EyeOff, ShieldCheck, Send, CheckCircle2 } from "lucide-react";
+import { Lock, Eye, EyeOff, ShieldCheck, Send, CheckCircle2 } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { Button } from "@/common/components/ui/button";
 import { useToast } from "@/common/hooks/use-toast";
-import { useAuthStore } from "@/core/auth/authStore";
 import { useResetPassword, useVerifyOtp } from "@/features/general/hooks/useAuthActions";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/common/components/ui/input-otp";
@@ -12,8 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const SecurityTab = () => {
   const { toast } = useToast();
-  const { user } = useAuthStore();
-  const resetMutation = useResetPassword();
+  const resetPasswordMutation = useResetPassword();
   const verifyMutation = useVerifyOtp();
 
   const [step, setStep] = useState<1 | 2>(1);
@@ -27,13 +25,13 @@ const SecurityTab = () => {
   });
 
   const handleRequestOtp = async () => {
-    if (!passwordData.currentPassword) {
-      toast({ title: "Verification Required", description: "Please enter your current password.", variant: "destructive" });
+    if (!passwordData.currentPassword.trim()) {
+      toast({ title: "Validation", description: "Enter your current password.", variant: "destructive" });
       return;
     }
 
     try {
-      await resetMutation.mutateAsync(passwordData.currentPassword);
+      await resetPasswordMutation.mutateAsync(passwordData.currentPassword);
       setStep(2);
     } catch (err) {}
   };
@@ -56,7 +54,6 @@ const SecurityTab = () => {
         confirm_password: passwordData.confirmPassword,
         purpose: "resetpassword",
       });
-      // Reset form
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "", otpCode: "" });
       setStep(1);
     } catch (err) {}
@@ -99,16 +96,26 @@ const SecurityTab = () => {
                   exit={{ opacity: 0, scale: 0.98 }}
                   className="p-6 space-y-4"
                 >
+                  <p className="text-sm text-muted-foreground">
+                    Enter your current password to receive an OTP on your registered mobile number.
+                  </p>
                   <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Label htmlFor="reset-current-password">Current password</Label>
                     <div className="relative">
                       <Input
-                        id="currentPassword"
+                        id="reset-current-password"
                         type={showCurrentPassword ? "text" : "password"}
+                        placeholder="Enter your current password"
                         value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                        placeholder="Verify identity to send OTP"
-                        className="pr-10"
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            currentPassword: e.target.value,
+                          })
+                        }
+                        leftIcon={<Lock className="h-4 w-4" />}
+                        className="h-11 pr-10"
+                        autoComplete="current-password"
                       />
                       <button
                         type="button"
@@ -120,12 +127,12 @@ const SecurityTab = () => {
                     </div>
                   </div>
 
-                  <Button 
-                    onClick={handleRequestOtp} 
-                    disabled={resetMutation.isPending || !passwordData.currentPassword} 
+                  <Button
+                    onClick={handleRequestOtp}
+                    disabled={resetPasswordMutation.isPending || !passwordData.currentPassword.trim()}
                     className="gap-2"
                   >
-                    {resetMutation.isPending ? <Loader.Button /> : <Send className="h-4 w-4" />}
+                    {resetPasswordMutation.isPending ? <Loader.Button /> : <Send className="h-4 w-4" />}
                     Verify & Send OTP
                   </Button>
                 </motion.div>

@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { GradesService } from "@/features/general/services/grades.service";
 import type {
   GradeRead,
@@ -45,6 +45,7 @@ export const useGrades = (options?: { enabled?: boolean }) => {
     mutationFn: (data: GradeCreate) => GradesService.createGrade(data),
     onSuccess: () => {
       invalidateEntity("grades");
+      invalidateEntity("academicTotal");
       toast({
         title: "Success",
         variant: "success",
@@ -66,6 +67,7 @@ export const useGrades = (options?: { enabled?: boolean }) => {
       GradesService.updateGrade(gradeCode, data),
     onSuccess: () => {
       invalidateEntity("grades");
+      invalidateEntity("academicTotal");
       toast({
         title: "Success",
         variant: "success",
@@ -86,6 +88,7 @@ export const useGrades = (options?: { enabled?: boolean }) => {
     mutationFn: (gradeCode: string) => GradesService.deleteGrade(gradeCode),
     onSuccess: () => {
       invalidateEntity("grades");
+      invalidateEntity("academicTotal");
       toast({
         title: "Success",
         variant: "destructive",

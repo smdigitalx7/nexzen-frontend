@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import React, { useMemo, memo, useState, useEffect, useCallback } from "react";
-import { CreditCard, Percent, Eye, Edit, Trash2 } from "lucide-react";
+import { CreditCard, Percent, Eye, Edit, Trash2, Search as SearchIcon } from "lucide-react";
 import { DataTable } from "@/common/components/shared/DataTable";
+import { Input } from "@/common/components/ui/input";
 import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { Badge } from "@/common/components/ui/badge";
 import { useAuthStore } from "@/core/auth/authStore";
@@ -88,6 +89,9 @@ interface AllReservationsComponentProps {
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
   enableServerSidePagination?: boolean;
+  /** Server-side full-text search (student name, reservation number) */
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
 }
 
 const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
@@ -107,6 +111,8 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
   onPageChange,
   onPageSizeChange,
   enableServerSidePagination = false,
+  searchValue = "",
+  onSearchChange,
 }) => {
   const { user } = useAuthStore();
   const [showPaymentProcessor, setShowPaymentProcessor] = useState(false);
@@ -284,21 +290,35 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
   ], []);
 
   const toolbarLeftContent = useMemo(() => (
-    <div className="w-[180px]">
-      <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-        <SelectTrigger className="h-9">
-          <SelectValue placeholder="All Statuses" />
-        </SelectTrigger>
-        <SelectContent>
-          {statusFilterOptions.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    <div className="flex flex-1 flex-wrap items-center gap-2 min-w-0">
+      {enableServerSidePagination && onSearchChange && (
+        <div className="w-full sm:flex-1 min-w-0">
+          <Input
+            placeholder="Search by student name or reservation no..."
+            value={searchValue}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="h-9 w-full"
+            leftIcon={<SearchIcon className="h-4 w-4 text-muted-foreground" />}
+          />
+        </div>
+      )}
+      <span className="text-sm font-medium shrink-0">Status:</span>
+      <div className="w-[180px] shrink-0">
+        <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+          <SelectTrigger className="h-9">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            {statusFilterOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
-  ), [statusFilter, onStatusFilterChange, statusFilterOptions]);
+  ), [statusFilter, onStatusFilterChange, statusFilterOptions, enableServerSidePagination, onSearchChange, searchValue]);
 
   return (
     <>
@@ -311,8 +331,8 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
           loading={isLoading || isLoadingPaymentData}
           // Toolbar configuration
           toolbarLeftContent={toolbarLeftContent}
-          showSearch={true}
-          searchPlaceholder="Search students..."
+          showSearch={!enableServerSidePagination || !onSearchChange}
+          searchPlaceholder="Search by student name or reservation no..."
           searchKey="student_name"
           // Pagination configuration
           pagination={enableServerSidePagination ? "server" : "client"}
@@ -347,15 +367,12 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
             {paymentData && (
               <CollegeReservationPaymentProcessor
                 reservationData={paymentData}
-                onPaymentComplete={(incRec: CollegeIncomeRead, blobUrl: string) => {
+                onPaymentComplete={(_incRec: CollegeIncomeRead, _blobUrl: string) => {
                   setShowPaymentProcessor(false);
-                  setReceiptBlobUrl(blobUrl);
                   setTimeout(() => {
                     invalidateAndRefetch(collegeKeys.reservations.root());
                     if (onRefetch) onRefetch();
-                    setRefreshKey(p => p + 1);
-                    setTimeout(() => setShowReceipt(true), 250);
-                    toast({ title: "Payment Successful", variant: "success" });
+                    setRefreshKey((p) => p + 1);
                   }, 0);
                 }}
                 onPaymentFailed={(err) => {

@@ -1,40 +1,32 @@
 
 /**
  * Axios Instance + Interceptors + Refresh Logic
- * 
+ *
  * This module provides a configured Axios instance with:
  * - Automatic Authorization header injection from auth store
  * - 401 response handling with automatic token refresh
  * - Concurrency-safe refresh mechanism (only one refresh call at a time)
  * - Request retry after successful refresh
- * 
+ *
  * SECURITY NOTES:
  * - Access token is stored ONLY in memory (Zustand store), NOT in localStorage
  * - Refresh token is in HttpOnly cookie (set by backend), JavaScript cannot read it
  * - All requests use `withCredentials: true` to send cookies
+ *
+ * CREDENTIALS: All requests to the API must be sent with credentials (withCredentials: true)
+ * so that the refreshToken and context cookies (X-Branch-ID, X-Academic-Year-ID, X-Branch-Type)
+ * are sent and set correctly. Login, refresh, and logout all use this client with credentials.
  */
 
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/core/auth/authStore";
 
-// Base URL for auth endpoints
-// Handle both cases: full URL or path-only
-const ENV_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL) || "https://erpapi.velonex.in";
-
-// Determine the base URL for apiClient
-// If VITE_API_BASE_URL includes /api/v1, remove it (we'll add it back in baseURL)
-// If it's a full URL like "http://localhost:7000/api/v1", extract "http://localhost:7000"
-// If it's a path like "/api/v1", use empty string (relative path)
-// If it's a path like "/api", use empty string (relative path, we'll add /api/v1)
-let API_BASE_URL: string;
-if (ENV_API_BASE_URL.includes("http")) {
-  // Full URL - remove trailing /api/v1 or /api if present
-  API_BASE_URL = ENV_API_BASE_URL.replace(/\/api\/v1\/?$/, "").replace(/\/api\/?$/, "");
-} else {
-  // Path-only - if it starts with /api/v1 or /api, use empty string (relative)
-  // We'll add /api/v1 in the baseURL configuration
-  API_BASE_URL = (ENV_API_BASE_URL.startsWith("/api/v1") || ENV_API_BASE_URL === "/api") ? "" : ENV_API_BASE_URL;
-}
+// Single source: VITE_API_BASE_URL only. Relative "/api/v1" when unset (Vite proxy).
+const envBase = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = envBase?.includes("http")
+  ? envBase.replace(/\/api\/v1\/?$/, "").replace(/\/api\/?$/, "")
+  : "";
+const AXIOS_BASE_URL = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
 
 /**
  * Concurrency-safe refresh mechanism
@@ -161,12 +153,10 @@ async function refreshAccessToken(): Promise<string | null> {
  * Create Axios instance with base configuration
  */
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1",
-  timeout: 30000, // 30 seconds
-  withCredentials: true, // CRITICAL: Send cookies (refreshToken) with all requests
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: AXIOS_BASE_URL,
+  timeout: 30000,
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
 });
 
 /**
@@ -178,17 +168,19 @@ apiClient.interceptors.request.use(
     const state = useAuthStore.getState();
     
     // HARD KILL-SWITCH: Cancel request if user is logged out OR logout is in progress
-    // BUT: Allow login/refresh requests (they don't require authentication)
+    // BUT: Allow login/refresh/logout requests (login/refresh don't require auth; logout must be sent so backend clears cookies)
     // Check both relative path and full URL (config.url can be either)
     const url = config.url || "";
-    const isAuthEndpoint = 
-      url.includes("/auth/login") || 
+    const isAuthEndpoint =
+      url.includes("/auth/login") ||
       url.includes("/auth/refresh") ||
+      url.includes("/auth/logout") ||
       url === "/auth/login" ||
-      url === "/auth/refresh";
-    
-    // Only block authenticated requests, not login/refresh endpoints
-    // CRITICAL: Login/refresh endpoints should work even when not authenticated
+      url === "/auth/refresh" ||
+      url === "/auth/logout";
+
+    // Only block authenticated requests, not login/refresh/logout endpoints
+    // CRITICAL: Login/refresh work when not authenticated; logout must run so backend clears session
     if ((!state.isAuthenticated || state.isLoggingOut) && !isAuthEndpoint) {
       // Cancel the request using axios CancelToken pattern
       const source = axios.CancelToken.source();
@@ -289,17 +281,8 @@ apiClient.interceptors.response.use(
   }
 );
 
-/**
- * Export helper to get base URL with /api/v1 included
- */
+/** Single base URL with /api/v1 for all API usage. */
 export function getApiBaseUrl(): string {
-  // Return the full base URL including /api/v1
-  if (API_BASE_URL.includes("http")) {
-    // Full URL - ensure it includes /api/v1
-    return API_BASE_URL.includes("/api/v1") ? API_BASE_URL : `${API_BASE_URL}/api/v1`;
-  } else {
-    // Path or empty - always return /api/v1
-    return "/api/v1";
-  }
+  return AXIOS_BASE_URL;
 }
 

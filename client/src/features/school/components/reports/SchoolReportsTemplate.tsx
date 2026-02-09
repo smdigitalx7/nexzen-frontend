@@ -23,7 +23,7 @@ import {
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/common/components/shared";
 import { useTabNavigation, useTabEnabled } from "@/common/hooks/use-tab-navigation";
-import { useSchoolIncomeDashboard, useSchoolExpenditureList, useSchoolExpenditureDashboard, useSchoolIncomeList } from "@/features/school/hooks";
+import { useSchoolIncomeDashboard, useSchoolExpenditureList, useSchoolExpenditureDashboard } from "@/features/school/hooks";
 import { IncomeSummaryTable } from "@/features/school/components/reports/components/IncomeSummaryTable";
 import { ExpenditureTable } from "@/features/school/components/reports/components/ExpenditureTable";
 import { AddExpenditureDialog } from "@/features/school/components/reports/components/AddExpenditureDialog";
@@ -50,8 +50,7 @@ export const SchoolReportsTemplate = () => {
   // ✅ OPTIMIZATION: Use static empty arrays to prevent trigger re-renders
   const EMPTY_ARRAY = useMemo(() => [], []);
 
-  // ✅ OPTIMIZATION: Only fetch data when respective tab is active
-  const { data: incomeData = EMPTY_ARRAY } = useSchoolIncomeList(undefined, { enabled: incomeTabEnabled });
+  // ✅ OPTIMIZATION: Only fetch expenditure when tab is active; income is fetched inside IncomeSummaryTable
   const { data: expenditureData = EMPTY_ARRAY } = useSchoolExpenditureList(undefined, { enabled: expenditureTabEnabled });
 
   const {

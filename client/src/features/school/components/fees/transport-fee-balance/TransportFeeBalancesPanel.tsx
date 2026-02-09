@@ -5,7 +5,7 @@ import { useSchoolClasses, useSchoolTransportBalancesList, useSchoolTransportBal
 import { ConcessionUpdateModal } from "@/common/components/shared/ConcessionUpdateModal";
 import { Wallet, User, FileText, Calendar } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
-import { SchoolClassDropdown } from "@/common/components/shared/Dropdowns";
+import { SchoolClassDropdown, SchoolSectionDropdown } from "@/common/components/shared/Dropdowns";
 import type { SchoolTransportFeeBalanceListRead, SchoolTransportFeeBalanceFullRead } from "@/features/school/types";
 import {
   Sheet,
@@ -31,6 +31,7 @@ type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentB
 export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onViewStudent: (s: StudentRow) => void; onExportCSV: () => void; }) {
   const { data: classes = [] } = useSchoolClasses();
   const [balanceClass, setBalanceClass] = useState<string>("");
+  const [balanceSection, setBalanceSection] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
@@ -47,14 +48,25 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
     balanceClass ? parseInt(balanceClass) : undefined,
     [balanceClass]
   );
+
+  // Reset section when class changes
+  useEffect(() => {
+    setBalanceSection(null);
+  }, [classIdNum]);
+
   // Returns full API response: { data, total_pages, current_page, page_size, total_count }
-  const { data: transportResp, isLoading } = useSchoolTransportBalancesList({ class_id: classIdNum, page, page_size: pageSize });
+  const { data: transportResp, isLoading } = useSchoolTransportBalancesList({ 
+    class_id: classIdNum, 
+    page, 
+    page_size: pageSize,
+    section_id: balanceSection ?? undefined,
+  });
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
 
-  // Reset to first page when class changes
+  // Reset to first page when class or section changes
   useEffect(() => {
     setPage(1);
-  }, [classIdNum]);
+  }, [classIdNum, balanceSection]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const { data: selectedBalance } = useSchoolTransportBalance(selectedBalanceId);
   
@@ -100,10 +112,10 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
       transition={{ delay: 0.1 }}
       className="space-y-4"
     >
-      {/* Class Selection Dropdown */}
+      {/* Class and Section Selection */}
       <div className="bg-white p-4 rounded-lg border shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="flex-1 max-w-xs">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex-1 min-w-[200px] max-w-xs">
             <Label htmlFor="class-select">Select Class *</Label>
             <SchoolClassDropdown
               value={classIdNum || null}
@@ -118,8 +130,19 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
               required
             />
           </div>
+          <div className="flex-1 min-w-[200px] max-w-xs">
+            <Label htmlFor="section-select">Section</Label>
+            <SchoolSectionDropdown
+              classId={classIdNum ?? 0}
+              value={balanceSection}
+              onChange={setBalanceSection}
+              placeholder={classIdNum ? "All sections" : "Select class first"}
+              emptyValue
+              emptyValueLabel="All sections"
+            />
+          </div>
           {!classIdNum && (
-            <p className="text-sm text-red-500">
+            <p className="text-sm text-red-500 w-full">
               Please select a class to view fee balances
             </p>
           )}

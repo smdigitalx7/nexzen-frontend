@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   School,
@@ -19,6 +19,7 @@ import {
   useSchoolSubjects,
   useSchoolExams,
   useSchoolTests,
+  useSchoolEnrollmentsAcademicTotal,
 } from "@/features/school/hooks";
 import AcademicYearManagement from "@/features/school/components/academic/academic-years/AcademicYearManagement";
 import { ClassesTab } from "@/features/school/components/academic/classes/ClassesTab";
@@ -50,26 +51,31 @@ const AcademicManagement = () => {
   const academicYearsTabEnabled = useTabEnabled("academic-years", "classes");
   const gradesTabEnabled = useTabEnabled("grades", "classes");
 
-  // ✅ OPTIMIZATION: Minimal data fetching for cards only (lightweight counts)
-  // Cards need minimal data for stats, so we fetch lightweight counts
-  // Full data will be fetched by individual tabs when they become active
+  // Stats cards: single API GET /school/enrollments/dashboard/academic-total (refreshes on any Academic CRUD)
+  const {
+    data: academicTotal,
+    isLoading: academicTotalLoading,
+    isError: academicTotalError,
+    error: academicTotalErrObj,
+  } = useSchoolEnrollmentsAcademicTotal({ enabled: true });
+
+  // Tab content still uses list hooks (only when tab is active)
   const {
     data: backendClasses = [],
     isLoading: classesLoading,
     isError: classesError,
     error: classesErrObj,
   } = useSchoolClasses({
-    enabled: true, // Always enabled for cards (minimal data)
+    enabled: true,
   });
 
-  // ✅ OPTIMIZATION: Only fetch full data when respective tabs are active
   const {
     data: backendSubjects = [],
     isLoading: subjectsLoading,
     isError: subjectsError,
     error: subjectsErrObj,
   } = useSchoolSubjects({
-    enabled: subjectsTabEnabled, // Only fetch when subjects tab is active
+    enabled: subjectsTabEnabled,
   });
 
   const {
@@ -78,7 +84,7 @@ const AcademicManagement = () => {
     isError: examsError,
     error: examsErrObj,
   } = useSchoolExams({
-    enabled: examsTabEnabled, // Only fetch when exams tab is active
+    enabled: examsTabEnabled,
   });
 
   const {
@@ -87,64 +93,46 @@ const AcademicManagement = () => {
     isError: testsError,
     error: testsErrObj,
   } = useSchoolTests({
-    enabled: testsTabEnabled, // Only fetch when tests tab is active
+    enabled: testsTabEnabled,
   });
 
-  // Memoized effective classes
   const effectiveClasses = useMemo(() => backendClasses, [backendClasses]);
 
-  // ✅ OPTIMIZATION: Removed sections queries - sections are fetched on-demand in SectionsTab when class is selected
-  // User requirement: Sections API should NOT be called when Classes tab is active
-  // Sections are only fetched when:
-  // 1. Sections tab is active AND
-  // 2. A specific class is selected in the dropdown
-  // This is handled by SectionsTab component itself
-  const totalSectionsCount = 0; // Cards will show 0 - sections count is not needed for cards
-
-  // Memoized calculations
+  // Stats for cards: from academic-total API when available, else fallback to 0
   const academicStats = useMemo(() => {
-    const totalClasses = effectiveClasses.length;
-    const totalSubjects = backendSubjects.length;
-    const totalTests = tests.length;
-    const totalSections = totalSectionsCount;
-
-    const today = new Date();
-    const toDate = (v: any) => {
-      const d = new Date(v);
-      return isNaN(d.getTime()) ? null : d;
-    };
-
-    const activeExams = exams.filter((exam: any) => {
-      const d = toDate(exam.exam_date);
-      return d ? d >= new Date(today.toDateString()) : false;
-    }).length;
-
+    if (academicTotal) {
+      return {
+        totalClasses: academicTotal.classes_count ?? 0,
+        totalSubjects: academicTotal.subjects_count ?? 0,
+        totalSections: academicTotal.sections_count ?? 0,
+        activeExams: academicTotal.exams_count ?? 0,
+        totalTests: academicTotal.tests_count ?? 0,
+      };
+    }
     return {
-      totalClasses,
-      totalSubjects,
-      totalSections,
-      activeExams,
-      totalTests,
+      totalClasses: 0,
+      totalSubjects: 0,
+      totalSections: 0,
+      activeExams: 0,
+      totalTests: 0,
     };
-  }, [effectiveClasses, backendSubjects, exams, tests, totalSectionsCount]);
+  }, [academicTotal]);
 
-  // ✅ OPTIMIZATION: Loading states - only show loading for cards (classes) and active tab
-  // Note: sectionsLoading is excluded from main loading state to avoid blocking UI
-  // Sections count will update as data arrives (non-blocking)
   const loadingStates = useMemo(() => {
-    // Cards always need classes data, so always show loading for classes
-    // Other data only loads when their respective tabs are active
     const isLoading =
+      academicTotalLoading ||
       classesLoading ||
       (subjectsTabEnabled && subjectsLoading) ||
       (examsTabEnabled && examsLoading) ||
       (testsTabEnabled && testsLoading);
     const hasError =
+      academicTotalError ||
       classesError ||
       (subjectsTabEnabled && subjectsError) ||
       (examsTabEnabled && examsError) ||
       (testsTabEnabled && testsError);
     const errorMessage =
+      (academicTotalErrObj as any)?.message ||
       (classesErrObj as any)?.message ||
       (subjectsTabEnabled && (subjectsErrObj as any)?.message) ||
       (examsTabEnabled && (examsErrObj as any)?.message) ||
@@ -153,6 +141,9 @@ const AcademicManagement = () => {
 
     return { isLoading, hasError, errorMessage };
   }, [
+    academicTotalLoading,
+    academicTotalError,
+    academicTotalErrObj,
     classesLoading,
     subjectsLoading,
     examsLoading,

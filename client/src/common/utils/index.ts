@@ -16,3 +16,4 @@ export * from './query';
 export * from './security';
 export * from './accessibility';
 export * from './auth';
+export * from './cookie';

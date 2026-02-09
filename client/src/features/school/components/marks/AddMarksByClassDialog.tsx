@@ -128,32 +128,17 @@ const AddMarksByClassDialog = ({
     }
   }, [selectedExam, examsData]);
 
-  // Initialize marks data when students/subjects change
+  // Initialize marks data when students/subjects change (flat enrollments from API)
+  const enrollmentsList = enrollmentsData?.enrollments ?? [];
   useEffect(() => {
-    if (!enrollmentsData?.enrollments || !subjectsData?.items) {
-      return;
-    }
-
-    // Flatten enrollments
-    const allEnrollments: SchoolEnrollmentRead[] = [];
-    enrollmentsData.enrollments.forEach((group) => {
-      if (group?.students && Array.isArray(group.students)) {
-        group.students.forEach((student) => {
-          if (student && student.enrollment_id) {
-            allEnrollments.push(student);
-          }
-        });
-      }
-    });
-
-    if (allEnrollments.length === 0 || subjectsData.items.length === 0) {
+    if (!enrollmentsList.length || !subjectsData?.items) {
       return;
     }
 
     setMarksData((prev) => {
       const newMarksData: Record<number, StudentMarksData> = { ...prev };
 
-      allEnrollments.forEach((enrollment) => {
+      enrollmentsList.forEach((enrollment) => {
         const existingData = prev[enrollment.enrollment_id];
         const marks: Record<
           number,
@@ -189,26 +174,12 @@ const AddMarksByClassDialog = ({
 
       return newMarksData;
     });
-  }, [enrollmentsData?.enrollments, subjectsData?.items]);
+  }, [enrollmentsList, subjectsData?.items]);
 
-  // Memoized students list
+  // Memoized students list (flat enrollments from API)
   const students = useMemo(() => {
-    if (!enrollmentsData?.enrollments) {
-      return [];
-    }
-
-    const allEnrollments: SchoolEnrollmentRead[] = [];
-    enrollmentsData.enrollments.forEach((group) => {
-      if (group?.students && Array.isArray(group.students)) {
-        group.students.forEach((student) => {
-          if (student && student.enrollment_id) {
-            allEnrollments.push(student);
-          }
-        });
-      }
-    });
-
-    return allEnrollments.sort((a, b) => {
+    if (!enrollmentsList.length) return [];
+    return [...enrollmentsList].sort((a, b) => {
       const rollA = a.roll_number || "";
       const rollB = b.roll_number || "";
       return rollA.localeCompare(rollB, undefined, {
@@ -216,7 +187,7 @@ const AddMarksByClassDialog = ({
         sensitivity: "base",
       });
     });
-  }, [enrollmentsData?.enrollments]);
+  }, [enrollmentsList]);
 
   // Memoized subjects list
   const subjects = useMemo(() => {

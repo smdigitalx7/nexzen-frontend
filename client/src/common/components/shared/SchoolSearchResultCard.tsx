@@ -1,18 +1,14 @@
-﻿import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  GraduationCap,
   Bus,
   Calendar,
   MapPin,
   CheckCircle,
   Receipt,
-  Building2,
   CreditCard,
   AlertCircle,
-  Hash,
 } from "lucide-react";
 import { Badge } from "@/common/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/common/components/ui/card";
 import { Button } from "@/common/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/common/components/ui/accordion";
 import { Separator } from "@/common/components/ui/separator";
@@ -93,206 +89,147 @@ export function SchoolSearchResultCard({ result, onCollectFee }: SchoolSearchRes
   return (
     <TooltipProvider>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.2 }}
         className="w-full"
       >
-      <Card className="border border-slate-200/80 shadow-xl bg-background overflow-hidden hover:shadow-2xl transition-all duration-500 backdrop-blur-sm">
-        {/* Hero Header */}
-        <div className="relative bg-slate-100 text-slate-900 overflow-hidden border-b border-slate-200">
-          <div className="relative px-6 py-4">
-            <div className="space-y-3">
-              {/* Name Line */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Name:</span>
-                  <span className="text-base font-bold text-slate-900">{studentDetails.student_name}</span>
-                </div>
-                {onCollectFee && hasOutstandingBalance && (
-                  <Button
-                    onClick={onCollectFee}
-                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-sm font-semibold"
-                    size="sm"
-                  >
-                    <CreditCard className="h-4 w-4" />
-                    Collect Fee
-                  </Button>
-                )}
-              </div>
-              {/* Details Line */}
-              <div className="flex items-center gap-6 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Class:</span>
-                  <span className="text-base font-semibold text-slate-900">{getClassDisplay()}</span>
-                </div>
-                <Separator orientation="vertical" className="h-6" />
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Year:</span>
-                  <span className="text-base font-semibold text-slate-900">{studentDetails.academic_year}</span>
-                </div>
-                <Separator orientation="vertical" className="h-6" />
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Admission:</span>
-                  <span className="text-base font-mono font-semibold text-slate-900">{studentDetails.admission_no}</span>
-                </div>
-                {studentDetails.roll_number && (
-                  <>
-                    <Separator orientation="vertical" className="h-6" />
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Roll:</span>
-                      <span className="text-base font-semibold text-slate-900">{studentDetails.roll_number}</span>
-                    </div>
-                  </>
-                )}
-                <Separator orientation="vertical" className="h-6" />
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Branch:</span>
-                  <span className="text-base font-semibold text-slate-900">{studentDetails.branch_name}</span>
-                </div>
-              </div>
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        {/* Student header */}
+        <div className="px-5 py-4 border-b border-border bg-muted/30">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-base font-semibold text-foreground">
+                {studentDetails.student_name}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {getClassDisplay()} · {studentDetails.academic_year}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 font-mono">
+                {studentDetails.admission_no}
+                {studentDetails.roll_number && ` · Roll ${studentDetails.roll_number}`}
+                {studentDetails.branch_name && ` · ${studentDetails.branch_name}`}
+              </p>
             </div>
+            {onCollectFee && hasOutstandingBalance && (
+              <Button
+                onClick={onCollectFee}
+                size="sm"
+                className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <CreditCard className="h-4 w-4 mr-1.5" />
+                Collect Fee
+              </Button>
+            )}
           </div>
         </div>
 
-        <CardContent className="p-0">
-          {/* Quick Stats Bar */}
-          <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
-            <div className="flex items-center gap-6 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-slate-600">Total Outstanding:</span>
-                <span className={cn(
-                  "text-lg font-bold",
-                  hasOutstandingBalance ? "text-red-600" : "text-emerald-600"
-                )}>
-                  {formatCurrency(totalBalance)}
-                </span>
-              </div>
-              <Separator orientation="vertical" className="h-6" />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-slate-600">Tuition Fee:</span>
-                <span className={cn(
-                  "text-lg font-bold",
-                  tuitionBalance > 0 ? "text-red-600" : "text-emerald-600"
-                )}>
-                  {formatCurrency(tuitionBalance)}
-                </span>
-              </div>
-              <Separator orientation="vertical" className="h-6" />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-slate-600">Transport Fee:</span>
-                <span className={cn(
-                  "text-lg font-bold",
-                  transportBalance > 0 ? "text-red-600" : "text-emerald-600"
-                )}>
-                  {formatCurrency(transportBalance)}
-                </span>
-              </div>
-            </div>
+        <div className="p-5 space-y-4">
+          {/* Outstanding */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <span className="text-muted-foreground">Outstanding</span>
+            <span className={cn(
+              "font-semibold",
+              hasOutstandingBalance ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"
+            )}>
+              {formatCurrency(totalBalance)}
+            </span>
+            <span className="text-muted-foreground">·</span>
+            <span className="text-muted-foreground">Tuition</span>
+            <span className={cn(
+              "font-medium",
+              tuitionBalance > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"
+            )}>
+              {formatCurrency(tuitionBalance)}
+            </span>
+            <span className="text-muted-foreground">·</span>
+            <span className="text-muted-foreground">Transport</span>
+            <span className={cn(
+              "font-medium",
+              transportBalance > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"
+            )}>
+              {formatCurrency(transportBalance)}
+            </span>
           </div>
 
-          <div className="p-6 md:p-8 lg:p-10 space-y-8 md:space-y-10">
-            {/* Transport Assignment */}
+          {/* Transport Assignment */}
             {result.transport_assignment && (
-              <Card className="border-l-4 border-l-emerald-500 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-gradient-to-br from-emerald-100 to-emerald-50 dark:bg-emerald-900/30 rounded-xl shadow-sm">
-                        <Bus className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg md:text-xl font-bold text-slate-900">Transport Assignment</CardTitle>
-                        <CardDescription className="text-sm text-slate-500 mt-1">Route and vehicle details</CardDescription>
-                      </div>
-                    </div>
-                    {result.transport_assignment.is_active !== null && (
-                      <Badge
-                        variant={result.transport_assignment.is_active ? "default" : "secondary"}
-                        className={cn(
-                          "text-xs px-3 py-1.5 font-semibold shadow-sm",
-                          result.transport_assignment.is_active && "bg-emerald-500 hover:bg-emerald-600 text-white"
-                        )}
-                      >
-                        {result.transport_assignment.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    )}
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bus className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold text-foreground">Transport</span>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {(result.transport_assignment.start_date || result.transport_assignment.end_date) && (
-                    <div className="mb-4 pb-4 border-b border-slate-200">
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <span className="font-semibold">Period:</span>
-                        {result.transport_assignment.start_date && (
-                          <span>{formatDate(result.transport_assignment.start_date)}</span>
-                        )}
-                        {result.transport_assignment.start_date && result.transport_assignment.end_date && (
-                          <span className="text-slate-400">-</span>
-                        )}
-                        {result.transport_assignment.end_date && (
-                          <span>{formatDate(result.transport_assignment.end_date)}</span>
-                        )}
-                      </div>
-                    </div>
+                  {result.transport_assignment.is_active !== null && (
+                    <Badge
+                      variant={result.transport_assignment.is_active ? "default" : "secondary"}
+                      className={cn(
+                        "text-xs",
+                        result.transport_assignment.is_active && "bg-emerald-600 hover:bg-emerald-700"
+                      )}
+                    >
+                      {result.transport_assignment.is_active ? "Active" : "Inactive"}
+                    </Badge>
                   )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                </div>
+                <div className="p-4">
+                  {(result.transport_assignment.start_date || result.transport_assignment.end_date) && (
+                    <p className="text-xs text-muted-foreground mb-3">
+                      {formatDate(result.transport_assignment.start_date || "")}
+                      {result.transport_assignment.end_date && ` – ${formatDate(result.transport_assignment.end_date)}`}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {result.transport_assignment.route_name && (
-                      <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Route</p>
-                        <p className="text-lg font-bold text-slate-900">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Route</p>
+                        <p className="text-sm font-medium text-foreground">
                           {result.transport_assignment.route_name}
-                          {result.transport_assignment.route_no && (
-                            <span className="text-slate-600 font-normal ml-2 text-sm">#{result.transport_assignment.route_no}</span>
-                          )}
+                          {result.transport_assignment.route_no && ` #${result.transport_assignment.route_no}`}
                         </p>
                       </div>
                     )}
                     {result.transport_assignment.vehicle_number && (
-                      <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Vehicle</p>
-                        <p className="text-lg font-bold text-slate-900 font-mono">{result.transport_assignment.vehicle_number}</p>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Vehicle</p>
+                        <p className="text-sm font-medium text-foreground font-mono">{result.transport_assignment.vehicle_number}</p>
                       </div>
                     )}
                     {result.transport_assignment.pickup_point && (
-                      <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Pickup Point</p>
-                        <p className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                          <MapPin className="h-5 w-5 text-emerald-600" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Pickup</p>
+                        <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
                           {result.transport_assignment.pickup_point}
                         </p>
                       </div>
                     )}
                     {result.transport_assignment.slab_name && (
-                      <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Distance Slab</p>
-                        <p className="text-lg font-bold text-slate-900">{result.transport_assignment.slab_name}</p>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Distance</p>
+                        <p className="text-sm font-medium text-foreground">{result.transport_assignment.slab_name}</p>
                       </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
 
             {/* Fee Summary */}
             {(result.tuition_fee_balance_summary || result.transport_fee_balance_summary) && (
-              <div className="relative">
-                <div className="absolute -left-4 top-0 bottom-0 w-1.5 bg-gradient-to-b from-blue-500 via-indigo-500 to-blue-500 rounded-full shadow-lg"></div>
-                <div className="pl-8">
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="fee-summary" className="border-0">
-                      <AccordionTrigger className="hover:no-underline py-5 px-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-xl border border-blue-100/50 shadow-sm hover:shadow-md transition-all">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className="p-3.5 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl shadow-sm">
-                            <span className="text-2xl font-extrabold text-blue-600">₹</span>
-                          </div>
-                          <div className="text-left">
-                            <h2 className="text-xl font-bold text-slate-900">Fee Summary</h2>
-                            <p className="text-sm text-slate-500 mt-1">Complete fee breakdown and payment status</p>
-                          </div>
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="fee-summary" className="border-0">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/30 [&[data-state=open]]:bg-muted/30">
+                      <div className="flex items-center gap-3 text-left">
+                        <span className="text-lg font-semibold text-foreground">₹</span>
+                        <div>
+                          <span className="text-sm font-semibold text-foreground">Fee summary</span>
+                          <p className="text-xs text-muted-foreground mt-0.5">Breakdown and payment status</p>
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
+                      </div>
+                    </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
                         <div className="space-y-6 pt-6">
                           {/* Tuition Fee */}
                           {result.tuition_fee_balance_summary && (
@@ -575,31 +512,26 @@ export function SchoolSearchResultCard({ result, onCollectFee }: SchoolSearchRes
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
-                </div>
               </div>
             )}
 
             {/* Payment History */}
             {receiptsCount > 0 && (
-              <div className="relative">
-                <div className="absolute -left-4 top-0 bottom-0 w-1.5 bg-gradient-to-b from-purple-500 via-pink-500 to-purple-500 rounded-full shadow-lg"></div>
-                <div className="pl-8">
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="payment-history" className="border-0">
-                      <AccordionTrigger className="hover:no-underline py-5 px-6 bg-gradient-to-r from-purple-50/50 to-pink-50/50 rounded-xl border border-purple-100/50 shadow-sm hover:shadow-md transition-all">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className="p-3.5 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl shadow-sm">
-                            <Receipt className="h-6 w-6 text-purple-600" />
-                          </div>
-                          <div className="text-left">
-                            <h2 className="text-xl font-bold text-slate-900">Payment History</h2>
-                            <p className="text-sm text-slate-500 mt-1">
-                              {receiptsCount} receipt{receiptsCount !== 1 ? "s" : ""} • Total: {formatCurrency(totalReceiptsAmount)}
-                            </p>
-                          </div>
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="payment-history" className="border-0">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/30 [&[data-state=open]]:bg-muted/30">
+                      <div className="flex items-center gap-3 text-left">
+                        <Receipt className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <span className="text-sm font-semibold text-foreground">Payment history</span>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {receiptsCount} receipt{receiptsCount !== 1 ? "s" : ""} · {formatCurrency(totalReceiptsAmount)}
+                          </p>
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
+                      </div>
+                    </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
                         <div className="pt-4">
                           <Table>
                             <TableHeader>
@@ -643,33 +575,24 @@ export function SchoolSearchResultCard({ result, onCollectFee }: SchoolSearchRes
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
-                </div>
               </div>
             )}
           </div>
 
-          {/* Status Footer */}
-          <Separator />
-          <div className="px-6 md:px-8 py-4">
-            <div className={cn(
-              "flex items-center justify-center gap-2 text-sm font-medium",
-              hasOutstandingBalance ? "text-red-600" : "text-emerald-600"
-            )}>
-              {hasOutstandingBalance ? (
-                <>
-                  <AlertCircle className="h-4 w-4" />
-                  <span>Outstanding Balance Detected</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-4 w-4" />
-                  <span>All Fees Paid</span>
-                </>
-              )}
-            </div>
+          <div className="px-5 py-3 border-t border-border bg-muted/20 flex items-center justify-center gap-2 text-sm">
+            {hasOutstandingBalance ? (
+              <>
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <span className="font-medium text-red-600 dark:text-red-400">Outstanding balance</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-4 w-4 text-emerald-600" />
+                <span className="font-medium text-emerald-600 dark:text-emerald-400">All fees paid</span>
+              </>
+            )}
           </div>
-        </CardContent>
-      </Card>
+      </div>
     </motion.div>
     </TooltipProvider>
   );

@@ -1,12 +1,14 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Printer, Eye } from "lucide-react";
+import { Printer, Eye, Clock, Search as SearchIcon } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
+import { Input } from "@/common/components/ui/input";
 import type {
   CollegeIncomeSummary,
-  CollegeIncomeSummaryParams,
+  CollegeIncomeRead,
+  CollegeRecentIncome,
 } from "@/features/college/types";
-import { useCollegeIncomeSummary } from "@/features/college/hooks";
+import { useCollegeIncomeList, useCollegeIncomeRecent } from "@/features/college/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { formatDate } from "@/common/utils";
 import { DataTable } from "@/common/components/shared/DataTable";
@@ -33,35 +35,84 @@ import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 
 import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 
+/** Map list API row to table row shape */
+function listRowToSummary(r: CollegeIncomeRead): CollegeIncomeSummary {
+  return {
+    income_id: r.income_id,
+    branch_id: 0,
+    receipt_no: r.receipt_no ?? "-",
+    student_name: r.student_name ?? "-",
+    identity_no: r.admission_no ?? "-",
+    total_amount: r.total_amount,
+    purpose: "-",
+    created_at: r.created_at,
+  };
+}
+
+/** Map recent API row to table row shape */
+function recentRowToSummary(r: CollegeRecentIncome): CollegeIncomeSummary {
+  return {
+    income_id: r.income_id,
+    branch_id: 0,
+    receipt_no: "-",
+    student_name: r.student_name ?? "-",
+    identity_no: r.admission_no ?? "-",
+    total_amount: r.amount,
+    purpose: r.purpose ?? "-",
+    created_at: r.income_date,
+  };
+}
+
 interface IncomeTableProps {
   onViewIncome?: (income: CollegeIncomeSummary) => void;
-  params?: CollegeIncomeSummaryParams;
-  enabled?: boolean; // ✅ OPTIMIZATION: Allow parent to control when to fetch
+  enabled?: boolean;
 }
+
+const DEFAULT_PAGE_SIZE = 10;
+const RECENT_LIMIT = 5;
 
 export const IncomeTable = ({
   onViewIncome,
-  params = {},
-  enabled = true, // Default to enabled for backward compatibility
+  enabled = true,
 }: IncomeTableProps) => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
-  // Check if user is ADMIN or INSTITUTE_ADMIN
   const canAddOtherIncome =
     user?.role === ROLES.ADMIN || user?.role === ROLES.INSTITUTE_ADMIN;
 
-  // Receipt modal state
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
-
-  // Add Other Income dialog state
   const [showAddOtherIncomeDialog, setShowAddOtherIncomeDialog] =
     useState(false);
 
-  // Tab navigation for Income Summary and Other Income
-  // Use a different query parameter to avoid conflict with parent tabs
+  // List filters (GET /college/income) – server-side search only
+  const [admissionInput, setAdmissionInput] = useState("");
+  const [admissionQuery, setAdmissionQuery] = useState<string | undefined>(undefined);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+  const [page, setPage] = useState(1);
+  const [showRecent, setShowRecent] = useState(false);
+
+  // Debounce search (receipt no, student name) – 500ms like All Reservations
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const v = searchInput.trim();
+      setSearchQuery(v === "" ? undefined : v);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // Debounce admission no – 300ms
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const v = admissionInput.trim();
+      setAdmissionQuery(v === "" ? undefined : v);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [admissionInput]);
+
   const { getQueryParam, setQueryParam } = useTabNavigation("income-summary");
   const activeTab = getQueryParam("incomeTab") || "income-summary";
   const setActiveTab = useCallback(
@@ -71,19 +122,32 @@ export const IncomeTable = ({
     [setQueryParam]
   );
 
-  // ✅ OPTIMIZATION: Only fetch when enabled (tab is active)
-  const {
-    data: incomeResponse,
-    isLoading: isLoadingIncome,
-    error: incomeError,
-    refetch,
-  } = useCollegeIncomeSummary(params, {
-    enabled: enabled && activeTab === "income-summary",
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, admissionQuery]);
+
+  const listParams = useMemo(
+    () => ({
+      admission_no: admissionQuery ?? undefined,
+      search: searchQuery ?? undefined,
+      page,
+      page_size: DEFAULT_PAGE_SIZE,
+    }),
+    [admissionQuery, searchQuery, page]
+  );
+
+  const listEnabled = enabled && activeTab === "income-summary" && !showRecent;
+  const recentEnabled = enabled && activeTab === "income-summary" && showRecent;
+
+  const { data: listResponse, isLoading: isLoadingList, error: listError } = useCollegeIncomeList(listParams, {
+    enabled: listEnabled,
   });
 
-  // Fetch other income records (only when other-income tab is active)
-  const otherIncomeQueryKey = useMemo(() => ["college-other-income"], []);
+  const { data: recentData, isLoading: isLoadingRecent } = useCollegeIncomeRecent(RECENT_LIMIT, {
+    enabled: recentEnabled,
+  });
 
+  const otherIncomeQueryKey = useMemo(() => ["college-other-income"], []);
   const {
     data: otherIncomeData,
     isLoading: isLoadingOtherIncome,
@@ -97,11 +161,25 @@ export const IncomeTable = ({
     refetchOnMount: true,
   });
 
-  const isLoading = isLoadingIncome;
-  const error = incomeError;
+  const incomeData = useMemo<CollegeIncomeSummary[]>(() => {
+    if (showRecent) {
+      const arr = Array.isArray(recentData) ? recentData : [];
+      return arr.map(recentRowToSummary);
+    }
+    const raw = listResponse as { data?: CollegeIncomeRead[]; total_count?: number } | undefined;
+    const arr = Array.isArray(raw) ? raw : (raw?.data ?? []);
+    return arr.map(listRowToSummary);
+  }, [showRecent, listResponse, recentData]);
 
-  const incomeData = incomeResponse?.data || [];
-  const totalCount = incomeResponse?.total_count || 0;
+  const totalCount = useMemo(() => {
+    if (showRecent) return (Array.isArray(recentData) ? recentData : []).length;
+    const raw = listResponse as { data?: unknown[]; total_count?: number } | undefined;
+    if (Array.isArray(raw)) return raw.length;
+    return raw?.total_count ?? 0;
+  }, [showRecent, listResponse, recentData]);
+
+  const isLoading = showRecent ? isLoadingRecent : isLoadingList;
+  const error = listError;
 
   // Memoize columns to prevent re-render loops (DataTable V2)
   const columns = useMemo<ColumnDef<CollegeIncomeSummary>[]>(() => [
@@ -245,22 +323,7 @@ export const IncomeTable = ({
     return list;
   }, [onViewIncome, handlePrintReceipt, loadingReceiptId]);
 
-  // Handle loading and error states
-  if (isLoading) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="space-y-4"
-      >
-        <div className="flex items-center justify-center p-8">
-          <div className="text-gray-500">Loading income data...</div>
-        </div>
-      </motion.div>
-    );
-  }
-
+  // Error state only; loading is handled inside DataTable (skeleton in table)
   if (error) {
     return (
       <motion.div
@@ -292,16 +355,50 @@ export const IncomeTable = ({
             value: "income-summary",
             label: "Income Summary",
             icon: IndianRupeeIcon,
-            badge: incomeResponse?.total_count || 0,
+            badge: totalCount,
             content: (
               <>
-                {/* Income Summary Table (DataTable V2) */}
                 <DataTable<CollegeIncomeSummary>
                   data={incomeData || []}
                   columns={columns}
                   title="Income Records"
-                  searchKey="receipt_no"
-                  searchPlaceholder="Search by receipt no, student name, or identity no..."
+                  showSearch={false}
+                  toolbarLeftContent={
+                    <div className="flex flex-1 flex-wrap items-center gap-2 min-w-0">
+                      <div className="w-full sm:flex-1 min-w-0">
+                        <Input
+                          placeholder="Search by receipt no or student name..."
+                          value={searchInput}
+                          onChange={(e) => setSearchInput(e.target.value)}
+                          className="h-9 w-full"
+                          leftIcon={<SearchIcon className="h-4 w-4 text-muted-foreground" />}
+                        />
+                      </div>
+                      <div className="w-[160px] shrink-0">
+                        <Input
+                          placeholder="Admission no"
+                          value={admissionInput}
+                          onChange={(e) => setAdmissionInput(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant={showRecent ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setShowRecent((v) => !v)}
+                        className="shrink-0 h-9"
+                      >
+                        <Clock className="h-4 w-4 mr-1" />
+                        Recent ({RECENT_LIMIT})
+                      </Button>
+                      {showRecent && (
+                        <Button type="button" variant="ghost" size="sm" className="h-9 shrink-0" onClick={() => setShowRecent(false)}>
+                          Show all
+                        </Button>
+                      )}
+                    </div>
+                  }
                   loading={isLoading}
                   export={{ enabled: true, filename: "income-records" }}
                   actions={actions}

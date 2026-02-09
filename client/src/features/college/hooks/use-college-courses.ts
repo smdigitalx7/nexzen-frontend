@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeCoursesService } from "@/features/college/services/courses.service";
 import type { CollegeCourseCreate, CollegeCourseList, CollegeCourseResponse, CollegeCourseUpdate } from "@/features/college/types/index.ts";
 import { collegeKeys } from "./query-keys";
@@ -28,6 +28,7 @@ export function useCreateCollegeCourse() {
     mutationFn: (payload: CollegeCourseCreate) => CollegeCoursesService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.courses.root(), type: 'active' });
     },
   }, "Course created successfully");
@@ -40,6 +41,7 @@ export function useUpdateCollegeCourse(courseId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.courses.detail(courseId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.courses.root(), type: 'active' });
     },
   }, "Course updated successfully");
@@ -51,6 +53,7 @@ export function useDeleteCollegeCourse() {
     mutationFn: (courseId: number) => CollegeCoursesService.delete(courseId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.courses.root(), type: 'active' });
     },
   }, "Course deleted successfully");

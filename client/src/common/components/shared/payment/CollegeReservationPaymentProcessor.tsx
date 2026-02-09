@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   CreditCard,
@@ -22,6 +22,8 @@ import { RadioGroup, RadioGroupItem } from "@/common/components/ui/radio-group";
 import { handleCollegePayByReservation } from "@/core/api/api-college";
 import type { CollegeIncomeRead } from "@/features/college/types/income";
 import type { ReservationPaymentData } from "./ReservationPaymentProcessor";
+import { useToast } from "@/common/hooks/use-toast";
+import { openReceiptInNewTab } from "@/common/utils/payment";
 import { cn } from "@/common/utils";
 import {
   PAYMENT_METHOD_OPTIONS,
@@ -52,10 +54,10 @@ const CollegeReservationPaymentProcessor: React.FC<
   onPaymentCancel,
   className,
 }) => {
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<
     "confirm" | "processing" | "success" | "failed"
   >("confirm");
-  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [incomeRecord, setIncomeRecord] = useState<CollegeIncomeRead | null>(
     null
@@ -83,10 +85,10 @@ const CollegeReservationPaymentProcessor: React.FC<
           `Payment for reservation ${reservationData.reservationNo}`,
       };
 
-      // Call the college payment API
+      // API path uses reservation_id (integer), not reservation_no
       const { blobUrl, income_id, paymentData } =
         await handleCollegePayByReservation(
-          reservationData.reservationNo,
+          reservationData.reservationId,
           payload
         );
 
@@ -106,17 +108,22 @@ const CollegeReservationPaymentProcessor: React.FC<
       setIncomeRecord(incomeRecord);
       setCurrentStep("success");
 
-      // Pass the receipt blob URL to parent component to display
-      setReceiptBlobUrl(blobUrl);
-
-      // Extract receipt number from payment data
-      const receiptNo = paymentData.data?.context?.receipt_no || 
-                       paymentData.context?.receipt_no || 
-                       incomeRecord.receipt_no || 
+      const receiptNo = paymentData.data?.context?.receipt_no ||
+                       paymentData.context?.receipt_no ||
+                       incomeRecord.receipt_no ||
                        null;
 
-      // Pass income record, blob URL, and receipt number to parent
-      onPaymentComplete?.(incomeRecord, blobUrl, receiptNo);
+      // Same as collect fee: open receipt in new tab with receipt number as tab title
+      if (blobUrl) {
+        openReceiptInNewTab(blobUrl, receiptNo);
+        toast({
+          title: "Payment successful",
+          description: "Receipt opened in new tab.",
+          variant: "success",
+        });
+      }
+
+      onPaymentComplete?.(incomeRecord, blobUrl, receiptNo ?? undefined);
     } catch (err: any) {
       console.error("❌ Payment failed:", err);
       setCurrentStep("failed");

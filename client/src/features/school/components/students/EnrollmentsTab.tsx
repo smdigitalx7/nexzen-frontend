@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { DataTable } from '@/common/components/shared';
 import type { ActionConfig } from "@/common/components/shared/DataTable/types";
-import { Eye } from "lucide-react";
+import { Eye, Search as SearchIcon } from "lucide-react";
+import { Input } from "@/common/components/ui/input";
 import {
   EnrollmentSearchForm,
   EnrollmentViewDialog,
@@ -28,6 +29,20 @@ const EnrollmentsTabComponent = () => {
     section_id: '', 
     admission_no: '' 
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    const t = setTimeout(() => setSearchQuery(trimmed === "" ? undefined : trimmed), 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   // ✅ OPTIMIZATION: Only fetch dropdowns when tab is active
   // ✅ FIX: Get loading states from hooks, not just data existence
@@ -54,18 +69,18 @@ const EnrollmentsTabComponent = () => {
   // Use enrollment sections if available, otherwise use regular sections
   const allSections = enrollmentClassId ? (enrollmentSectionsData?.items || sections) : sections;
 
-  // Memoized API parameters - class_id is required
+  // Memoized API parameters - class_id required; include pagination and server-side search
   const apiParams = useMemo(() => {
     if (!shouldFetchEnrollments) return undefined;
-    const params: Record<string, number | string> = {};
-    if (query.class_id) {
-      params.class_id = Number(query.class_id);
-      if (query.section_id) {
-        params.section_id = Number(query.section_id);
-      }
-    }
+    const params: Record<string, number | string | undefined> = {
+      class_id: Number(query.class_id),
+      page: currentPage,
+      page_size: pageSize,
+      search: searchQuery ?? undefined,
+    };
+    if (query.section_id) params.section_id = Number(query.section_id);
     return params;
-  }, [query.class_id, query.section_id, shouldFetchEnrollments]);
+  }, [query.class_id, query.section_id, shouldFetchEnrollments, currentPage, pageSize, searchQuery]);
 
   // ✅ OPTIMIZATION: API hooks - only fetch when tab is active and params are valid
   const result = useSchoolEnrollmentsList({
@@ -105,6 +120,7 @@ const EnrollmentsTabComponent = () => {
       ...prev, 
       section_id: value ? Number(value) : '' 
     }));
+    setCurrentPage(1);
   }, []);
 
   const handleAdmissionNoChange = useCallback((value: string) => {
@@ -118,24 +134,22 @@ const EnrollmentsTabComponent = () => {
     setQuery({ class_id: '', section_id: '', admission_no: '' });
   }, []);
 
-  // Handle class change - reset section when class changes
+  // Handle class change - reset section and pagination when class changes
   const handleClassChange = useCallback((value: string) => {
     setQuery(prev => ({ 
       ...prev, 
       class_id: value ? Number(value) : '', 
-      section_id: '' // Reset section when class changes
+      section_id: '',
     }));
+    setCurrentPage(1);
   }, []);
 
-  // Flatten enrollments data for table
+  // Enrollments data for table (flat list from API + optional class_name from dropdown)
   const flatData = useMemo(() => {
     // If admission_no is provided, use the by-admission endpoint result
     if (shouldUseAdmissionNo && admissionNoResult.data) {
-      // Transform single enrollment to match table format
       const enrollment = admissionNoResult.data;
-      // Find class name from classes dropdown
       const classInfo = classes.find(c => c.class_id === enrollment.class_id);
-      // Find section name from sections dropdown
       const sectionInfo = allSections.find(s => s.section_id === enrollment.section_id);
       return [{
         enrollment_id: enrollment.enrollment_id,
@@ -151,19 +165,13 @@ const EnrollmentsTabComponent = () => {
         is_active: enrollment.is_active,
       } as SchoolEnrollmentRead];
     }
-    
-    // Otherwise, use the list endpoint result
-    if (!result.data?.enrollments) return [];
-    const flattened: SchoolEnrollmentRead[] = [];
-    result.data.enrollments.forEach(classGroup => {
-      if (classGroup.students && Array.isArray(classGroup.students)) {
-        flattened.push(...classGroup.students.map(student => ({
-          ...student,
-          class_name: classGroup.class_name
-        })));
-      }
-    });
-    return flattened;
+    // List endpoint returns flat enrollments array
+    const list = result.data?.enrollments ?? [];
+    if (!Array.isArray(list) || list.length === 0) return [];
+    return list.map((e) => ({
+      ...e,
+      class_name: classes.find((c) => c.class_id === e.class_id)?.class_name ?? '',
+    }));
   }, [shouldUseAdmissionNo, admissionNoResult.data, result.data?.enrollments, classes, allSections]);
 
   // Action configurations for DataTable V2
@@ -223,18 +231,40 @@ const EnrollmentsTabComponent = () => {
         onClear={handleClear}
       />
 
-      {/* Enhanced Data Table */}
-      {/* Data Table V2 */}
+      {/* Data Table with server-side search (same pattern as Reservations) */}
       <DataTable
         data={flatData}
         columns={columns}
         title="Student Enrollments"
         searchKey="student_name"
-        searchPlaceholder="Search by student name..."
+        searchPlaceholder="Search by admission no or student name..."
+        showSearch={!shouldFetchEnrollments}
         loading={isLoading}
         export={{ enabled: true, filename: "enrollments" }}
         actions={actions}
         actionsHeader="Actions"
+        pagination="server"
+        totalCount={result.data?.total_count ?? 0}
+        currentPage={result.data?.current_page ?? currentPage}
+        pageSize={result.data?.page_size ?? pageSize}
+        onPageChange={(page) => setCurrentPage(page)}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        toolbarLeftContent={
+          shouldFetchEnrollments ? (
+            <div className="w-full sm:flex-1 min-w-0">
+              <Input
+                placeholder="Search by admission no or student name..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="h-9 w-full"
+                leftIcon={<SearchIcon className="h-4 w-4 text-muted-foreground" />}
+              />
+            </div>
+          ) : undefined
+        }
       />
 
       {/* View Enrollment Dialog */}

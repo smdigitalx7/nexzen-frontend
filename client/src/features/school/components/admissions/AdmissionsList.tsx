@@ -2,7 +2,8 @@ import React, { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/common/components/ui/badge";
 import { Button } from "@/common/components/ui/button";
-import { Eye } from "lucide-react";
+import { Input } from "@/common/components/ui/input";
+import { Eye, Search as SearchIcon } from "lucide-react";
 import { useSchoolAdmissions } from "@/features/school/hooks";
 import { toast } from "@/common/hooks/use-toast";
 import { exportAdmissionsToExcel } from "@/common/utils/export/admissionsExport";
@@ -30,15 +31,14 @@ StatusBadge.displayName = "StatusBadge";
 
 const AdmissionsListComponent = () => {
   const navigate = useNavigate();
-  // ✅ Server-side pagination state
+  // Server-side pagination (minimum page size 25)
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
-    // Debounce search
-    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 500);
     return () => clearTimeout(t);
   }, [search]);
 
@@ -185,10 +185,19 @@ const AdmissionsListComponent = () => {
         columns={columns}
         title="Student Admissions"
         loading={isLoading}
-        showSearch={true}
-        searchPlaceholder="Search admissions (no, name, group)..."
-        searchValue={search}
-        onSearchChange={setSearch}
+        showSearch={false}
+        searchPlaceholder="Search by admission no or student name..."
+        toolbarLeftContent={
+          <div className="w-full sm:flex-1 min-w-0">
+            <Input
+              placeholder="Search by admission no or student name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9 w-full"
+              leftIcon={<SearchIcon className="h-4 w-4 text-muted-foreground" />}
+            />
+          </div>
+        }
         export={{ enabled: true, onExport: handleExportAll }}
         actions={actions}
         actionsHeader="Actions"
@@ -196,6 +205,7 @@ const AdmissionsListComponent = () => {
         currentPage={paginationMeta.current_page}
         totalCount={paginationMeta.total_count}
         pageSize={paginationMeta.page_size}
+        pageSizeOptions={[25, 50, 100]}
         onPageChange={(page) => {
           setCurrentPage(page);
           window.scrollTo({ top: 0, behavior: "smooth" });

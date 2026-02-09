@@ -14,6 +14,7 @@ import { apiClient } from "@/core/api";
 import { cancelAllRequests } from "@/core/api/request-cancellation";
 import type { AxiosError } from "axios";
 import { toast } from "@/common/hooks/use-toast";
+import { getCookie } from "@/common/utils/cookie";
 
 // Import extracted types and modules
 export type {
@@ -39,6 +40,7 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: false,
         isLoading: false,
         isBranchSwitching: false,
+        isAcademicYearSwitching: false,
         isTokenRefreshing: false,
         isAuthInitializing: true, // Start as true - will be set to false after bootstrapAuth completes
         isLoggingOut: false, // Flag to prevent race conditions (idle timeout, interceptor, manual logout)
@@ -95,9 +97,8 @@ export const useAuthStore = create<AuthState>()(
         // New actions matching backend contract
         /**
          * Bootstrap auth on app startup
-         * Calls POST /api/v1/auth/refresh to restore session from refreshToken cookie
-         * Only clears auth state if user is not already authenticated
-         * CRITICAL: Skips restoration if logout was just initiated (prevents session restore after idle timeout)
+         * Calls POST /api/v1/auth/refresh to restore session from refreshToken cookie.
+         * On logout we clear all storage; refresh will fail (cookie gone) and RequireAuth shows login.
          */
         bootstrapAuth: async () => {
           const currentState = get();
@@ -112,43 +113,6 @@ export const useAuthStore = create<AuthState>()(
               console.log("Skipping bootstrapAuth: logout is in progress");
             }
             return;
-          }
-
-          // CRITICAL: Check if logout was just initiated (BEFORE any API calls)
-          // Check both localStorage and sessionStorage for the flag
-          // If logout happened within last 5 minutes, skip bootstrap
-          if (typeof window !== "undefined") {
-            const logoutTimestamp = localStorage.getItem("__logout_initiated__") || 
-                                   (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("__logout_initiated__") : null);
-            
-            if (logoutTimestamp) {
-              const logoutTime = parseInt(logoutTimestamp, 10);
-              const timeSinceLogout = Date.now() - logoutTime;
-              const FIVE_MINUTES = 5 * 60 * 1000;
-              
-              // If logout happened within last 5 minutes, skip bootstrap
-              if (timeSinceLogout < FIVE_MINUTES) {
-                // Clear the flags
-                localStorage.removeItem("__logout_initiated__");
-                if (typeof sessionStorage !== "undefined") {
-                  sessionStorage.removeItem("__logout_initiated__");
-                }
-                
-                // Skip bootstrap - don't restore session after logout
-                set((state) => {
-                  state.isAuthInitializing = false;
-                  state.isAuthenticated = false;
-                  state.accessToken = null;
-                  state.tokenExpireAt = null;
-                  state.user = null;
-                });
-                
-                if (process.env.NODE_ENV === "development") {
-                  console.log(`Skipping bootstrapAuth: logout was initiated ${Math.round(timeSinceLogout / 1000)}s ago`);
-                }
-                return;
-              }
-            }
           }
 
           // Skip bootstrap if already authenticated (user just logged in)
@@ -180,8 +144,58 @@ export const useAuthStore = create<AuthState>()(
                 state.tokenExpireAt = expireAtMs;
               });
 
-              // Set user info
+              // Set user info (currentBranch is set to first branch; we overwrite from /auth/me next)
               get().setUser(response.data.user_info);
+
+              // CRITICAL: Sync branch from backend cookies (X-Branch-ID, X-Branch-Type), not from local storage or first branch.
+              // GET /auth/me is sent with current cookies, so response reflects the backend's branch context.
+              try {
+                const meResponse = await apiClient.get("/auth/me");
+                const meData = meResponse.data;
+                if (meData && get().user) {
+                  set((state) => {
+                    if (!state.user) return;
+                    if (meData.user_id != null) state.user.user_id = String(meData.user_id);
+                    if (meData.institute_id != null) state.user.institute_id = String(meData.institute_id);
+                    if (meData.current_branch_id != null) {
+                      state.user.current_branch_id = meData.current_branch_id;
+                      const branchMatch = state.branches.find(
+                        (b) => b.branch_id === meData.current_branch_id
+                      );
+                      if (branchMatch) {
+                        state.currentBranch = branchMatch;
+                        if (branchMatch.roles?.length) {
+                          const roleFromBranch = extractPrimaryRole(branchMatch.roles);
+                          if (roleFromBranch) {
+                            const normalized = normalizeRole(roleFromBranch);
+                            if (normalized) state.user.role = normalized;
+                          }
+                        }
+                      } else {
+                        const bt = meData.current_branch?.toUpperCase();
+                        const branchType: "COLLEGE" | "SCHOOL" = bt === "COLLEGE" ? "COLLEGE" : "SCHOOL";
+                        state.currentBranch = {
+                          branch_id: meData.current_branch_id,
+                          branch_name: meData.branch_name ?? "",
+                          branch_type: branchType,
+                          roles: meData.roles?.map((r: { role: string }) => r.role) ?? [],
+                        };
+                        if (meData.roles?.length) {
+                          const roleFromBranch = extractPrimaryRole(meData.roles.map((r: { role: string }) => r.role));
+                          if (roleFromBranch) {
+                            const normalized = normalizeRole(roleFromBranch);
+                            if (normalized) state.user.role = normalized;
+                          }
+                        }
+                      }
+                    }
+                  });
+                }
+              } catch (meError) {
+                if (process.env.NODE_ENV === "development") {
+                  console.warn("Failed to sync branch from /auth/me after refresh:", meError);
+                }
+              }
 
               // Set authenticated
               set((state) => {
@@ -287,66 +301,55 @@ export const useAuthStore = create<AuthState>()(
               throw setUserError;
             }
 
-            // Optionally get additional user info from /auth/me (user_id, institute_id, current_branch_id)
-            // This is optional - if backend doesn't provide it, we use defaults
+            // CRITICAL: Sync branch and user from /auth/me so UI matches backend cookies (X-Branch-ID, X-Branch-Type).
+            // Brief delay so the browser has applied Set-Cookie from the login response before we call /auth/me.
+            await new Promise((resolve) => setTimeout(resolve, 50));
             try {
               const meResponse = await apiClient.get("/auth/me");
-              if (meResponse.data) {
-                const currentState = get();
-                if (currentState.user && meResponse.data) {
-                  const meData = meResponse.data;
-                  set((state) => {
-                    if (state.user) {
-                      if (meData.user_id) {
-                        state.user.user_id = String(meData.user_id);
+              const meData = meResponse.data;
+              if (meData && get().user) {
+                set((state) => {
+                  if (!state.user) return;
+                  if (meData.user_id != null) state.user.user_id = String(meData.user_id);
+                  if (meData.institute_id != null) state.user.institute_id = String(meData.institute_id);
+                  if (meData.current_branch_id != null) {
+                    state.user.current_branch_id = meData.current_branch_id;
+                    const branchMatch = state.branches.find(
+                      (b) => b.branch_id === meData.current_branch_id
+                    );
+                    if (branchMatch) {
+                      state.currentBranch = branchMatch;
+                      if (branchMatch.roles?.length) {
+                        const roleFromBranch = extractPrimaryRole(branchMatch.roles);
+                        if (roleFromBranch) {
+                          const normalized = normalizeRole(roleFromBranch);
+                          if (normalized) state.user.role = normalized;
+                        }
                       }
-                      if (meData.institute_id) {
-                        state.user.institute_id = String(meData.institute_id);
-                      }
-                      if (meData.current_branch_id) {
-                        state.user.current_branch_id = meData.current_branch_id;
-                        // Update current branch if branch_id changed
-                        // Ensure branches is an array before calling find
-                        if (Array.isArray(state.branches) && state.branches.length > 0) {
-                          const branch = state.branches.find(
-                            (b) => b.branch_id === meData.current_branch_id
-                          );
-                          if (branch) {
-                            state.currentBranch = branch;
-                            // Update role from the actual current branch
-                            if (branch.roles && Array.isArray(branch.roles) && branch.roles.length > 0) {
-                              const roleFromBranch = extractPrimaryRole(branch.roles);
-                              if (roleFromBranch) {
-                                const normalizedRole = normalizeRole(roleFromBranch);
-                                if (normalizedRole) {
-                                  state.user.role = normalizedRole;
-                                }
-                              }
-                            }
-                          }
+                    } else {
+                      // Fallback: build currentBranch from /auth/me so UI and API context stay in sync
+                      const bt = meData.current_branch?.toUpperCase();
+                      const branchType: "COLLEGE" | "SCHOOL" = bt === "COLLEGE" ? "COLLEGE" : "SCHOOL";
+                      state.currentBranch = {
+                        branch_id: meData.current_branch_id,
+                        branch_name: meData.branch_name ?? "",
+                        branch_type: branchType,
+                        roles: meData.roles?.map((r: { role: string }) => r.role) ?? [],
+                      };
+                      if (meData.roles?.length) {
+                        const roleFromBranch = extractPrimaryRole(meData.roles.map((r: { role: string }) => r.role));
+                        if (roleFromBranch) {
+                          const normalized = normalizeRole(roleFromBranch);
+                          if (normalized) state.user.role = normalized;
                         }
                       }
                     }
-                  });
-                }
+                  }
+                });
               }
             } catch (error) {
-              // If /auth/me fails, continue with defaults from login response
-              // Role identification is already set from login response branches
               if (process.env.NODE_ENV === "development") {
-                console.warn("Failed to get additional user info from /auth/me:", error);
-              }
-            }
-
-            // CRITICAL: Clear logout flag on successful login
-            // This allows bootstrapAuth to work normally after login
-            if (typeof window !== "undefined") {
-              localStorage.removeItem("__logout_initiated__");
-              if (typeof sessionStorage !== "undefined") {
-                sessionStorage.removeItem("__logout_initiated__");
-              }
-              if (process.env.NODE_ENV === "development") {
-                console.log("Logout flag cleared after successful login");
+                console.warn("Failed to sync from /auth/me after login:", error);
               }
             }
 
@@ -391,124 +394,61 @@ export const useAuthStore = create<AuthState>()(
         logout: async (reason?: "idle_timeout" | "manual" | "token_expired") => {
           const currentState = get();
           
-          // CRITICAL: Prevent double logout (race condition protection)
-          // If logout is already in progress, return early
-          if (currentState.isLoggingOut) {
-            if (process.env.NODE_ENV === "development") {
-              console.log("Logout already in progress, skipping duplicate call");
-            }
-            return;
-          }
+          if (currentState.isLoggingOut) return;
 
-          // HARD KILL-SWITCH: Step 1 - Set logout flag IMMEDIATELY
-          // This triggers apiClient interceptor to cancel ALL requests
           set((state) => {
             state.isLoggingOut = true;
           });
           
-          // HARD KILL-SWITCH: Step 2 - Cancel ALL React Query queries IMMEDIATELY
-          // This aborts in-flight queries and prevents new ones
+          // HARD KILL-SWITCH
           try {
-            await queryClient.cancelQueries(); // Cancel all in-flight queries
-            queryClient.clear(); // Clear entire cache
+            await queryClient.cancelQueries();
+            queryClient.clear();
           } catch (e) {
             console.warn("Failed to clear React Query cache:", e);
           }
-          
-          // HARD KILL-SWITCH: Step 3 - Cancel all active fetch requests
-          cancelAllRequests();
-
-          // Step 4: Set flag to prevent bootstrapAuth from restoring session after logout
-          // CRITICAL: Use localStorage with timestamp - persists across page reloads
-          // This must be set BEFORE calling logout API and BEFORE any redirect
-          if (typeof window !== "undefined") {
-            const logoutTimestamp = Date.now().toString();
-            localStorage.setItem("__logout_initiated__", logoutTimestamp);
-            // Also set in sessionStorage as backup
-            if (typeof sessionStorage !== "undefined") {
-              sessionStorage.setItem("__logout_initiated__", logoutTimestamp);
-            }
-            if (process.env.NODE_ENV === "development") {
-              console.log("Logout flag set with timestamp:", logoutTimestamp);
-            }
-          }
-
-          // Step 5: Perform logout API request DIRECTLY
-          // CRITICAL: Wait for logout API to complete before clearing state
-          // This ensures the refresh token is invalidated on the backend
-          let logoutMessage = "You have been logged out successfully.";
           try {
-            // Call logout API directly - this invalidates the refresh token on backend
-            const response = await apiClient.post<{ message?: string }>("/auth/logout", {}, {
-              withCredentials: true, // Ensure cookies are sent
-            });
-            if (response?.data?.message) {
-              logoutMessage = response.data.message;
-            }
+            // Use AuthService for consistency
+            await AuthService.logout();
             if (process.env.NODE_ENV === "development") {
-              console.log("Logout API call completed successfully - refresh token invalidated");
+              console.log("Logout API call completed successfully");
             }
           } catch (error) {
-            // Log error but continue with client-side cleanup
-            const axiosError = error as AxiosError;
             if (process.env.NODE_ENV === "development") {
-              console.warn("Backend logout endpoint failed:", axiosError.message);
-              console.log("Continuing with client-side cleanup - flag will prevent session restore");
+              console.warn("Backend logout failed:", error);
             }
-            // Continue with cleanup even if backend logout fails
-            // The localStorage flag will prevent bootstrapAuth from restoring session
           }
 
-          // Step 6: Clear all auth state (AFTER logout API call)
-          set((state) => {
-            state.isAuthenticated = false;
-            state.accessToken = null;
-            state.tokenExpireAt = null;
-            state.user = null;
-            state.branches = [];
-            state.currentBranch = null;
-            state.isLoading = false;
-            state.error = null;
-            // Keep isLoggingOut = true until redirect completes
+          // Clear auth store state
+          set({
+            user: null,
+            isAuthenticated: false,
+            academicYear: null,
+            academicYears: [],
+            accessToken: null,
+            tokenExpireAt: null,
+            branches: [],
+            currentBranch: null,
+            isLoading: false,
+            isBranchSwitching: false,
+            isAcademicYearSwitching: false,
+            isLoggingOut: false,
+            error: null,
+            lastError: null,
           });
 
-          // Step 7: Show toast (non-blocking, won't delay redirect)
+          // Clear ALL storage (full clear on logout; bootstrap will run on next load, refresh will fail)
           if (typeof window !== "undefined") {
+            AuthTokenTimers.clearProactiveRefresh();
+            sessionStorage.clear();
+            localStorage.clear();
             try {
-              // Show appropriate toast message based on logout reason
-              if (reason === "idle_timeout") {
-                toast({
-                  title: "Session expired",
-                  description: "You have been logged out due to inactivity. Please log in again.",
-                  variant: "destructive",
-                });
-              } else {
-                toast({
-                  title: "Logout successful",
-                  description: logoutMessage,
-                  variant: "success",
-                });
-              }
-            } catch (toastError) {
-              console.error("Failed to show logout toast:", toastError);
+              useCacheStore.getState().clear();
+            } catch (e) {
+              console.warn("Failed to clear cache store:", e);
             }
-          }
-
-          // Step 8: Hard redirect to login page IMMEDIATELY (LAST step)
-          // CRITICAL: Redirect immediately after logout API completes
-          // Use replace() instead of href to prevent back button issues
-          // This ensures a fresh page load - bootstrapAuth will check the logout flag
-          if (typeof window !== "undefined") {
-            // Use a short delay to ensure state updates are flushed
-            setTimeout(() => {
-              // Only redirect if we're not already on the login page
-              if (window.location.pathname !== "/login") {
-                window.location.replace("/login");
-              } else {
-                // If already on login page, just reload to ensure clean slate
-                window.location.reload();
-              }
-            }, 100);
+            // Flag for login page to show "Successfully logged out" toast (set after clear so it survives until login mounts)
+            sessionStorage.setItem("showLogoutToast", "1");
           }
         },
 
@@ -557,27 +497,30 @@ export const useAuthStore = create<AuthState>()(
             };
           });
 
-          // CRITICAL: Preserve stored currentBranch if it exists and is valid
-          // This prevents resetting to first branch on page refresh
-          const currentState = get();
-          let currentBranch: typeof branchList[0] | null = null;
+          // CRITICAL: Sync branch from backend cookies (X-Branch-ID, X-Branch-Type) if available.
+          // This ensures that on refresh, the UI matches the backend's branch context (cookies) immediately,
+          // preventing the "switch to default" issues where the UI shows School while API context is College.
+          const cookieBranchId = getCookie("X-Branch-ID") || getCookie("X-branch");
+          const cookieBranchType = getCookie("X-Branch-Type");
           
-          // Try to preserve the stored branch if it exists in the new branch list
-          if (currentState.currentBranch?.branch_id) {
-            const storedBranch = branchList.find(
-              (b) => b.branch_id === currentState.currentBranch?.branch_id
-            );
-            if (storedBranch) {
-              currentBranch = storedBranch;
+          let currentBranch = branchList[0];
+          
+          if (cookieBranchId) {
+            const id = parseInt(cookieBranchId, 10);
+            const found = branchList.find((b) => b.branch_id === id);
+            if (found) {
+              currentBranch = found;
+            }
+          } else if (cookieBranchType) {
+            const type = cookieBranchType.toUpperCase();
+            const found = branchList.find((b) => b.branch_type === type);
+            if (found) {
+              currentBranch = found;
             }
           }
-          
-          // Fallback to first branch if no stored branch found or preserved branch doesn't exist
+
           if (!currentBranch) {
-            currentBranch = branchList[0];
-            if (!currentBranch) {
-              throw new Error("Failed to set current branch");
-            }
+            throw new Error("Failed to set current branch");
           }
 
           // Extract role from the selected branch (preserved or first)
@@ -610,6 +553,7 @@ export const useAuthStore = create<AuthState>()(
             state.branches = branchList;
             state.currentBranch = currentBranch;
           });
+
         },
 
         /**
@@ -752,6 +696,7 @@ export const useAuthStore = create<AuthState>()(
             state.currentBranch = null;
             state.isLoading = false;
             state.isBranchSwitching = false;
+            state.isAcademicYearSwitching = false;
             state.isTokenRefreshing = false;
             state.error = null;
             state.lastError = null;
@@ -786,324 +731,153 @@ export const useAuthStore = create<AuthState>()(
           }
         },
         logoutAsync: async () => {
-          try {
-            console.log("Starting logout process...");
-
-            // Call the backend logout endpoint (this needs the current token)
-            await AuthService.logout();
-            console.log("Backend logout successful");
-          } catch (error) {
-            console.error("Backend logout failed:", error);
-            // Continue with client-side cleanup even if backend fails
-          } finally {
-            // Clear all client-side state (same as logout())
-            AuthTokenTimers.clearProactiveRefresh();
-
-            // Note: Request deduplication is handled by React Query automatically
-
-            // CRITICAL: Clear auth store FIRST to prevent hooks from accessing stale data
-            set({
-              user: null,
-              isAuthenticated: false,
-              academicYear: null,
-              academicYears: [],
-              accessToken: null,
-              tokenExpireAt: null,
-              branches: [],
-              currentBranch: null,
-              isLoading: false,
-              isBranchSwitching: false,
-              isTokenRefreshing: false,
-              error: null,
-              lastError: null,
-            });
-
-            // Clear ALL storage: sessionStorage, localStorage, and caches
-            if (typeof window !== "undefined") {
-              sessionStorage.removeItem("access_token");
-              sessionStorage.removeItem("token_expires");
-              localStorage.removeItem("enhanced-auth-storage");
-              
-              try {
-                useCacheStore.getState().clear();
-              } catch (e) {
-                console.warn("Failed to clear cache store:", e);
-              }
-              
-              // ✅ FIX: Invalidate all queries instead of clearing (prevents flicker)
-              // Note: On logout, we DO want to clear everything since user is leaving
-              try {
-                // Invalidate all queries - React Query will handle cleanup
-                void queryClient.invalidateQueries();
-                // Reset queries to ensure fresh state on next login
-                queryClient.resetQueries();
-              } catch (e) {
-                console.warn("Failed to invalidate React Query cache:", e);
-              }
-            }
-
-            console.log("User logged out successfully");
-          }
+          return get().logout("manual");
         },
+        /**
+         * Switch branch: POST /auth/switch-branch/{branch_id} with Bearer and credentials.
+         * Response is context-only (branch_id, branch_type, academic_year_id); no new access token.
+         * Backend sets X-Branch-ID, X-Academic-Year-ID, X-Branch-Type cookies.
+         * We update store from response and /auth/me, then invalidate branch-dependent queries.
+         */
         switchBranch: async (branch) => {
           set({ isBranchSwitching: true });
           try {
-            console.log(
-              "Switching to branch:",
-              branch.branch_name,
-              "ID:",
-              branch.branch_id
-            );
+            await AuthService.switchBranch(branch.branch_id);
 
-            // Call the backend API to switch branch and get new token
-            const response = (await AuthService.switchBranch(
-              branch.branch_id
-            )) as any;
-            console.log("Branch switch response:", response);
+            // Update store from selected branch (response is context-only; no token)
+            const current = useAuthStore.getState();
+            const newRole =
+              branch.roles && branch.roles.length > 0
+                ? normalizeRole(extractPrimaryRole(branch.roles))
+                : current.user?.role ?? null;
 
-            // Update branch and token with new branch context
-            if (response?.access_token) {
-              // Extract user info from response if available
-              let newRole: string | null = null;
-              if (response.user_info && response.user_info.branches && Array.isArray(response.user_info.branches)) {
-                const branchInfo = response.user_info.branches.find(
-                  (b: any) => b.branch_id === branch.branch_id
+            set((state) => {
+              state.currentBranch = branch;
+              state.isAuthenticated = true;
+              if (state.user) {
+                state.user.current_branch_id = branch.branch_id;
+                if (newRole) state.user.role = newRole;
+              }
+            });
+
+            // Sync full context from /auth/me (single source of truth)
+            try {
+              const meData = await AuthService.me();
+              set((s) => {
+                if (s.user) {
+                  s.user.user_id = String(meData.user_id);
+                  s.user.institute_id = String(meData.institute_id);
+                  s.user.current_branch_id = meData.current_branch_id;
+                  s.user.full_name = meData.full_name;
+                  s.user.email = meData.email;
+                  const roleForBranch = meData.roles?.find(
+                    (r) => r.branch_id === meData.current_branch_id
+                  );
+                  if (roleForBranch) {
+                    const normalized = normalizeRole(roleForBranch.role);
+                    if (normalized) s.user.role = normalized;
+                  }
+                }
+                const branchMatch = s.branches.find(
+                  (b) => b.branch_id === meData.current_branch_id
                 );
+                if (branchMatch) s.currentBranch = branchMatch;
                 if (
-                  branchInfo &&
-                  branchInfo.roles &&
-                  branchInfo.roles.length > 0
+                  meData.academic_year_id != null &&
+                  s.academicYears.length > 0
                 ) {
-                  newRole = extractPrimaryRole(branchInfo.roles);
+                  const yearMatch = s.academicYears.find(
+                    (y) => y.academic_year_id === meData.academic_year_id
+                  );
+                  if (yearMatch) s.academicYear = yearMatch.year_name;
                 }
+              });
+            } catch (meError) {
+              if (process.env.NODE_ENV === "development") {
+                console.warn("Failed to sync /auth/me after branch switch:", meError);
               }
-
-              // Update current branch first for UI immediacy
-              set({ currentBranch: branch });
-
-              // Persist token
-              useAuthStore
-                .getState()
-                .setTokenAndExpiry(response.access_token, response.expiretime);
-
-              // Update user role if we extracted it from response
-              const current = useAuthStore.getState();
-              if (current.user && newRole) {
-                const normalizedRole = normalizeRole(newRole);
-                if (normalizedRole) {
-                  set({
-                    user: {
-                      ...current.user,
-                      current_branch_id: branch.branch_id,
-                      role: normalizedRole,
-                    },
-                    // CRITICAL: Keep authenticated true after branch switch
-                    isAuthenticated: true,
-                  });
-                }
-              } else if (current.user) {
-                // Fallback: extract role from branch.roles if available
-                if (branch.roles && branch.roles.length > 0) {
-                  const roleToUse = extractPrimaryRole(branch.roles);
-                  if (roleToUse) {
-                    const normalizedRole = normalizeRole(roleToUse);
-                    if (normalizedRole) {
-                      set({
-                        user: {
-                          ...current.user,
-                          current_branch_id: branch.branch_id,
-                          role: normalizedRole,
-                        },
-                        // CRITICAL: Keep authenticated true after branch switch
-                        isAuthenticated: true,
-                      });
-                    }
-                  }
-                } else {
-                  set({
-                    user: {
-                      ...current.user,
-                      current_branch_id: branch.branch_id,
-                    },
-                    // CRITICAL: Keep authenticated true after branch switch
-                    isAuthenticated: true,
-                  });
-                }
-              }
-
-              set({ isBranchSwitching: false });
-              console.log(
-                "Branch switched successfully with new token. Reloading page..."
-              );
-
-              // ✅ CRITICAL: Perform complete browser refresh after branch switch
-              // This ensures all state is reset, all data is fresh, and new token is fully applied
-              // Reload after a short delay to allow state updates to persist
-              setTimeout(() => {
-                window.location.reload();
-              }, 100);
-            } else {
-              // Fallback to just updating the branch if no token response
-              // Extract role from branch.roles if available
-              const current = useAuthStore.getState();
-              if (current.user && branch.roles && branch.roles.length > 0) {
-                const roleToUse = extractPrimaryRole(branch.roles);
-                if (roleToUse) {
-                  const normalizedRole = normalizeRole(roleToUse);
-                  if (normalizedRole) {
-                    set({
-                      currentBranch: branch,
-                      user: {
-                        ...current.user,
-                        current_branch_id: branch.branch_id,
-                        role: normalizedRole,
-                      },
-                      // CRITICAL: Keep authenticated true
-                      isAuthenticated: true,
-                      isBranchSwitching: false,
-                    });
-                  } else {
-                    set({
-                      currentBranch: branch,
-                      isAuthenticated: true, // Keep authenticated
-                      isBranchSwitching: false,
-                    });
-                  }
-                } else {
-                  set({
-                    currentBranch: branch,
-                    isAuthenticated: true, // Keep authenticated
-                    isBranchSwitching: false,
-                  });
-                }
-              } else {
-                set({
-                  currentBranch: branch,
-                  isAuthenticated: true, // Keep authenticated
-                  isBranchSwitching: false,
-                });
-              }
-              console.log("Branch switched locally (no token response). Reloading page...");
-
-              // ✅ CRITICAL: Perform complete browser refresh after branch switch
-              // Even without token response, reload to ensure clean state
-              setTimeout(() => {
-                window.location.reload();
-              }, 100);
             }
+
+            batchInvalidateQueries(getBranchDependentQueryKeys());
+            set({ isBranchSwitching: false });
           } catch (error) {
             console.error("Failed to switch branch:", error);
-            // Still update the branch locally even if API call fails
-            // Extract role from branch.roles if available
-            const current = useAuthStore.getState();
-            if (current.user && branch.roles && branch.roles.length > 0) {
-              const roleToUse = extractPrimaryRole(branch.roles);
-              if (roleToUse) {
-                const normalizedRole = normalizeRole(roleToUse);
-                if (normalizedRole) {
-                  set({
-                    currentBranch: branch,
-                    user: {
-                      ...current.user,
-                      current_branch_id: branch.branch_id,
-                      role: normalizedRole,
-                    },
-                    // CRITICAL: Keep authenticated true even on error
-                    isAuthenticated: true,
-                    isBranchSwitching: false,
-                  });
-                } else {
-                  set({
-                    currentBranch: branch,
-                    isAuthenticated: true, // Keep authenticated
-                    isBranchSwitching: false,
-                  });
-                }
-              } else {
-                set({
-                  currentBranch: branch,
-                  isAuthenticated: true, // Keep authenticated
-                  isBranchSwitching: false,
-                });
-              }
-            } else {
-              set({
-                currentBranch: branch,
-                isAuthenticated: true, // Keep authenticated
-                isBranchSwitching: false,
-              });
-            }
-            console.log("Branch switched locally (API call failed). Reloading page...");
-
-            // ✅ CRITICAL: Perform complete browser refresh after branch switch
-            // Even if API call failed, reload to ensure clean state with locally switched branch
-            setTimeout(() => {
-              window.location.reload();
-            }, 100);
+            set({ isBranchSwitching: false });
+            toast({
+              title: "Branch switch failed",
+              description:
+                error instanceof Error ? error.message : "Please try again.",
+              variant: "destructive",
+            });
           }
         },
+        /**
+         * Switch academic year: POST /auth/switch-academic-year/{academic_year_id} with Bearer and credentials.
+         * Response is context-only (branch_id, branch_type, academic_year_id); no new access token.
+         * Backend updates X-Academic-Year-ID cookie only.
+         */
         switchAcademicYear: async (year) => {
-          set({ isLoading: true });
+          set({ isAcademicYearSwitching: true });
           try {
-            console.log("Switching to academic year:", year.year_name, "ID:", year.academic_year_id);
-            
-            // Call the backend API to switch academic year and get new token
-            const response = (await AuthService.switchAcademicYear(
-              year.academic_year_id
-            )) as any;
-            
-            console.log("Academic year switch response:", response);
+            await AuthService.switchAcademicYear(year.academic_year_id);
 
-            if (response?.access_token) {
-              // Rotation of token
-              useAuthStore.getState().setTokenAndExpiry(response.access_token, response.expiretime);
-
-              set({
-                academicYear: year.year_name,
-                isAuthenticated: true,
-                isLoading: false,
-              });
-
-              // Update user info if returned in response
-              if (response.user_info) {
-                const current = useAuthStore.getState();
-                set({
-                  user: {
-                    ...current.user,
-                    ...response.user_info
-                  }
-                });
-              }
-
-              console.log("Academic year switched successfully with token rotation. Reloading page...");
-              
-              // ✅ CRITICAL: Perform complete browser refresh
-              setTimeout(() => {
-                window.location.reload();
-              }, 100);
-            } else {
-              // Fallback if no token in response
-              set({
-                academicYear: year.year_name,
-                isAuthenticated: true,
-                isLoading: false,
-              });
-              console.log("Academic year switched (no response token). Reloading page...");
-              setTimeout(() => {
-                window.location.reload();
-              }, 100);
-            }
-          } catch (error) {
-            console.error("Failed to switch academic year through API:", error);
-            // Even on error, update local state and reload to allow recovery
-            set({
-              academicYear: year.year_name,
-              isAuthenticated: true,
-              isLoading: false,
+            set((s) => {
+              s.academicYear = year.year_name;
+              s.isAuthenticated = true;
             });
-            setTimeout(() => {
-              window.location.reload();
-            }, 100);
+
+            // Sync full context from /auth/me (single source of truth)
+            try {
+              const meData = await AuthService.me();
+              set((s) => {
+                if (s.user) {
+                  s.user.user_id = String(meData.user_id);
+                  s.user.institute_id = String(meData.institute_id);
+                  s.user.current_branch_id = meData.current_branch_id;
+                  s.user.full_name = meData.full_name;
+                  s.user.email = meData.email;
+                  const roleForBranch = meData.roles?.find(
+                    (r) => r.branch_id === meData.current_branch_id
+                  );
+                  if (roleForBranch) {
+                    const normalized = normalizeRole(roleForBranch.role);
+                    if (normalized) s.user.role = normalized;
+                  }
+                }
+                const branchMatch = s.branches.find(
+                  (b) => b.branch_id === meData.current_branch_id
+                );
+                if (branchMatch) s.currentBranch = branchMatch;
+                if (
+                  meData.academic_year_id != null &&
+                  s.academicYears.length > 0
+                ) {
+                  const yearMatch = s.academicYears.find(
+                    (y) => y.academic_year_id === meData.academic_year_id
+                  );
+                  if (yearMatch) s.academicYear = yearMatch.year_name;
+                }
+              });
+            } catch (meError) {
+              if (process.env.NODE_ENV === "development") {
+                console.warn(
+                  "Failed to sync /auth/me after academic year switch:",
+                  meError
+                );
+              }
+            }
+
+            batchInvalidateQueries(getAcademicYearDependentQueryKeys());
+            set({ isAcademicYearSwitching: false });
+          } catch (error) {
+            console.error("Failed to switch academic year:", error);
+            set({ isAcademicYearSwitching: false });
+            toast({
+              title: "Academic year switch failed",
+              description:
+                error instanceof Error ? error.message : "Please try again.",
+              variant: "destructive",
+            });
           }
         },
         setAcademicYears: (years) => {

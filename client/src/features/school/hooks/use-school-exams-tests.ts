@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolExamsService } from "@/features/school/services/exams.service";
 import { SchoolTestsService } from "@/features/school/services/tests.service";
 import type {
@@ -71,6 +71,7 @@ export function useCreateSchoolExam() {
       SchoolExamsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.exams.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.exams.root(), type: 'active' }).catch(console.error);
     },
   }, "Exam created successfully");
@@ -84,6 +85,7 @@ export function useUpdateSchoolExam(examId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.exams.detail(examId) }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.exams.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.exams.root(), type: 'active' }).catch(console.error);
     },
   }, "Exam updated successfully");
@@ -96,6 +98,7 @@ export function useDeleteSchoolExam() {
       SchoolExamsService.delete(examId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.exams.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.exams.root(), type: 'active' }).catch(console.error);
     },
   }, "Exam deleted successfully");
@@ -123,6 +126,7 @@ export function useCreateExamSchedule() {
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: [...schoolKeys.exams.root(), "schedules", variables.examId] }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.exams.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.exams.root(), type: 'active' }).catch(console.error);
     },
   }, "Exam schedule created successfully");
@@ -136,6 +140,7 @@ export function useUpdateExamSchedule(examId: number, academicYearId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [...schoolKeys.exams.root(), "schedules", examId] }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.exams.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.exams.root(), type: 'active' }).catch(console.error);
     },
   }, "Exam schedule updated successfully");
@@ -149,6 +154,7 @@ export function useDeleteExamSchedule() {
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: [...schoolKeys.exams.root(), "schedules", variables.examId] }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.exams.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.exams.root(), type: 'active' }).catch(console.error);
     },
   }, "Exam schedule deleted successfully");
@@ -162,6 +168,7 @@ export function useCreateSchoolTest() {
       SchoolTestsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tests.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.tests.root(), type: 'active' }).catch(console.error);
     },
   }, "Test created successfully");
@@ -175,6 +182,7 @@ export function useUpdateSchoolTest(testId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tests.detail(testId) }).catch(console.error);
       qc.invalidateQueries({ queryKey: schoolKeys.tests.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.tests.root(), type: 'active' }).catch(console.error);
     },
   }, "Test updated successfully");
@@ -187,6 +195,7 @@ export function useDeleteSchoolTest() {
       SchoolTestsService.delete(testId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tests.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.academicTotal() }).catch(console.error);
       qc.refetchQueries({ queryKey: schoolKeys.tests.root(), type: 'active' }).catch(console.error);
     },
   }, "Test deleted successfully");

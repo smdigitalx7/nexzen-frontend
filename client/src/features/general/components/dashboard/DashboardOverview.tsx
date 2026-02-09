@@ -13,100 +13,102 @@ interface DashboardOverviewProps {
 export const DashboardOverview = ({ data }: DashboardOverviewProps) => {
   const navigate = useNavigate();
 
+  const stats = [
+    {
+      label: "Students",
+      value: data.total_students,
+      sub: "Across all branches",
+      icon: Users,
+      gradient:
+        "bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/50 dark:to-blue-900/30 border-blue-200/60 dark:border-blue-800/40",
+      color:
+        "bg-blue-500/15 text-blue-600 dark:bg-blue-500/25 dark:text-blue-400",
+      onClick: () => navigate("/school/admissions"),
+    },
+    {
+      label: "Teachers",
+      value: data.total_teachers,
+      sub: "Teaching staff",
+      icon: GraduationCap,
+      gradient:
+        "bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/50 dark:to-emerald-900/30 border-emerald-200/60 dark:border-emerald-800/40",
+      color:
+        "bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/25 dark:text-emerald-400",
+      onClick: () => navigate("/employees"),
+    },
+    {
+      label: "Classes",
+      value: data.total_classes,
+      sub: "Active classes",
+      icon: BookOpen,
+      gradient:
+        "bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-950/50 dark:to-indigo-900/30 border-indigo-200/60 dark:border-indigo-800/40",
+      color:
+        "bg-indigo-500/15 text-indigo-600 dark:bg-indigo-500/25 dark:text-indigo-400",
+      onClick: () => navigate("/school/academic"),
+    },
+    {
+      label: "Branches",
+      value: data.total_branches,
+      sub: "Institute branches",
+      icon: Building2,
+      gradient:
+        "bg-gradient-to-br from-slate-100 to-slate-200/50 dark:from-slate-800/50 dark:to-slate-900/30 border-slate-200/60 dark:border-slate-700/40",
+      color:
+        "bg-slate-500/15 text-slate-600 dark:bg-slate-400/25 dark:text-slate-300",
+      onClick: undefined,
+    },
+  ];
+
+  const statCardBase =
+    "rounded-2xl border p-6 shadow-sm transition-all duration-200 hover:shadow-md group";
+
   return (
-    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100/50 shadow-sm">
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDYwIDAgTCAwIDAgMCA2MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTVlN2ViIiBzdHJva2Utd2lkdGg9IjEiIG9wYWNpdHk9IjAuMyIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-40"></div>
-      <div className="relative px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-1">
-              Institutional Overview
-            </h2>
-            <p className="text-sm text-slate-600">Key metrics at a glance</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div
-            className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-            onClick={() => navigate("/school/admissions")}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
-                <Users className="h-5 w-5 text-blue-600" />
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold text-foreground">
+          Institutional Overview
+        </h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Key metrics at a glance
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map(({ label, value, sub, icon: Icon, gradient, color, onClick }) => {
+          const content = (
+            <div className="flex items-start gap-4">
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${color} group-hover:opacity-90 transition-opacity`}
+              >
+                <Icon className="h-5 w-5" />
               </div>
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                  Students
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {label}
                 </p>
-                <p className="text-3xl font-bold text-slate-900">
-                  {data.total_students.toLocaleString()}
+                <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+                  {value.toLocaleString()}
                 </p>
-              </div>
-            </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Across all branches
-            </p>
-          </div>
-
-          <div
-            className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-            onClick={() => navigate("/employees")}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors">
-                <GraduationCap className="h-5 w-5 text-purple-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                  Teachers
-                </p>
-                <p className="text-3xl font-bold text-slate-900">
-                  {data.total_teachers.toLocaleString()}
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
               </div>
             </div>
-            <p className="text-xs text-slate-500 font-medium">Teaching staff</p>
-          </div>
-
-          <div
-            className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-            onClick={() => navigate("/school/academic")}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-colors">
-                <BookOpen className="h-5 w-5 text-indigo-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                  Classes
-                </p>
-                <p className="text-3xl font-bold text-slate-900">
-                  {data.total_classes.toLocaleString()}
-                </p>
-              </div>
+          );
+          const className = `${statCardBase} ${gradient} ${onClick ? "cursor-pointer" : "cursor-default"} w-full`;
+          return onClick ? (
+            <button
+              key={label}
+              type="button"
+              onClick={onClick}
+              className={className}
+            >
+              {content}
+            </button>
+          ) : (
+            <div key={label} className={className}>
+              {content}
             </div>
-            <p className="text-xs text-slate-500 font-medium">Active classes</p>
-          </div>
-
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-teal-100 group-hover:bg-teal-200 transition-colors">
-                <Building2 className="h-5 w-5 text-teal-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                  Branches
-                </p>
-                <p className="text-3xl font-bold text-slate-900">
-                  {data.total_branches.toLocaleString()}
-                </p>
-              </div>
-            </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Institute branches
-            </p>
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, memo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Label } from "@/common/components/ui/label";
 import { useSchoolClasses, useSchoolTuitionBalancesList, useSchoolTuitionBalance } from "@/features/school/hooks";
-import { SchoolClassDropdown } from "@/common/components/shared/Dropdowns";
+import { SchoolClassDropdown, SchoolSectionDropdown } from "@/common/components/shared/Dropdowns";
 import type { SchoolTuitionFeeBalanceRead, SchoolTuitionFeeBalanceFullRead } from "@/features/school/types";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
 import {
@@ -218,6 +218,7 @@ DetailsSheet.displayName = "DetailsSheet";
 const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: TuitionFeeBalancesPanelProps) => {
   // State management
   const [balanceClass, setBalanceClass] = useState<string>("");
+  const [balanceSection, setBalanceSection] = useState<number | null>(null);
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -236,7 +237,8 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
   const { data: tuitionResp, isLoading: tuitionLoading } = useSchoolTuitionBalancesList({ 
     class_id: classIdNum, 
     page, 
-    page_size: pageSize 
+    page_size: pageSize,
+    section_id: balanceSection ?? undefined,
   });
   const { data: selectedBalance } = useSchoolTuitionBalance(selectedBalanceId);
 
@@ -251,10 +253,15 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
     }
   }, [classes, balanceClass]);
 
-  // Reset to first page when class changes
+  // Reset section when class changes
+  useEffect(() => {
+    setBalanceSection(null);
+  }, [classIdNum]);
+
+  // Reset to first page when class or section changes
   useEffect(() => {
     setPage(1);
-  }, [classIdNum]);
+  }, [classIdNum, balanceSection]);
 
   // Memoized handlers
   const handleViewStudent = useCallback((student: StudentRow) => {
@@ -304,10 +311,10 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
       transition={{ delay: 0.1 }}
       className="space-y-4"
     >
-      {/* Class Selection Dropdown */}
+      {/* Class and Section Selection */}
       <div className="bg-white p-4 rounded-lg border shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="flex-1 max-w-xs">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex-1 min-w-[200px] max-w-xs">
             <Label htmlFor="class-select">Select Class *</Label>
             <SchoolClassDropdown
               value={classIdNum || null}
@@ -322,8 +329,19 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
               required
             />
           </div>
+          <div className="flex-1 min-w-[200px] max-w-xs">
+            <Label htmlFor="section-select">Section</Label>
+            <SchoolSectionDropdown
+              classId={classIdNum ?? 0}
+              value={balanceSection}
+              onChange={setBalanceSection}
+              placeholder={classIdNum ? "All sections" : "Select class first"}
+              emptyValue
+              emptyValueLabel="All sections"
+            />
+          </div>
           {!classIdNum && (
-            <p className="text-sm text-red-500">
+            <p className="text-sm text-red-500 w-full">
               Please select a class to view fee balances
             </p>
           )}

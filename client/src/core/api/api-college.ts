@@ -255,12 +255,12 @@ export async function handleCollegePayByAdmissionWithIncomeId(
  * 3. Calls regenerate receipt endpoint to get PDF
  * 4. Creates a Blob URL for modal display
  *
- * @param reservationNo - The reservation number for the payment
+ * @param reservation_id - The reservation ID (integer) for the payment path
  * @param payload - The payment data (PayFeeByReservationRequest format)
  * @returns Promise that resolves with an object containing blobUrl (for PDF receipt), income_id (from backend), and paymentData (full response)
  */
 export async function handleCollegePayByReservation(
-  reservationNo: string,
+  reservation_id: number,
   payload: {
     details: Array<{
       purpose: "APPLICATION_FEE" | "OTHER";
@@ -279,7 +279,7 @@ export async function handleCollegePayByReservation(
     throw new Error("Authentication token is required for payment processing");
   }
 
-  const url = `${API_BASE_URL}/college/income/pay-fee-by-reservation/${reservationNo}`;
+  const url = `${API_BASE_URL}/college/income/pay-fee-by-reservation/${reservation_id}`;
 
   try {
     const response = await fetch(url, {
@@ -329,6 +329,81 @@ export async function handleCollegePayByReservation(
       throw new Error(
         "Network error occurred while processing payment. Please check your connection and try again."
       );
+    }
+    throw error;
+  }
+}
+
+/** Pay by Enrollment – College: TRANSPORT_FEE uses payment_month (YYYY-MM-01), not term_number. */
+export interface CollegePayByEnrollmentPayload {
+  details: Array<{
+    purpose: "BOOK_FEE" | "TUITION_FEE" | "TRANSPORT_FEE" | "OTHER";
+    paid_amount: number;
+    payment_method: "CASH" | "UPI" | "CARD";
+    term_number?: number;
+    payment_month?: string;
+    custom_purpose_name?: string;
+  }>;
+  remarks?: string;
+}
+
+/**
+ * Pay by Enrollment – recurring/term fees for an enrolled student.
+ * Path: POST /college/income/pay-fee-by-enrollment/{enrollment_id}
+ */
+export async function handleCollegePayByEnrollment(
+  enrollmentId: number,
+  payload: CollegePayByEnrollmentPayload
+): Promise<{ income_id: number; blobUrl: string; paymentData: PaymentResponse }> {
+  const state = useAuthStore.getState();
+  const token = state.accessToken || (state as any).token;
+  if (!token) {
+    throw new Error("Authentication token is required for payment processing");
+  }
+
+  const url = `${API_BASE_URL}/college/income/pay-fee-by-enrollment/${enrollmentId}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+      credentials: "include",
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!response.ok) {
+      let errorMessage = `Payment failed with status ${response.status}`;
+      if (contentType.includes("application/json")) {
+        try {
+          const err = (await response.json()) as ErrorResponse;
+          errorMessage = typeof err.detail === "string" ? err.detail : Array.isArray(err.detail) ? (err.detail[0]?.msg ?? (err.detail[0] as { message?: string })?.message ?? JSON.stringify(err.detail)) : err.message ?? errorMessage;
+        } catch {
+          errorMessage = (await response.text()) || errorMessage;
+        }
+      } else {
+        errorMessage = (await response.text()) || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const paymentData = (await response.json()) as PaymentResponse;
+    const income_id = paymentData.data?.context?.income_id ?? paymentData.context?.income_id;
+    if (!income_id || typeof income_id !== "number") {
+      throw new Error("Payment successful but income_id not found in response context");
+    }
+
+    const blobUrl = await handleCollegeRegenerateReceipt(income_id);
+    return { income_id, blobUrl, paymentData };
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === "AbortError") throw new Error("Payment request timed out. Please try again.");
+      if (error.message.includes("fetch")) throw new Error("Network error. Please check your connection and try again.");
     }
     throw error;
   }

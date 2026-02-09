@@ -162,22 +162,15 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
 
   const { data: enrollmentsData } = useCollegeEnrollmentsList(enrollmentsParams);
   
-  // Extract enrollments - flatten the grouped response and add class_name, group_name
+  // Flat enrollments list from API
   const enrollments = useMemo(() => {
-    if (!enrollmentsData?.enrollments) return [];
-    const allEnrollments: (CollegeEnrollmentRead & { class_name: string; group_name: string })[] = [];
-    enrollmentsData.enrollments.forEach((group: CollegeEnrollmentWithClassGroupCourseDetails) => {
-      if (group.students && Array.isArray(group.students)) {
-        group.students.forEach((student: CollegeEnrollmentRead) => {
-          allEnrollments.push({
-            ...student,
-            class_name: group.class_name || '',
-            group_name: group.group_name || '',
-          });
-        });
-      }
-    });
-    return allEnrollments;
+    const list = enrollmentsData?.enrollments ?? [];
+    if (!Array.isArray(list) || list.length === 0) return [];
+    return list.map((e) => ({
+      ...e,
+      class_name: e.class_name ?? '',
+      group_name: e.group_name ?? '',
+    }));
   }, [enrollmentsData]);
 
   // Get groups for lookup maps (for filtering)

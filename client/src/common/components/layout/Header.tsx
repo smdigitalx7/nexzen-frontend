@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
@@ -7,6 +7,7 @@ import {
   LogOut,
   Search,
   X,
+  KeyRound,
 } from "lucide-react";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { Button } from "@/common/components/ui/button";
@@ -37,12 +38,14 @@ import { SchoolSearchResultCard } from "@/common/components/shared/SchoolSearchR
 import { CollegeSearchResultCard } from "@/common/components/shared/CollegeSearchResultCard";
 import type { SchoolFullStudentRead } from "@/features/school/types";
 import type { CollegeFullStudentRead } from "@/features/college/types";
+import { ResetPasswordDialog } from "@/features/general/components/ResetPasswordDialog";
 
 const Header = () => {
   const { user, currentBranch, logoutAsync } = useAuthStore();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showResultsDialog, setShowResultsDialog] = useState(false);
+  const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { query, setQuery, searchResult, isSearching, error, clearSearch } =
@@ -211,16 +214,9 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      // Use the centralized logout method from auth store
-      // logoutAsync() already handles query cache invalidation
       await logoutAsync();
-      
-      // Navigate to root after logout
-      navigate("/");
     } catch (error) {
-      // Error handling is done by the auth store
-      // Still navigate to root even if logout fails
-      navigate("/");
+      navigate("/login", { replace: true });
     }
   };
 
@@ -345,19 +341,19 @@ const Header = () => {
             )}
           </Button> */}
 
-            {/* User Menu - Modern Design */}
+            {/* User Menu - Profile card dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="h-auto p-2 rounded-lg hover:bg-slate-100/80 transition-all duration-200 data-[state=open]:bg-slate-100"
+                  className="h-auto py-2 pl-2 pr-3 rounded-xl hover:bg-slate-100/90 dark:hover:bg-slate-800/80 transition-colors data-[state=open]:bg-slate-100 dark:data-[state=open]:bg-slate-800"
                   data-testid="dropdown-user-menu"
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9 ring-2 ring-slate-200 ring-offset-2">
+                    <Avatar className="h-9 w-9 shrink-0 border-2 border-slate-200 dark:border-slate-600">
                       <AvatarImage src={user?.avatar} alt={user?.full_name} />
                       <AvatarFallback
-                        className={`text-white font-semibold ${getRoleColor(
+                        className={`text-white text-sm font-semibold ${getRoleColor(
                           user?.role || ""
                         )}`}
                       >
@@ -365,140 +361,127 @@ const Header = () => {
                           ?.split(" ")
                           .map((n) => n[0])
                           .join("")
-                          .toUpperCase() || "U"}
+                          .toUpperCase()
+                          .slice(0, 2) || "U"}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="hidden md:flex flex-col items-start">
-                      <span className="text-sm font-semibold text-slate-900 leading-tight">
+                    <div className="hidden md:flex flex-col items-start text-left min-w-0">
+                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate max-w-[140px]">
                         {user?.full_name}
                       </span>
-                      <span className="text-xs text-slate-500 leading-tight">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                         {getRoleDisplay(user?.role || "")}
                       </span>
                     </div>
-                    <ChevronDown className="h-4 w-4 text-slate-400 hidden md:block transition-transform duration-200 data-[state=open]:rotate-180" />
+                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500 hidden md:block transition-transform duration-200 data-[state=open]:rotate-180" />
                   </div>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-72 p-2"
                 align="end"
                 sideOffset={8}
+                className="w-64 p-0 rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-lg bg-white dark:bg-slate-900 overflow-hidden"
               >
-                {/* User Info Section */}
-                <div className="flex items-start gap-3 px-2 py-3 mb-2 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-200/50">
-                  <Avatar className="h-11 w-11 ring-2 ring-white shadow-md">
-                    <AvatarImage src={user?.avatar} alt={user?.full_name} />
-                    <AvatarFallback
-                      className={`text-white font-semibold text-sm ${getRoleColor(
-                        user?.role || ""
-                      )}`}
-                    >
-                      {user?.full_name
-                        ?.split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col gap-1 flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 leading-tight truncate">
-                      {user?.full_name}
-                    </p>
-                    <p className="text-xs text-slate-600 leading-tight truncate">
-                      {user?.email}
-                    </p>
-                    <div className="mt-1">
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] font-medium px-2 py-0.5 bg-slate-200/80 text-slate-700 border-slate-300/50"
+                {/* Compact user header inside dropdown */}
+                <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 shrink-0 border-2 border-white dark:border-slate-700 shadow-sm">
+                      <AvatarImage src={user?.avatar} alt={user?.full_name} />
+                      <AvatarFallback
+                        className={`text-white text-sm font-semibold ${getRoleColor(
+                          user?.role || ""
+                        )}`}
                       >
-                        {getRoleDisplay(user?.role || "")}
-                      </Badge>
+                        {user?.full_name
+                          ?.split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2) || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
+                        {user?.full_name}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {user?.email || getRoleDisplay(user?.role || "")}
+                      </p>
                     </div>
                   </div>
                 </div>
-
-                <DropdownMenuSeparator className="my-2" />
-
-                {/* Menu Items */}
-                <DropdownMenuItem
-                  onClick={handleProfileClick}
-                  className="px-3 py-2.5 rounded-md cursor-pointer focus:bg-slate-100 transition-colors"
-                  data-testid="menuitem-profile"
-                >
-                  <User className="mr-3 h-4 w-4 text-slate-600" />
-                  <span className="text-sm font-medium text-slate-700">
-                    Profile
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleSettingsClick}
-                  className="px-3 py-2.5 rounded-md cursor-pointer focus:bg-slate-100 transition-colors"
-                  data-testid="menuitem-settings"
-                >
-                  <Settings className="mr-3 h-4 w-4 text-slate-600" />
-                  <span className="text-sm font-medium text-slate-700">
-                    Settings
-                  </span>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-2" />
-
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="px-3 py-2.5 rounded-md cursor-pointer focus:bg-red-50 text-red-600 focus:text-red-700 transition-colors"
-                  data-testid="menuitem-logout"
-                >
-                  <LogOut className="mr-3 h-4 w-4" />
-                  <span className="text-sm font-medium">Log out</span>
-                </DropdownMenuItem>
+                <div className="py-1.5">
+                  <DropdownMenuItem
+                    onClick={handleProfileClick}
+                    className="mx-1.5 mt-1 rounded-lg py-2.5 cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800"
+                    data-testid="menuitem-profile"
+                  >
+                    <User className="mr-3 h-4 w-4 text-slate-500 dark:text-slate-400" />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleSettingsClick}
+                    className="mx-1.5 rounded-lg py-2.5 cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800"
+                    data-testid="menuitem-settings"
+                  >
+                    <Settings className="mr-3 h-4 w-4 text-slate-500 dark:text-slate-400" />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setShowResetPasswordDialog(true)}
+                    className="mx-1.5 rounded-lg py-2.5 cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800"
+                    data-testid="menuitem-reset-password"
+                  >
+                    <KeyRound className="mr-3 h-4 w-4 text-slate-500 dark:text-slate-400" />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">Reset password</span>
+                  </DropdownMenuItem>
+                </div>
+                <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+                <div className="p-1.5 pb-2">
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="mx-1.5 rounded-lg py-2.5 cursor-pointer focus:bg-red-50 dark:focus:bg-red-950/50 text-red-600 dark:text-red-400 focus:text-red-700 dark:focus:text-red-300"
+                    data-testid="menuitem-logout"
+                  >
+                    <LogOut className="mr-3 h-4 w-4" />
+                    <span className="text-sm font-medium">Log out</span>
+                  </DropdownMenuItem>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
-        {/* Results Dialog - Full Screen Modal */}
+        {/* Results Dialog - Student lookup */}
         <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
-          <DialogContent className="max-w-[95vw] w-full max-h-[95vh] h-[95vh] flex flex-col p-0 gap-0">
-            <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
-              <DialogTitle className="text-2xl font-bold">
-                Search Results
+          <DialogContent className="max-w-2xl w-full max-h-[90vh] flex flex-col p-0 gap-0 rounded-xl">
+            <DialogHeader className="px-5 py-4 border-b border-border shrink-0">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                Student details
               </DialogTitle>
-              <DialogDescription className="text-sm text-slate-500">
-                Complete student information and financial details
+              <DialogDescription className="text-sm text-muted-foreground">
+                Lookup by admission number
               </DialogDescription>
             </DialogHeader>
-            <div className="flex-1 overflow-hidden flex flex-col px-6 pt-6 pb-4">
-              <div className="flex-1 overflow-y-auto scrollbar-hide pr-2">
-                {renderSearchResults()}
-              </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
+              {renderSearchResults()}
             </div>
-            <div className="border-t px-6 py-3 bg-slate-50 shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 text-xs text-slate-500">
-                  <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">
-                    Ctrl
-                  </kbd>
-                  <span>+</span>
-                  <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">
-                    K
-                  </kbd>
-                  <span>to focus search</span>
-                  <span className="mx-2">•</span>
-                  <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">
-                    Esc
-                  </kbd>
-                  <span>to close</span>
-                </div>
-                {currentBranch && (
-                  <Badge variant="outline" className="text-xs font-medium">
-                    {currentBranch.branch_type}
-                  </Badge>
-                )}
-              </div>
+            <div className="border-t border-border px-5 py-2.5 bg-muted/30 shrink-0 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono text-[10px]">Esc</kbd> to close
+              </span>
+              {currentBranch && (
+                <Badge variant="outline" className="text-xs font-normal">
+                  {currentBranch.branch_type}
+                </Badge>
+              )}
             </div>
           </DialogContent>
         </Dialog>
+
+        <ResetPasswordDialog
+          open={showResetPasswordDialog}
+          onOpenChange={setShowResetPasswordDialog}
+        />
       </motion.header>
     </>
   );
