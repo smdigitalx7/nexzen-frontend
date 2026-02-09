@@ -24,6 +24,7 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
     queryFn: () => CollegeEnrollmentsService.getByAdmission(admissionNo!),
     enabled: !!admissionNo,
     retry: false,
+    staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });
 
   const enrollment = enrollmentQuery.data;
@@ -33,6 +34,7 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
     queryKey: collegeKeys.tuition.detail(enrollmentId ?? 0),
     queryFn: () => CollegeTuitionBalancesService.getById(enrollmentId!),
     enabled: !!enrollmentId,
+    staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });
 
   const transportSummaryQuery = useQuery({
@@ -42,6 +44,7 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
         enrollmentId!
       ),
     enabled: !!enrollmentId,
+    staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });
 
   const transportExpectedQuery = useQuery({
@@ -51,6 +54,7 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
         enrollmentId!
       ),
     enabled: !!enrollmentId,
+    staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });
 
   const isLoading =
@@ -78,6 +82,14 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
         }
       : null;
 
+  // ✅ FIX: Track data update timestamp for forcing re-renders
+  const dataUpdatedAt = Math.max(
+    enrollmentQuery.dataUpdatedAt || 0,
+    tuitionQuery.dataUpdatedAt || 0,
+    transportSummaryQuery.dataUpdatedAt || 0,
+    transportExpectedQuery.dataUpdatedAt || 0
+  );
+
   return {
     data,
     isLoading,
@@ -87,7 +99,9 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
       tuitionQuery.error ||
       transportSummaryQuery.error ||
       transportExpectedQuery.error,
+    dataUpdatedAt, // ✅ FIX: Export dataUpdatedAt for key prop
     refetch: async () => {
+      // ✅ FIX: Refetch all queries and wait for completion to ensure fresh data
       await enrollmentQuery.refetch();
       if (enrollmentId) {
         await Promise.all([

@@ -44,7 +44,7 @@ export const CollectFee = ({
   const admissionNoFromUrl = searchParams.get("admission_no");
 
   // Use the custom hook to fetch student fee details
-  const { data: selectedStudent, refetch: refetchFeeDetails } = useStudentFeeDetails(selectedAdmissionNo);
+  const { data: selectedStudent, refetch: refetchFeeDetails, dataUpdatedAt } = useStudentFeeDetails(selectedAdmissionNo);
 
   // Update URL with admission number
   const updateUrlWithAdmission = useCallback((admissionNo: string) => {
@@ -161,6 +161,8 @@ export const CollectFee = ({
 
       paymentSuccessRef.current = paymentData.admissionNo;
 
+      // ✅ FIX: Invalidate queries first, then refetch to ensure UI updates
+      // Do this even if receipt generation failed (payment succeeded)
       await batchInvalidateQueries([
         schoolKeys.students.root(),
         schoolKeys.enrollments.root(),
@@ -168,12 +170,22 @@ export const CollectFee = ({
         schoolKeys.transport.root(),
         schoolKeys.income.root(),
       ]);
+      
+      // Wait for refetch to complete to ensure UI updates with fresh data
       await refetchFeeDetails();
 
       const receiptNo = getReceiptNoFromResponse(result.paymentData);
       return { blobUrl: result.blobUrl, receiptNo: receiptNo ?? undefined };
     } catch (error) {
       console.error("Multiple payment error:", error);
+      
+      // ✅ FIX: Even if payment fails, try to refetch fee details in case partial update occurred
+      try {
+        await refetchFeeDetails();
+      } catch (refetchError) {
+        console.error("Failed to refetch fee details after payment error:", refetchError);
+      }
+      
       toast({
         title: "Payment Failed",
         description:
@@ -212,6 +224,7 @@ export const CollectFee = ({
           >
             {selectedStudent ? (
               <SchoolCollectFeePaymentView
+                key={`payment-${selectedAdmissionNo}-${dataUpdatedAt ?? Date.now()}`}
                 studentDetails={selectedStudent}
                 onPaymentComplete={handleMultiplePaymentComplete}
                 onCancel={handleFormClose}

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
@@ -7,6 +7,11 @@ import { cn } from "@/common/utils"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
+
+/** Allow only safe chars for CSS identifiers (id and config keys) to prevent XSS when using dangerouslySetInnerHTML */
+function sanitizeCssIdentifier(value: string): string {
+  return String(value).replace(/[^a-zA-Z0-9_-]/g, "")
+}
 
 export type ChartConfig = {
   [k in string]: {
@@ -76,19 +81,22 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
+  const safeId = sanitizeCssIdentifier(id)
+  const safeThemeKeys = Object.keys(THEMES) as Array<keyof typeof THEMES>
+
   return (
     <style
       dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
+        __html: safeThemeKeys
           .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+            (theme) => `
+${THEMES[theme]} [data-chart=${safeId}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
+    const safeKey = sanitizeCssIdentifier(key)
     const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+      itemConfig.theme?.[theme] || itemConfig.color
+    return color ? `  --color-${safeKey}: ${color};` : null
   })
   .join("\n")}
 }

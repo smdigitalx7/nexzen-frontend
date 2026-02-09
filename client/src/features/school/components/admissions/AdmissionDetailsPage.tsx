@@ -23,7 +23,7 @@ import type { SchoolAdmissionDetails } from "@/features/school/types/admissions"
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { handleSchoolPayByStudentWithIncomeId } from "@/core/api/api-school";
 import { getReceiptNoFromResponse } from "@/core/api/payment-types";
-import { batchInvalidateAndRefetch } from "@/common/hooks/useGlobalRefetch";
+import { batchInvalidateQueriesSelective } from "@/common/hooks/useGlobalRefetch";
 import { schoolKeys } from "@/features/school/hooks/query-keys";
 import { useQueryClient } from "@tanstack/react-query";
 import { openReceiptInNewTab } from "@/common/utils/payment";
@@ -502,7 +502,7 @@ const AdmissionDetailsPage = () => {
           });
         }, 400);
       });
-      batchInvalidateAndRefetch([["school", "admissions"]]);
+      batchInvalidateQueriesSelective([["school", "admissions"]], { refetchType: "none", delay: 0 });
     } catch (error: any) {
       console.error("Payment failed:", error);
       setShowPaymentDialog(false);
@@ -533,13 +533,13 @@ const AdmissionDetailsPage = () => {
       if (typeof requestIdleCallback !== "undefined") {
         requestIdleCallback(
           () => {
-            batchInvalidateAndRefetch([["school", "admissions", studentId]]);
+            batchInvalidateQueriesSelective([["school", "admissions", studentId]], { refetchType: "none", delay: 0 });
           },
           { timeout: 1000 }
         );
       } else {
         setTimeout(() => {
-          batchInvalidateAndRefetch([["school", "admissions", studentId]]);
+          batchInvalidateQueriesSelective([["school", "admissions", studentId]], { refetchType: "none", delay: 0 });
         }, 500);
       }
     }

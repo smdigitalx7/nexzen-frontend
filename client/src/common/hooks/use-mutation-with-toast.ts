@@ -44,8 +44,19 @@ export function useMutationWithToast<TData = unknown, TError = unknown, TVariabl
       }
       let errorMessage: string;
       
-      // Handle case where detail is an object with a message property
-      if (errorDetail && typeof errorDetail === 'object') {
+      // ✅ FIX: Check for nested error.message structure (backend format: { error: { message: "..." } })
+      const errorDataObj = errorData && typeof errorData === 'object' ? errorData as Record<string, unknown> : null;
+      const nestedError = errorDataObj?.error && typeof errorDataObj.error === 'object' 
+        ? errorDataObj.error as Record<string, unknown> 
+        : null;
+      
+      // Priority order for error message extraction:
+      // 1. errorData.error.message (nested error object)
+      if (nestedError && typeof nestedError.message === 'string') {
+        errorMessage = nestedError.message;
+      }
+      // 2. Handle case where detail is an object with a message property
+      else if (errorDetail && typeof errorDetail === 'object') {
         const detailObj = errorDetail as unknown as Record<string, unknown>;
         if (typeof detailObj.message === 'string') {
           errorMessage = detailObj.message;
@@ -66,16 +77,22 @@ export function useMutationWithToast<TData = unknown, TError = unknown, TVariabl
           // If detail is an object but no message, try to stringify it safely
           errorMessage = JSON.stringify(errorDetail);
         }
-      } else if (typeof errorDetail === 'string') {
+      }
+      // 3. errorData.detail (string)
+      else if (typeof errorDetail === 'string') {
         errorMessage = errorDetail;
-      } else if (
+      }
+      // 4. errorData.message (direct property)
+      else if (
         errorData &&
         typeof errorData === "object" &&
         "message" in errorData &&
         typeof (errorData as any).message === "string"
       ) {
         errorMessage = (errorData as any).message;
-      } else if (errorMsg && typeof errorMsg === 'string' && errorMsg !== '[object Object]') {
+      }
+      // 5. error.message (Error object message)
+      else if (errorMsg && typeof errorMsg === 'string' && errorMsg !== '[object Object]') {
         // Use error.message only if it's a valid string and not the object string representation
         errorMessage = errorMsg;
       } else {
@@ -146,8 +163,19 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
       }
       let errorMessage: string;
       
-      // Handle case where detail is an object with a message property
-      if (errorDetail && typeof errorDetail === 'object') {
+      // ✅ FIX: Check for nested error.message structure (backend format: { error: { message: "..." } })
+      const errorDataObj = errorData && typeof errorData === 'object' ? errorData as Record<string, unknown> : null;
+      const nestedError = errorDataObj?.error && typeof errorDataObj.error === 'object' 
+        ? errorDataObj.error as Record<string, unknown> 
+        : null;
+      
+      // Priority order for error message extraction:
+      // 1. errorData.error.message (nested error object)
+      if (nestedError && typeof nestedError.message === 'string') {
+        errorMessage = nestedError.message;
+      }
+      // 2. Handle case where detail is an object with a message property
+      else if (errorDetail && typeof errorDetail === 'object') {
         const detailObj = errorDetail as unknown as Record<string, unknown>;
         if (typeof detailObj.message === 'string') {
           errorMessage = detailObj.message;
@@ -168,16 +196,22 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
           // If detail is an object but no message, try to stringify it safely
           errorMessage = JSON.stringify(errorDetail);
         }
-      } else if (typeof errorDetail === 'string') {
+      }
+      // 3. errorData.detail (string)
+      else if (typeof errorDetail === 'string') {
         errorMessage = errorDetail;
-      } else if (
+      }
+      // 4. errorData.message (direct property)
+      else if (
         errorData &&
         typeof errorData === "object" &&
         "message" in errorData &&
         typeof (errorData as any).message === "string"
       ) {
         errorMessage = (errorData as any).message;
-      } else if (errorMsg && typeof errorMsg === 'string' && errorMsg !== '[object Object]') {
+      }
+      // 5. error.message (Error object message)
+      else if (errorMsg && typeof errorMsg === 'string' && errorMsg !== '[object Object]') {
         // Use error.message only if it's a valid string and not the object string representation
         errorMessage = errorMsg;
       } else {

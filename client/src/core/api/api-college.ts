@@ -1,6 +1,7 @@
 import { useAuthStore } from "@/core/auth/authStore";
 import { Api } from "@/core/api";
 import { getApiBaseUrl } from "./api";
+import { getIncomeIdFromResponse } from "./payment-types";
 
 // Ensure API_BASE_URL includes /api/v1 prefix
 const baseUrl = getApiBaseUrl();
@@ -499,12 +500,23 @@ export async function handleCollegePayByEnrollment(
     }
 
     const paymentData = (await response.json()) as PaymentResponse;
-    const income_id = paymentData.data?.context?.income_id ?? paymentData.context?.income_id;
+    // ✅ FIX: Handle both response formats: { data: { context: {...} } } and { context: {...} }
+    const income_id = paymentData.data?.context?.income_id ?? paymentData.context?.income_id ?? getIncomeIdFromResponse(paymentData);
     if (!income_id || typeof income_id !== "number") {
       throw new Error("Payment successful but income_id not found in response context");
     }
 
-    const blobUrl = await handleCollegeRegenerateReceipt(income_id);
+    // ✅ FIX: Handle receipt regeneration failure gracefully - payment succeeded even if receipt fails
+    let blobUrl: string;
+    try {
+      blobUrl = await handleCollegeRegenerateReceipt(income_id);
+    } catch (receiptError) {
+      console.warn("Receipt regeneration failed, but payment succeeded:", receiptError);
+      // Payment succeeded, but receipt generation failed - return empty blobUrl
+      // The parent component will handle this gracefully
+      blobUrl = "";
+    }
+    
     return { income_id, blobUrl, paymentData };
   } catch (error) {
     if (error instanceof Error) {

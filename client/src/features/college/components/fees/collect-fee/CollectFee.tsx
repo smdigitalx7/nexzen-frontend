@@ -56,7 +56,7 @@ export const CollectFee = ({
   const paymentSuccessRef = useRef<string | null>(null);
   const hasInitializedRef = useRef(false);
 
-  const { data: selectedStudent, refetch: refetchFeeDetails } =
+  const { data: selectedStudent, refetch: refetchFeeDetails, dataUpdatedAt } =
     useStudentFeeDetails(selectedAdmissionNo);
 
   // Parse URL search parameters
@@ -220,7 +220,8 @@ export const CollectFee = ({
 
         paymentSuccessRef.current = paymentData.admissionNo;
 
-        // Invalidate queries so lists and other views refresh (same as School)
+        // ✅ FIX: Invalidate queries first, then refetch to ensure UI updates
+        // Do this even if receipt generation failed (payment succeeded)
         await batchInvalidateQueries([
           collegeKeys.students.root(),
           collegeKeys.enrollments.root(),
@@ -229,6 +230,7 @@ export const CollectFee = ({
           collegeKeys.income.root(),
         ]);
 
+        // Wait for refetch to complete to ensure UI updates with fresh data
         await refetchFeeDetails();
 
         const receiptNo = getReceiptNoFromResponse(result.paymentData);
@@ -236,6 +238,13 @@ export const CollectFee = ({
       } catch (error) {
         paymentSuccessRef.current = null;
         console.error("Payment error:", error);
+        
+        // ✅ FIX: Even if payment fails, try to refetch fee details in case partial update occurred
+        try {
+          await refetchFeeDetails();
+        } catch (refetchError) {
+          console.error("Failed to refetch fee details after payment error:", refetchError);
+        }
 
         let errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
         let errorTitle = "Payment Failed";
@@ -306,6 +315,7 @@ export const CollectFee = ({
           >
             {selectedStudent ? (
               <CollectFeePaymentView
+                key={`payment-${selectedAdmissionNo}-${dataUpdatedAt ?? Date.now()}`}
                 studentDetails={selectedStudent}
                 onPaymentComplete={handleMultiplePaymentComplete}
                 onCancel={handleFormClose}

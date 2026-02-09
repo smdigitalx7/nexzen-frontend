@@ -18,6 +18,7 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
     queryFn: () => EnrollmentsService.getByAdmission(admissionNo!),
     enabled: !!admissionNo,
     retry: false,
+    staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });
 
   const enrollment = enrollmentQuery.data;
@@ -28,6 +29,7 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
     queryKey: schoolKeys.tuition.detail(enrollmentId || 0),
     queryFn: () => SchoolTuitionFeeBalancesService.getById(enrollmentId!),
     enabled: !!enrollmentId,
+    staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });
 
   // 3. Fetch Transport Balance (Dependent on Enrollment)
@@ -35,6 +37,7 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
     queryKey: schoolKeys.transport.detail(enrollmentId || 0),
     queryFn: () => SchoolTransportFeeBalancesService.getById(enrollmentId!),
     enabled: !!enrollmentId,
+    staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });
 
   const isLoading = enrollmentQuery.isLoading || tuitionQuery.isLoading || transportQuery.isLoading;
@@ -47,16 +50,25 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
       transportBalance: transportQuery.data
   } : null;
 
+  // ✅ FIX: Track data update timestamp for forcing re-renders
+  const dataUpdatedAt = Math.max(
+    enrollmentQuery.dataUpdatedAt || 0,
+    tuitionQuery.dataUpdatedAt || 0,
+    transportQuery.dataUpdatedAt || 0
+  );
+
   return {
     data,
     isLoading,
     isError,
     error: enrollmentQuery.error || tuitionQuery.error || transportQuery.error,
+    dataUpdatedAt, // ✅ FIX: Export dataUpdatedAt for key prop
     refetch: async () => {
-        await enrollmentQuery.refetch();
-        if (enrollmentId) {
-            await Promise.all([tuitionQuery.refetch(), transportQuery.refetch()]);
-        }
+      // ✅ FIX: Refetch all queries and wait for completion to ensure fresh data
+      await enrollmentQuery.refetch();
+      if (enrollmentId) {
+        await Promise.all([tuitionQuery.refetch(), transportQuery.refetch()]);
+      }
     }
   };
 };

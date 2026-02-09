@@ -323,7 +323,10 @@ export default function AttendanceView() {
                 setEditAbsent("0");
                 setEditRemarks("");
               } catch (err: unknown) {
-                const serverMsg = (err as any)?.response?.data?.detail || (err as any)?.message || 'Failed to update attendance';
+                // ✅ FIX: Extract error message from backend response (supports nested error.message structure)
+                const errorData = (err as any)?.response?.data || (err as any)?.data;
+                const nestedError = errorData?.error?.message;
+                const serverMsg = nestedError || errorData?.detail || errorData?.message || (err as any)?.message || 'Failed to update attendance';
                 toast({ title: 'Error', description: serverMsg, variant: 'destructive' });
               }
             }}>Save Changes</Button>

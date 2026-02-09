@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { AuditLogsService } from "@/features/general/services/audit-logs.service";
 import type {
   ActivitySummaryParams,
@@ -7,7 +7,7 @@ import type {
   AuditLogDeleteByIdsParams,
 } from "@/features/general/types/audit-logs";
 import { useToast } from "@/common/hooks/use-toast";
-import { batchInvalidateAndRefetch } from "@/common/hooks/useGlobalRefetch";
+import { batchInvalidateQueriesSelective } from "@/common/hooks/useGlobalRefetch";
 import { useAuthStore } from "@/core/auth/authStore";
 
 /**
@@ -66,13 +66,16 @@ export const useDeleteLogs = () => {
       
       // ✅ FIX: Batch invalidate queries to prevent UI freeze
       // React Query handles caching properly, no need for API-level cache clearing
-      batchInvalidateAndRefetch([["audit-logs"]]);
+      batchInvalidateQueriesSelective([["audit-logs"]], { refetchType: "none", delay: 0 });
     },
     onError: (error: any) => {
-      // Extract detailed error message from API response
+      // ✅ FIX: Extract detailed error message from API response (supports nested error.message structure)
+      const errorData = error?.response?.data || error?.data;
+      const nestedError = errorData?.error?.message;
       const errorMessage = 
-        error?.response?.data?.detail ||
-        error?.response?.data?.message ||
+        nestedError ||
+        errorData?.detail ||
+        errorData?.message ||
         error?.message ||
         "Failed to delete audit logs.";
       
@@ -105,13 +108,16 @@ export const useDeleteLogsByIds = () => {
       
       // ✅ FIX: Batch invalidate queries to prevent UI freeze
       // React Query handles caching properly, no need for API-level cache clearing
-      batchInvalidateAndRefetch([["audit-logs"]]);
+      batchInvalidateQueriesSelective([["audit-logs"]], { refetchType: "none", delay: 0 });
     },
     onError: (error: any) => {
-      // Extract detailed error message from API response
+      // ✅ FIX: Extract detailed error message from API response (supports nested error.message structure)
+      const errorData = error?.response?.data || error?.data;
+      const nestedError = errorData?.error?.message;
       const errorMessage = 
-        error?.response?.data?.detail ||
-        error?.response?.data?.message ||
+        nestedError ||
+        errorData?.detail ||
+        errorData?.message ||
         error?.message ||
         "Failed to delete audit logs.";
       

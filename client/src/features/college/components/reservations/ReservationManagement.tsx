@@ -1,19 +1,15 @@
-import { useMemo, useState, useEffect, memo, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useDeleteCollegeReservation,
   useCollegeReservationDashboard,
   useCreateCollegeReservation,
   collegeKeys,
 } from "@/features/college/hooks";
-import { invalidateAndRefetch } from "@/common/hooks/useGlobalRefetch";
-
-import { motion } from "framer-motion";
 import { Label } from "@/common/components/ui/label";
 import { Button } from "@/common/components/ui/button";
 import { Textarea } from "@/common/components/ui/textarea";
-import { Badge } from "@/common/components/ui/badge";
 import { useTabNavigation } from "@/common/hooks/use-tab-navigation";
 import {
   Dialog,
@@ -26,7 +22,7 @@ import {
 import { useAuthStore } from "@/core/auth/authStore";
 import { Printer } from "lucide-react";
 import ReservationForm from "../reservations/ReservationForm";
-import { TransportService } from "@/features/general/services";
+import { TransportService, DistanceSlabsService } from "@/features/general/services";
 import { toast } from "@/common/hooks/use-toast";
 import {
   CollegeReservationsService,
@@ -47,55 +43,11 @@ import type {
   CollegeReservationCreate,
 } from "@/features/college/types/reservations";
 import { Plus, List, BarChart3 } from "lucide-react";
-
-// Form state type matching the form structure
-type CollegeReservationFormState = {
-  studentName: string;
-  studentAadhar: string;
-  fatherName: string;
-  fatherAadhar: string;
-  motherName: string;
-  motherAadhar: string;
-  fatherOccupation: string;
-  motherOccupation: string;
-  gender: string;
-  dob: string;
-  previousSchool: string;
-  village: string;
-  lastClass: string;
-  presentAddress: string;
-  permanentAddress: string;
-  fatherMobile: string;
-  motherMobile: string;
-  classAdmission: string;
-  group: string;
-  course: string;
-  courseName: string;
-  transport: string;
-  busRoute: string;
-  pickupPoint: string;
-  applicationFee: string;
-  reservationFee: string;
-  preferredClassId: string;
-  preferredGroupId: string;
-  bookFee: string;
-  tuitionConcession: string;
-  transportConcession: string;
-  bookFeeRequired: boolean;
-  courseRequired: boolean;
-  requestType: string;
-  referredBy: string;
-  referredByName: string;
-  reservationDate: string;
-  siblingsJson: string;
-  siblings: Array<{
-    name: string;
-    class_name: string;
-    where: string;
-    gender: string;
-  }>;
-  remarks: string;
-};
+import {
+  type CollegeReservationFormState,
+  initialFormState as collegeInitialFormState,
+} from "./CollegeReservationTypes";
+import { CollegeReservationHeader } from "./CollegeReservationHeader";
 import { TabSwitcher } from "@/common/components/shared";
 import StatusUpdateTable from "./StatusUpdateComponent";
 import AllReservationsComponent from "./AllReservationsComponent";
@@ -107,10 +59,10 @@ import {
 import { ReservationPaymentData } from "@/common/components/shared/payment";
 import CollegeReservationPaymentProcessor from "@/common/components/shared/payment/CollegeReservationPaymentProcessor";
 import type { CollegeIncomeRead } from "@/features/college/types/income";
-import { Building2, University } from "lucide-react";
 
 function ReservationManagementComponent() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { academicYear, currentBranch } = useAuthStore();
 
   // Initialize mutation hooks
@@ -183,10 +135,7 @@ function ReservationManagementComponent() {
     error: distanceSlabsError,
   } = useQuery({
     queryKey: ["distance-slabs"],
-    queryFn: () =>
-      import("@/features/general/services/distance-slabs.service").then((m) =>
-        m.DistanceSlabsService.listDistanceSlabs()
-      ),
+    queryFn: () => DistanceSlabsService.listDistanceSlabs(),
     enabled: dropdownsOpened.distanceSlabs,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -361,73 +310,9 @@ function ReservationManagementComponent() {
     }));
   }, [allReservations]);
 
-  // Initial form state - moved outside component for better performance
-  const initialFormState = {
-    // Personal Details
-    studentName: "",
-    studentAadhar: "",
-    fatherName: "",
-    fatherAadhar: "",
-    motherName: "",
-    motherAadhar: "",
-    fatherOccupation: "",
-    motherOccupation: "",
-    gender: "",
-    dob: "",
-
-    // Previous School Details
-    previousSchool: "",
-    village: "",
-    lastClass: "",
-
-    // Contact Details
-    presentAddress: "",
-    permanentAddress: "",
-    fatherMobile: "",
-    motherMobile: "",
-
-    // Academic Details
-    classAdmission: "",
-    group: "N/A",
-    course: "N/A",
-    courseName: "N/A",
-
-    // Fee Setup
-    transport: "No",
-    busRoute: "",
-    pickupPoint: "",
-
-    // Payments
-    applicationFee: "",
-    reservationFee: "",
-
-    // Advanced (new fields)
-    preferredClassId: "0",
-    preferredGroupId: "0",
-    bookFee: "0",
-    tuitionConcession: "0",
-    transportConcession: "0",
-    bookFeeRequired: false,
-    courseRequired: true,
-    requestType: "WALK_IN",
-    referredBy: "",
-    referredByName: "",
-    reservationDate: "",
-    siblingsJson: "",
-    siblings: [] as Array<{
-      name: string;
-      class_name: string;
-      where: string;
-      gender: string;
-    }>,
-
-    // Remarks
-    remarks: "",
-  };
-
   // Form state using initial state - set reservation_date to today when component mounts (matching school behavior)
   const [form, setForm] = useState(() => ({
-    ...initialFormState,
+    ...collegeInitialFormState,
     reservationDate: new Date().toISOString().split("T")[0],
   }));
 
@@ -558,8 +443,10 @@ function ReservationManagementComponent() {
         });
 
         // Invalidate and refetch using debounced utility (prevents UI freeze)
-        // Note: invalidateAndRefetch handles API cache clearing internally
-        invalidateAndRefetch(collegeKeys.reservations.root());
+        void queryClient.invalidateQueries({
+          queryKey: collegeKeys.reservations.root(),
+          exact: false,
+        });
 
         // Step 4: Call refetchReservations to ensure immediate API call
         void refetchReservations();
@@ -726,7 +613,7 @@ function ReservationManagementComponent() {
         // This must happen synchronously before any async operations
         // Set reservation_date to today when clearing (matching school behavior)
         setForm({
-          ...initialFormState,
+          ...collegeInitialFormState,
           reservationDate: new Date().toISOString().split("T")[0],
         });
         setSelectedGroupId(null);
@@ -1125,8 +1012,10 @@ function ReservationManagementComponent() {
       );
 
       // Invalidate and refetch using debounced utility (prevents UI freeze)
-      // Note: invalidateAndRefetch handles API cache clearing internally
-      invalidateAndRefetch(collegeKeys.reservations.root());
+      void queryClient.invalidateQueries({
+        queryKey: collegeKeys.reservations.root(),
+        exact: false,
+      });
 
       // Step 5: Call refetch callback
       void refetchReservations();
@@ -1250,7 +1139,7 @@ function ReservationManagementComponent() {
   // React Query automatically handles:
   // 1. Refetching when tab becomes active (via enabled: activeTab === "all" || activeTab === "status")
   // 2. Refetching when query key changes (page/pageSize)
-  // 3. Cache invalidation from mutations (handled by invalidateAndRefetch in mutation hooks)
+  // 3. Cache invalidation from mutations (handled by queryClient.invalidateQueries)
   // Manual refetch on tab change was causing:
   // - Infinite loops (refetch → re-render → refetch)
   // - UI freezes (blocking refetch operations)
@@ -1258,32 +1147,10 @@ function ReservationManagementComponent() {
 
   return (
     <div className="space-y-6 p-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Reservations</h1>
-            <p className="text-muted-foreground">Manage student reservations</p>
-          </div>
-          {reservationNo && (
-            <Badge variant="outline" className="text-lg px-4 py-2">
-              Reservation No: {reservationNo}
-            </Badge>
-          )}
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="gap-1">
-              {currentBranch?.branch_type === "COLLEGE" ? (
-                <University className="h-3 w-3" />
-              ) : (
-                <Building2 className="h-3 w-3" />
-              )}
-              {currentBranch?.branch_name}
-            </Badge>
-          </div>
-        </div>
-      </motion.div>
+      <CollegeReservationHeader
+        currentBranch={currentBranch}
+        reservationNo={reservationNo}
+      />
 
       {/* College Reservation Dashboard Stats */}
       <CollegeReservationStatsCards
@@ -2085,7 +1952,10 @@ function ReservationManagementComponent() {
             requestIdleCallback(
               () => {
                 // Invalidate queries (non-blocking, debounced internally)
-                invalidateAndRefetch(collegeKeys.reservations.root());
+                void queryClient.invalidateQueries({
+                  queryKey: collegeKeys.reservations.root(),
+                  exact: false,
+                });
 
                 // Call refetch callback if provided (non-blocking)
                 if (refetchReservations) {
@@ -2098,7 +1968,10 @@ function ReservationManagementComponent() {
             // Fallback for browsers without requestIdleCallback
             setTimeout(() => {
               // Invalidate queries (non-blocking, debounced internally)
-              invalidateAndRefetch(collegeKeys.reservations.root());
+              void queryClient.invalidateQueries({
+                queryKey: collegeKeys.reservations.root(),
+                exact: false,
+              });
 
               // Call refetch callback if provided (non-blocking)
               if (refetchReservations) {
@@ -2128,7 +2001,10 @@ function ReservationManagementComponent() {
               setShowPaymentProcessor(false);
               setTimeout(() => setPaymentData(null), 0);
               setTimeout(() => {
-                invalidateAndRefetch(collegeKeys.reservations.root());
+                void queryClient.invalidateQueries({
+                  queryKey: collegeKeys.reservations.root(),
+                  exact: false,
+                });
                 if (refetchReservations) void refetchReservations();
               }, 0);
             }}

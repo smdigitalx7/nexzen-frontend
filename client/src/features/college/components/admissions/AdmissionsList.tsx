@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { batchInvalidateAndRefetch } from "@/common/hooks/useGlobalRefetch";
+import { batchInvalidateQueriesSelective } from "@/common/hooks/useGlobalRefetch";
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
 import { Input } from "@/common/components/ui/input";
@@ -239,7 +239,7 @@ const AdmissionsList = () => {
           });
         }, 400);
       });
-      batchInvalidateAndRefetch([["college", "admissions"]]);
+      batchInvalidateQueriesSelective([["college", "admissions"]], { refetchType: "none", delay: 0 });
     } catch (error: any) {
       console.error("Payment failed:", error);
       // Show error in the dialog instead of toast
@@ -271,13 +271,13 @@ const AdmissionsList = () => {
       if (typeof requestIdleCallback !== "undefined") {
         requestIdleCallback(
           () => {
-            batchInvalidateAndRefetch([["college", "admissions", selectedStudentId]]);
+            batchInvalidateQueriesSelective([["college", "admissions", selectedStudentId]], { refetchType: "none", delay: 0 });
           },
           { timeout: 1000 }
         );
       } else {
         setTimeout(() => {
-          batchInvalidateAndRefetch([["college", "admissions", selectedStudentId]]);
+          batchInvalidateQueriesSelective([["college", "admissions", selectedStudentId]], { refetchType: "none", delay: 0 });
         }, 500);
       }
     }

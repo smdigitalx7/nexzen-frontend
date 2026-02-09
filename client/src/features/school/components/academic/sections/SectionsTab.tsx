@@ -40,7 +40,7 @@ const SectionsTabComponent = () => {
   const [editSection, setEditSection] = useState(initialSectionForm);
 
   // Data fetching - only fetch when a class is selected
-  const { data: sections = [], isLoading: isLoadingSections } = useSchoolSectionsByClass(selectedClassId);
+  const { data: sections = [], isLoading: isLoadingSections, dataUpdatedAt } = useSchoolSectionsByClass(selectedClassId);
 
   // Hooks
   const createSection = useCreateSchoolSection((selectedClassId || 0));
@@ -132,6 +132,7 @@ const SectionsTabComponent = () => {
     if (!sectionToDelete || !selectedClassId) return;
 
     try {
+      // ✅ FIX: Wait for mutation to complete - onSuccess will handle cache invalidation and refetch
       await deleteSection.mutateAsync(sectionToDelete.section_id);
       setIsDeleteDialogOpen(false);
       setSectionToDelete(null);
@@ -229,6 +230,7 @@ const SectionsTabComponent = () => {
         </div>
       ) : (
         <DataTable
+            key={`sections-${selectedClassId}-${dataUpdatedAt ?? Date.now()}`}
             data={sections}
             columns={columns}
             title="Sections"
