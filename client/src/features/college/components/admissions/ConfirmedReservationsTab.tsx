@@ -1248,11 +1248,11 @@ const ConfirmedReservationsTabComponent = () => {
           });
         }, 300);
         
+        // Refetch all admissions queries so Student Admissions list shows updated status
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: collegeKeys.admissions.root(),
             exact: false,
-            type: 'active',
           });
         }, 400);
       });

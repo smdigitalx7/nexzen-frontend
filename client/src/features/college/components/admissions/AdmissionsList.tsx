@@ -231,13 +231,13 @@ const AdmissionsList = () => {
           exact: false,
           refetchType: "none",
         });
+        // Refetch all admissions queries so list and detail show updated fee status
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: collegeKeys.admissions.root(),
             exact: false,
-            type: "active",
           });
-        }, 200);
+        }, 400);
       });
       batchInvalidateAndRefetch([["college", "admissions"]]);
     } catch (error: any) {

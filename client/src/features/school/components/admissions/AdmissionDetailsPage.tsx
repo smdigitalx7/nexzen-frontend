@@ -494,13 +494,13 @@ const AdmissionDetailsPage = () => {
           exact: false,
           refetchType: "none",
         });
+        // Refetch all admissions queries (list + detail) so cache is fresh when user navigates back to list
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: schoolKeys.admissions.root(),
             exact: false,
-            type: "active",
           });
-        }, 200);
+        }, 400);
       });
       batchInvalidateAndRefetch([["school", "admissions"]]);
     } catch (error: any) {

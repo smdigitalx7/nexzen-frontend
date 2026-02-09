@@ -23,6 +23,7 @@ import StatusUpdateTable from "./StatusUpdateTable";
 import {
   TransportService,
   SchoolReservationsService,
+  SchoolDropdownsService,
 } from "@/features/school/services";
 import { toast } from "@/common/hooks/use-toast";
 import { Plus, List, BarChart3, School, Building2 } from "lucide-react";
@@ -587,10 +588,7 @@ const ReservationManagementComponent = () => {
   // Classes dropdown from API - Load on-demand when dropdown is opened
   const { data: classesData, isLoading: classesLoading } = useQuery({
     queryKey: ["school-dropdowns", "classes"],
-    queryFn: () =>
-      import("@/features/school/services/dropdowns.service").then((m) =>
-        m.SchoolDropdownsService.getClasses()
-      ),
+    queryFn: () => SchoolDropdownsService.getClasses(),
     enabled: dropdownsOpened.classes,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
