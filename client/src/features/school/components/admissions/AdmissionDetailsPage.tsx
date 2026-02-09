@@ -21,9 +21,11 @@ import {
 } from "@/common/utils/export/admissionsExport";
 import type { SchoolAdmissionDetails } from "@/features/school/types/admissions";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
-import { handleSchoolPayByAdmissionWithIncomeId } from "@/core/api/api-school";
+import { handleSchoolPayByStudentWithIncomeId } from "@/core/api/api-school";
 import { getReceiptNoFromResponse } from "@/core/api/payment-types";
 import { batchInvalidateAndRefetch } from "@/common/hooks/useGlobalRefetch";
+import { schoolKeys } from "@/features/school/hooks/query-keys";
+import { useQueryClient } from "@tanstack/react-query";
 import { openReceiptInNewTab } from "@/common/utils/payment";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/common/components/ui/dialog";
 import { ReceiptPreviewModal } from "@/common/components/shared";
@@ -369,6 +371,7 @@ const AdmissionDetailsPage = () => {
   const navigate = useNavigate();
   const studentId = id ? parseInt(id) : null;
 
+  const queryClient = useQueryClient();
   const { data: selectedAdmission, isLoading } = useSchoolAdmissionById(studentId);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -429,6 +432,15 @@ const AdmissionDetailsPage = () => {
 
   const handleProcessPayment = useCallback(async () => {
     if (!selectedAdmission) return;
+    // API expects integer student_id in path, not admission_no
+    if (studentId == null || studentId === 0) {
+      toast({
+        title: "Payment Error",
+        description: "Student ID is required for payment.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const admissionFee = parseFloat(selectedAdmission.admission_fee?.toString() || "0");
     if (admissionFee <= 0) {
@@ -443,8 +455,8 @@ const AdmissionDetailsPage = () => {
     setIsProcessingPayment(true);
 
     try {
-      const paymentResponse = await handleSchoolPayByAdmissionWithIncomeId(
-        selectedAdmission.admission_no,
+      const paymentResponse = await handleSchoolPayByStudentWithIncomeId(
+        studentId,
         {
           details: [
             {
@@ -475,12 +487,22 @@ const AdmissionDetailsPage = () => {
         });
       }
 
-      // Invalidate queries
-      const keysToInvalidate: any[] = [["school", "admissions"]];
-      if (studentId) {
-        keysToInvalidate.push(["school", "admissions", studentId]);
-      }
-      batchInvalidateAndRefetch(keysToInvalidate);
+      // React-query: invalidate and refetch Student Admissions (list + detail) after successful payment
+      requestAnimationFrame(() => {
+        queryClient.invalidateQueries({
+          queryKey: schoolKeys.admissions.root(),
+          exact: false,
+          refetchType: "none",
+        });
+        setTimeout(() => {
+          queryClient.refetchQueries({
+            queryKey: schoolKeys.admissions.root(),
+            exact: false,
+            type: "active",
+          });
+        }, 200);
+      });
+      batchInvalidateAndRefetch([["school", "admissions"]]);
     } catch (error: any) {
       console.error("Payment failed:", error);
       setShowPaymentDialog(false);
@@ -494,7 +516,7 @@ const AdmissionDetailsPage = () => {
     } finally {
       setIsProcessingPayment(false);
     }
-  }, [selectedAdmission, studentId]);
+  }, [selectedAdmission, studentId, queryClient]);
 
   const handleCloseReceiptModal = useCallback(() => {
     setShowReceiptModal(false);

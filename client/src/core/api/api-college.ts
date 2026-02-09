@@ -247,6 +247,112 @@ export async function handleCollegePayByAdmissionWithIncomeId(
 }
 
 /**
+ * Handles payment processing by student_id (POST /college/income/pay-fee/{student_id}).
+ * Use for ADMISSION_FEE: do not pass term_number in details.
+ *
+ * @param student_id - The student ID (path parameter)
+ * @param payload - Payment details; for ADMISSION_FEE omit term_number
+ * @returns Promise with income_id, blobUrl, paymentData
+ */
+export async function handleCollegePayByStudentWithIncomeId(
+  student_id: number,
+  payload: {
+    details: Array<{
+      purpose:
+        | "ADMISSION_FEE"
+        | "BOOK_FEE"
+        | "TUITION_FEE"
+        | "TRANSPORT_FEE"
+        | "OTHER";
+      paid_amount: number;
+      payment_method: "CASH" | "UPI" | "CARD";
+      term_number?: number;
+      payment_month?: string;
+      custom_purpose_name?: string;
+    }>;
+    remarks?: string;
+  }
+): Promise<{ income_id: number; blobUrl: string; paymentData: PaymentResponse }> {
+  const state = useAuthStore.getState();
+  const token = state.accessToken || (state as any).token;
+
+  if (!token) {
+    throw new Error("Authentication token is required for payment processing");
+  }
+
+  const url = `${API_BASE_URL}/college/income/pay-fee/${student_id}`;
+
+  // For ADMISSION_FEE do not pass term_number
+  const normalizedPayload = {
+    ...payload,
+    details: payload.details.map((d) => {
+      if (d.purpose === "ADMISSION_FEE") {
+        const { term_number: _t, payment_month: _m, ...rest } = d;
+        return rest;
+      }
+      return d;
+    }),
+  };
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(normalizedPayload),
+      credentials: "include",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const contentType = response.headers.get("content-type") || "";
+      let errorMessage = `Payment failed with status ${response.status}`;
+      if (contentType.includes("application/json")) {
+        try {
+          const errorData = (await response.json()) as ErrorResponse;
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch {
+          errorMessage = (await response.text()) || errorMessage;
+        }
+      } else {
+        errorMessage = (await response.text()) || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const paymentData = (await response.json()) as PaymentResponse;
+    const income_id =
+      paymentData.data?.context?.income_id ?? paymentData.context?.income_id;
+
+    if (!income_id || typeof income_id !== "number") {
+      throw new Error("Payment successful but income_id not found in response context");
+    }
+
+    const blobUrl = await handleCollegeRegenerateReceipt(income_id);
+    return { income_id, blobUrl, paymentData };
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        throw new Error("Payment request timed out. Please try again.");
+      }
+      if (error.message.includes("fetch")) {
+        throw new Error(
+          "Network error occurred while processing payment. Please check your connection and try again."
+        );
+      }
+    }
+    throw error;
+  }
+}
+
+/**
  * Handles payment processing by reservation and returns PDF receipt with income_id
  *
  * This function:

@@ -71,6 +71,27 @@ export const CollegeIncomeService = {
     return Api.post<CollegeIncomeRead>(`/college/income/pay-fee/${admission_no}`, payload);
   },
 
+  /**
+   * POST /api/v1/college/income/pay-fee/{student_id}
+   * Pay fees by student_id (e.g. ADMISSION_FEE – do not pass term_number).
+   */
+  payFeeByStudent(
+    student_id: number,
+    payload: {
+      details: Array<{
+        purpose: string;
+        paid_amount: number;
+        payment_method: string;
+        term_number?: number | null;
+        payment_month?: string;
+        custom_purpose_name?: string | null;
+      }>;
+      remarks?: string | null;
+    }
+  ) {
+    return Api.post<CollegeIncomeRead>(`/college/income/pay-fee/${student_id}`, payload);
+  },
+
   /** POST /api/v1/college/income/pay-fee-by-reservation/{reservation_id} - path uses reservation_id (integer). */
   payByReservation(reservation_id: number, payload: CollegeIncomeCreateReservation) {
     return Api.post<CollegeIncomeRead>(`/college/income/pay-fee-by-reservation/${reservation_id}`, payload);

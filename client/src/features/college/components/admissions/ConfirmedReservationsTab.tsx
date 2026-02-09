@@ -33,7 +33,7 @@ import { CollegeReservationsService, CollegeStudentsService } from "@/features/c
 import { toast } from "@/common/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { ReceiptPreviewModal } from "@/common/components/shared";
-import { handleCollegePayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/core/api/api-college";
+import { handleCollegePayByStudentWithIncomeId } from "@/core/api/api-college";
 import { getReceiptNoFromResponse } from "@/core/api/payment-types";
 import { openReceiptInNewTab } from "@/common/utils/payment";
 import { DataTable } from "@/common/components/shared/DataTable";
@@ -680,7 +680,9 @@ const PaymentDialog = memo(
         <DialogHeader>
           <DialogTitle>Collect Admission Fee</DialogTitle>
           <DialogDescription>
-            Student enrolled successfully with admission number: {admissionNo}
+            {admissionNo
+              ? `Student enrolled successfully with admission number: ${admissionNo}`
+              : "Student enrolled successfully."}
           </DialogDescription>
         </DialogHeader>
 
@@ -690,9 +692,11 @@ const PaymentDialog = memo(
             <p className="text-lg font-semibold text-green-900 dark:text-green-100">
               Enrollment Successful!
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Admission No: {admissionNo}
-            </p>
+            {admissionNo && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Admission No: {admissionNo}
+              </p>
+            )}
           </div>
 
           <div className="border-t pt-4">
@@ -795,6 +799,7 @@ const ConfirmedReservationsTabComponent = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string>("");
   const [createdAdmissionNo, setCreatedAdmissionNo] = useState<string>("");
+  const [createdStudentId, setCreatedStudentId] = useState<number | null>(null);
   const [admissionFee, setAdmissionFee] = useState<number>(3000);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -1079,22 +1084,23 @@ const ConfirmedReservationsTabComponent = () => {
         throw new Error(errorMessage);
       }
 
-      // Extract admission number from response data
-      // StudentCreationResult has data.admission_no, while CollegeStudentFullDetails has admission_no directly
-      const admissionNo = response?.data?.admission_no || response?.admission_no;
+      const raw = response as { data?: { student_id?: number; admission_no?: string }; student_id?: number; admission_no?: string };
+      const studentId = raw?.data?.student_id ?? raw?.student_id;
+      const admissionNo = raw?.data?.admission_no ?? raw?.admission_no;
 
-      if (!admissionNo) {
+      if (studentId == null || studentId === 0) {
         console.error("Student response:", response);
         toast({
           title: "Enrollment Error",
           description:
-            "Student created but admission number not received from server.",
+            "Student created but student_id not received from server.",
           variant: "destructive",
         });
-        throw new Error("Student created but no admission number received");
+        throw new Error("Student created but no student_id received");
       }
 
-      setCreatedAdmissionNo(admissionNo);
+      setCreatedStudentId(studentId);
+      setCreatedAdmissionNo(admissionNo ?? "");
       setShowDetailsDialog(false);
       setShowPaymentDialog(true);
 
@@ -1115,6 +1121,12 @@ const ConfirmedReservationsTabComponent = () => {
           refetchType: 'none',
         });
         
+        queryClient.invalidateQueries({
+          queryKey: collegeKeys.admissions.root(),
+          exact: false,
+          refetchType: 'none',
+        });
+        
         // Manually refetch with delays
         setTimeout(() => {
           queryClient.refetchQueries({
@@ -1131,6 +1143,14 @@ const ConfirmedReservationsTabComponent = () => {
             type: 'active',
           });
         }, 300);
+        
+        setTimeout(() => {
+          queryClient.refetchQueries({
+            queryKey: collegeKeys.admissions.root(),
+            exact: false,
+            type: 'active',
+          });
+        }, 400);
       });
 
       // Wait for React Query to update the cache
@@ -1141,7 +1161,7 @@ const ConfirmedReservationsTabComponent = () => {
 
       toast({
         title: "Student Enrolled Successfully",
-        description: `Student enrolled with admission number ${admissionNo}`,
+        description: admissionNo ? `Student enrolled with admission number ${admissionNo}` : "Student enrolled successfully.",
         variant: "success",
       });
     } catch (error: any) {
@@ -1156,12 +1176,12 @@ const ConfirmedReservationsTabComponent = () => {
   }, [selectedReservation, createStudentMutation, queryClient]);
 
   const handlePaymentProcess = useCallback(async () => {
-    if (!createdAdmissionNo) return;
+    if (createdStudentId == null || createdStudentId === 0) return;
 
     setIsProcessingPayment(true);
 
     try {
-      const result = await handlePayByAdmissionWithIncomeId(createdAdmissionNo, {
+      const result = await handleCollegePayByStudentWithIncomeId(createdStudentId, {
         details: [{
           purpose: "ADMISSION_FEE",
           paid_amount: admissionFee,
@@ -1206,7 +1226,7 @@ const ConfirmedReservationsTabComponent = () => {
         });
         
         queryClient.invalidateQueries({
-          queryKey: ["college", "admissions"],
+          queryKey: collegeKeys.admissions.root(),
           exact: false,
           refetchType: 'none',
         });
@@ -1229,14 +1249,12 @@ const ConfirmedReservationsTabComponent = () => {
         }, 300);
         
         setTimeout(() => {
-          startTransition(() => {
-            queryClient.invalidateQueries({
-              queryKey: ["college", "admissions"],
-              exact: false,
-              refetchType: 'active',
-            });
+          queryClient.refetchQueries({
+            queryKey: collegeKeys.admissions.root(),
+            exact: false,
+            type: 'active',
           });
-        }, 500);
+        }, 400);
       });
 
       // Step 4: Wait for React Query to update the cache and React to process state updates
@@ -1259,7 +1277,7 @@ const ConfirmedReservationsTabComponent = () => {
     } finally {
       setIsProcessingPayment(false);
     }
-  }, [createdAdmissionNo, admissionFee, queryClient, refetch]);
+  }, [createdStudentId, admissionFee, queryClient, refetch]);
 
   const handleCloseReceiptModal = useCallback(() => {
     // ✅ CRITICAL FIX: Close modal state immediately
@@ -1277,6 +1295,7 @@ const ConfirmedReservationsTabComponent = () => {
     
     // ✅ CRITICAL FIX: Clear other state immediately
     setCreatedAdmissionNo("");
+    setCreatedStudentId(null);
     setAdmissionFee(0);
     setSelectedReservation(null);
     
@@ -1408,7 +1427,11 @@ const ConfirmedReservationsTabComponent = () => {
       {/* Payment Dialog */}
       <PaymentDialog
         isOpen={showPaymentDialog && !showReceiptModal}
-        onClose={() => setShowPaymentDialog(false)}
+        onClose={() => {
+          setShowPaymentDialog(false);
+          setCreatedAdmissionNo("");
+          setCreatedStudentId(null);
+        }}
         admissionNo={createdAdmissionNo}
         admissionFee={admissionFee}
         onPaymentProcess={handlePaymentProcess}

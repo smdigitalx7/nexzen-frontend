@@ -26,7 +26,7 @@ import {
   Eye,
 } from "lucide-react";
 import { ReceiptPreviewModal } from "@/common/components/shared";
-import { handleCollegePayByAdmissionWithIncomeId } from "@/core/api/api-college";
+import { handleCollegePayByStudentWithIncomeId } from "@/core/api/api-college";
 import { getReceiptNoFromResponse } from "@/core/api/payment-types";
 import { openReceiptInNewTab } from "@/common/utils/payment";
 import { DataTable } from "@/common/components/shared/DataTable";
@@ -35,6 +35,8 @@ import {
   useCollegeAdmissions,
   useCollegeAdmissionById,
 } from "@/features/college/hooks";
+import { collegeKeys } from "@/features/college/hooks/query-keys";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/common/hooks/use-toast";
 import {
   exportAdmissionsToExcel,
@@ -85,6 +87,7 @@ const AdmissionsList = () => {
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: admissionsResp, isLoading } = useCollegeAdmissions({
     page: currentPage,
@@ -169,6 +172,11 @@ const AdmissionsList = () => {
 
   const handleProcessPayment = useCallback(async () => {
     if (!selectedAdmission) return;
+    // API expects integer student_id in path, not admission_no
+    if (selectedStudentId == null || selectedStudentId === 0) {
+      setPaymentError("Student ID is required for payment.");
+      return;
+    }
 
     // Clear any previous errors
     setPaymentError(null);
@@ -182,8 +190,8 @@ const AdmissionsList = () => {
     setIsProcessingPayment(true);
 
     try {
-      const paymentResponse = await handleCollegePayByAdmissionWithIncomeId(
-        selectedAdmission.admission_no || "",
+      const paymentResponse = await handleCollegePayByStudentWithIncomeId(
+        selectedStudentId,
         {
           details: [
             {
@@ -216,12 +224,22 @@ const AdmissionsList = () => {
         });
       }
 
-      // ✅ FIX: Batch invalidate queries to prevent UI freeze
-      const keysToInvalidate: any[] = [["college", "admissions"]];
-      if (selectedStudentId) {
-        keysToInvalidate.push(["college", "admissions", selectedStudentId]);
-      }
-      batchInvalidateAndRefetch(keysToInvalidate);
+      // React-query: invalidate and refetch Student Admissions (list + detail) after successful payment
+      requestAnimationFrame(() => {
+        queryClient.invalidateQueries({
+          queryKey: collegeKeys.admissions.root(),
+          exact: false,
+          refetchType: "none",
+        });
+        setTimeout(() => {
+          queryClient.refetchQueries({
+            queryKey: collegeKeys.admissions.root(),
+            exact: false,
+            type: "active",
+          });
+        }, 200);
+      });
+      batchInvalidateAndRefetch([["college", "admissions"]]);
     } catch (error: any) {
       console.error("Payment failed:", error);
       // Show error in the dialog instead of toast
@@ -232,7 +250,7 @@ const AdmissionsList = () => {
     } finally {
       setIsProcessingPayment(false);
     }
-  }, [selectedAdmission, selectedStudentId]);
+  }, [selectedAdmission, selectedStudentId, queryClient]);
 
   const handleCloseReceiptModal = useCallback(() => {
     // ✅ CRITICAL FIX: Close modal state immediately

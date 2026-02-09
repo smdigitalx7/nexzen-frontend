@@ -17,6 +17,24 @@ import { useMemo, useState } from "react";
 import { Save } from "lucide-react";
 import { cn } from "@/common/utils";
 
+const AADHAR_MAX_LENGTH = 12;
+const MOBILE_LENGTH = 10;
+
+function onlyDigits(value: string, maxLen: number): string {
+  const digits = value.replaceAll(/\D/g, "").slice(0, maxLen);
+  return digits;
+}
+
+function isAadharValid(value: string): boolean {
+  if (!value.trim()) return true;
+  return /^\d{1,12}$/.test(value.trim());
+}
+
+function isMobileValid(value: string): boolean {
+  if (!value.trim()) return true;
+  return /^\d{10}$/.test(value.trim());
+}
+
 type ReservationFormState = {
   student_name: string;
   aadhar_no: string;
@@ -121,8 +139,25 @@ export default function ReservationForm({
   onDropdownOpen,
   modal = false,
 }: ReservationFormProps) {
+  const hasInvalidAadharOrMobile = useMemo(
+    () =>
+      !isAadharValid(form.aadhar_no) ||
+      !isAadharValid(form.father_or_guardian_aadhar_no) ||
+      !isAadharValid(form.mother_or_guardian_aadhar_no) ||
+      !isMobileValid(form.father_or_guardian_mobile) ||
+      !isMobileValid(form.mother_or_guardian_mobile),
+    [
+      form.aadhar_no,
+      form.father_or_guardian_aadhar_no,
+      form.mother_or_guardian_aadhar_no,
+      form.father_or_guardian_mobile,
+      form.mother_or_guardian_mobile,
+    ]
+  );
+
   const isSaveDisabled = useMemo(
     () =>
+      hasInvalidAadharOrMobile ||
       !form.student_name?.trim() ||
       !form.preferred_class_id ||
       form.preferred_class_id === 0 ||
@@ -132,6 +167,7 @@ export default function ReservationForm({
       (form.preferred_group_id > 0 &&
         (!form.preferred_course_id || form.preferred_course_id === 0)),
     [
+      hasInvalidAadharOrMobile,
       form.student_name,
       form.preferred_class_id,
       form.group_name,
@@ -369,6 +405,7 @@ export default function ReservationForm({
                   onChange={(e) =>
                     setForm({ ...form, student_name: e.target.value })
                   }
+                  placeholder="Enter student full name"
                 />
               </div>
               <div>
@@ -376,10 +413,15 @@ export default function ReservationForm({
                 <Input
                   id="aadhar_no"
                   value={form.aadhar_no}
+                  maxLength={AADHAR_MAX_LENGTH}
                   onChange={(e) =>
-                    setForm({ ...form, aadhar_no: e.target.value })
+                    setForm({ ...form, aadhar_no: onlyDigits(e.target.value, AADHAR_MAX_LENGTH) })
                   }
+                  placeholder="12-digit Aadhar number"
                 />
+                {!isAadharValid(form.aadhar_no) && form.aadhar_no.length > 0 && (
+                  <p className="text-sm text-destructive mt-1">Enter up to 12 digits only</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="gender">Gender *</Label>
@@ -427,6 +469,7 @@ export default function ReservationForm({
                       father_or_guardian_name: e.target.value,
                     })
                   }
+                  placeholder="Enter father/guardian name"
                 />
               </div>
               <div>
@@ -436,13 +479,18 @@ export default function ReservationForm({
                 <Input
                   id="father_or_guardian_aadhar_no"
                   value={form.father_or_guardian_aadhar_no}
+                  maxLength={AADHAR_MAX_LENGTH}
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      father_or_guardian_aadhar_no: e.target.value,
+                      father_or_guardian_aadhar_no: onlyDigits(e.target.value, AADHAR_MAX_LENGTH),
                     })
                   }
+                  placeholder="12-digit Aadhar number"
                 />
+                {!isAadharValid(form.father_or_guardian_aadhar_no) && form.father_or_guardian_aadhar_no.length > 0 && (
+                  <p className="text-sm text-destructive mt-1">Enter up to 12 digits only</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="father_or_guardian_mobile">
@@ -451,13 +499,18 @@ export default function ReservationForm({
                 <Input
                   id="father_or_guardian_mobile"
                   value={form.father_or_guardian_mobile}
+                  maxLength={MOBILE_LENGTH}
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      father_or_guardian_mobile: e.target.value,
+                      father_or_guardian_mobile: onlyDigits(e.target.value, MOBILE_LENGTH),
                     })
                   }
+                  placeholder="10-digit mobile number"
                 />
+                {!isMobileValid(form.father_or_guardian_mobile) && form.father_or_guardian_mobile.length > 0 && (
+                  <p className="text-sm text-destructive mt-1">Enter exactly 10 digits</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="father_or_guardian_occupation">
@@ -472,6 +525,7 @@ export default function ReservationForm({
                       father_or_guardian_occupation: e.target.value,
                     })
                   }
+                  placeholder="Enter occupation"
                 />
               </div>
               <div>
@@ -487,6 +541,7 @@ export default function ReservationForm({
                       mother_or_guardian_name: e.target.value,
                     })
                   }
+                  placeholder="Enter mother/guardian name"
                 />
               </div>
               <div>
@@ -496,13 +551,18 @@ export default function ReservationForm({
                 <Input
                   id="mother_or_guardian_aadhar_no"
                   value={form.mother_or_guardian_aadhar_no}
+                  maxLength={AADHAR_MAX_LENGTH}
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      mother_or_guardian_aadhar_no: e.target.value,
+                      mother_or_guardian_aadhar_no: onlyDigits(e.target.value, AADHAR_MAX_LENGTH),
                     })
                   }
+                  placeholder="12-digit Aadhar number"
                 />
+                {!isAadharValid(form.mother_or_guardian_aadhar_no) && form.mother_or_guardian_aadhar_no.length > 0 && (
+                  <p className="text-sm text-destructive mt-1">Enter up to 12 digits only</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="mother_or_guardian_mobile">
@@ -511,13 +571,18 @@ export default function ReservationForm({
                 <Input
                   id="mother_or_guardian_mobile"
                   value={form.mother_or_guardian_mobile}
+                  maxLength={MOBILE_LENGTH}
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      mother_or_guardian_mobile: e.target.value,
+                      mother_or_guardian_mobile: onlyDigits(e.target.value, MOBILE_LENGTH),
                     })
                   }
+                  placeholder="10-digit mobile number"
                 />
+                {!isMobileValid(form.mother_or_guardian_mobile) && form.mother_or_guardian_mobile.length > 0 && (
+                  <p className="text-sm text-destructive mt-1">Enter exactly 10 digits</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="mother_or_guardian_occupation">
@@ -532,6 +597,7 @@ export default function ReservationForm({
                       mother_or_guardian_occupation: e.target.value,
                     })
                   }
+                  placeholder="Enter occupation"
                 />
               </div>
             </div>
@@ -560,6 +626,7 @@ export default function ReservationForm({
                         onChange={(e) =>
                           updateSibling(idx, "name", e.target.value)
                         }
+                        placeholder="Sibling name"
                       />
                     </div>
                     <div>
@@ -570,6 +637,7 @@ export default function ReservationForm({
                         onChange={(e) =>
                           updateSibling(idx, "class_name", e.target.value)
                         }
+                        placeholder="Class"
                       />
                     </div>
                     <div>
@@ -580,6 +648,7 @@ export default function ReservationForm({
                         onChange={(e) =>
                           updateSibling(idx, "where", e.target.value)
                         }
+                        placeholder="School name"
                       />
                     </div>
                     <div>
@@ -653,6 +722,7 @@ export default function ReservationForm({
                   onChange={(e) =>
                     setForm({ ...form, previous_class: e.target.value })
                   }
+                  placeholder="e.g. 12th Grade"
                 />
               </div>
               <div>
@@ -668,6 +738,7 @@ export default function ReservationForm({
                       previous_school_details: e.target.value,
                     })
                   }
+                  placeholder="School name and location"
                 />
               </div>
               <div>
@@ -858,6 +929,7 @@ export default function ReservationForm({
                     setForm({ ...form, present_address: e.target.value })
                   }
                   rows={3}
+                  placeholder="Enter full present address"
                 />
               </div>
               <div>
@@ -869,6 +941,7 @@ export default function ReservationForm({
                     setForm({ ...form, permanent_address: e.target.value })
                   }
                   rows={3}
+                  placeholder="Enter full permanent address"
                 />
               </div>
             </div>
@@ -1087,6 +1160,7 @@ export default function ReservationForm({
                     }
                     rows={2}
                     autoComplete="off"
+                    placeholder="Any additional remarks"
                   />
                 </div>
               </div>
@@ -1121,6 +1195,7 @@ export default function ReservationForm({
                       "border-red-500 focus:ring-red-500"
                   )}
                   required
+                  placeholder="Enter application fee amount"
                 />
                 {(!form.application_fee ||
                   Number(form.application_fee || 0) <= 0) && (

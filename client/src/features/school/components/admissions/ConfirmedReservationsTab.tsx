@@ -22,6 +22,14 @@ import {
   DialogFooter,
 } from "@/common/components/ui/dialog";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/common/components/ui/sheet";
+import {
   UserCheck,
   GraduationCap,
   Edit,
@@ -35,7 +43,7 @@ import { SchoolReservationsService, SchoolStudentsService } from "@/features/sch
 import { toast } from "@/common/hooks/use-toast";
 import { ReceiptPreviewModal } from "@/common/components/shared";
 import { handleRegenerateReceipt } from "@/core/api";
-import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/core/api/api-school";
+import { handleSchoolPayByStudentWithIncomeId } from "@/core/api/api-school";
 import { getReceiptNoFromResponse } from "@/core/api/payment-types";
 import { openReceiptInNewTab } from "@/common/utils/payment";
 import { DataTable } from "@/common/components/shared";
@@ -769,6 +777,7 @@ const ConfirmedReservationsTabComponent = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string>("");
   const [createdAdmissionNo, setCreatedAdmissionNo] = useState<string>("");
+  const [createdStudentId, setCreatedStudentId] = useState<number | null>(null);
   const [admissionFee, setAdmissionFee] = useState<number>(0);
   const [editForm, setEditForm] = useState<Reservation | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -973,22 +982,23 @@ const ConfirmedReservationsTabComponent = () => {
 
       const studentResponse =
         await SchoolStudentsService.createFromReservation(payload);
-      const admissionNo =
-        (studentResponse as any)?.data?.admission_no ||
-        (studentResponse as any)?.admission_no;
+      const raw = studentResponse as { data?: { student_id?: number; admission_no?: string }; student_id?: number; admission_no?: string };
+      const studentId = raw?.data?.student_id ?? raw?.student_id;
+      const admissionNo = raw?.data?.admission_no ?? raw?.admission_no;
 
-      if (!admissionNo) {
+      if (studentId == null || studentId === 0) {
         console.error("Student response:", studentResponse);
         toast({
           title: "Enrollment Error",
           description:
-            "Student created but admission number not received from server.",
+            "Student created but student_id not received from server.",
           variant: "destructive",
         });
-        throw new Error("Student created but no admission number received");
+        throw new Error("Student created but no student_id received");
       }
 
-      setCreatedAdmissionNo(admissionNo);
+      setCreatedStudentId(studentId);
+      setCreatedAdmissionNo(admissionNo ?? "");
       setShowDetailsDialog(false);
       setShowPaymentDialog(true);
 
@@ -1009,6 +1019,12 @@ const ConfirmedReservationsTabComponent = () => {
           refetchType: 'none',
         });
         
+        queryClient.invalidateQueries({
+          queryKey: schoolKeys.admissions.root(),
+          exact: false,
+          refetchType: 'none',
+        });
+        
         // Manually refetch with delays
         setTimeout(() => {
           queryClient.refetchQueries({
@@ -1025,6 +1041,14 @@ const ConfirmedReservationsTabComponent = () => {
             type: 'active',
           });
         }, 300);
+        
+        setTimeout(() => {
+          queryClient.refetchQueries({
+            queryKey: schoolKeys.admissions.root(),
+            exact: false,
+            type: 'active',
+          });
+        }, 400);
       });
 
       // Step 4: Wait for React Query to update the cache and React to process state updates
@@ -1032,7 +1056,7 @@ const ConfirmedReservationsTabComponent = () => {
 
       toast({
         title: "Student Enrolled Successfully",
-        description: `Student enrolled with admission number ${admissionNo}`,
+        description: admissionNo ? `Student enrolled with admission number ${admissionNo}` : "Student enrolled successfully.",
         variant: "success",
       });
     } catch (error: any) {
@@ -1047,13 +1071,13 @@ const ConfirmedReservationsTabComponent = () => {
   }, [selectedReservation, admissionFee, queryClient, refetch]);
 
   const handlePaymentProcess = useCallback(async () => {
-    if (!createdAdmissionNo) return;
+    if (createdStudentId == null || createdStudentId === 0) return;
 
     setIsProcessingPayment(true);
 
     try {
-      const paymentResponse = await handlePayByAdmissionWithIncomeId(
-        createdAdmissionNo,
+      const paymentResponse = await handleSchoolPayByStudentWithIncomeId(
+        createdStudentId,
         {
           details: [
             {
@@ -1098,6 +1122,12 @@ const ConfirmedReservationsTabComponent = () => {
           refetchType: 'none',
         });
         
+        queryClient.invalidateQueries({
+          queryKey: schoolKeys.admissions.root(),
+          exact: false,
+          refetchType: 'none',
+        });
+        
         // Manually refetch with delays
         setTimeout(() => {
           queryClient.refetchQueries({
@@ -1114,6 +1144,14 @@ const ConfirmedReservationsTabComponent = () => {
             type: 'active',
           });
         }, 300);
+        
+        setTimeout(() => {
+          queryClient.refetchQueries({
+            queryKey: schoolKeys.admissions.root(),
+            exact: false,
+            type: 'active',
+          });
+        }, 400);
       });
 
       // Step 4: Wait for React Query to update the cache and React to process state updates
@@ -1132,7 +1170,7 @@ const ConfirmedReservationsTabComponent = () => {
     } finally {
       setIsProcessingPayment(false);
     }
-  }, [createdAdmissionNo, admissionFee, refetch, queryClient]);
+  }, [createdStudentId, admissionFee, refetch, queryClient]);
 
   const handleCloseReceiptModal = useCallback(() => {
     // ✅ CRITICAL FIX: Close modal state immediately
@@ -1150,6 +1188,7 @@ const ConfirmedReservationsTabComponent = () => {
     
     // ✅ CRITICAL FIX: Clear other state immediately
     setCreatedAdmissionNo("");
+    setCreatedStudentId(null);
     setAdmissionFee(0);
     setSelectedReservation(null);
     
@@ -1258,16 +1297,19 @@ const ConfirmedReservationsTabComponent = () => {
         className="w-full"
       />
 
-      {/* Reservation Details Dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader className="pr-10">
+      {/* Enrollment details Sheet (sheet view bar) */}
+      <Sheet open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-2xl overflow-y-auto scrollbar-hide"
+        >
+          <SheetHeader className="pr-10">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <DialogTitle>Student Enrollment Details</DialogTitle>
-                <DialogDescription>
+                <SheetTitle>Student Enrollment Details</SheetTitle>
+                <SheetDescription>
                   Review and confirm student details before enrollment
-                </DialogDescription>
+                </SheetDescription>
               </div>
               {!isEditMode && (
                 <Button
@@ -1281,10 +1323,10 @@ const ConfirmedReservationsTabComponent = () => {
                 </Button>
               )}
             </div>
-          </DialogHeader>
+          </SheetHeader>
 
           {editForm && (
-            <div className="space-y-6">
+            <div className="space-y-6 py-6">
               <ReservationInfo reservation={editForm} />
               <StudentInfoSection
                 editForm={editForm}
@@ -1310,7 +1352,7 @@ const ConfirmedReservationsTabComponent = () => {
             </div>
           )}
 
-          <DialogFooter>
+          <SheetFooter className="flex flex-row gap-2 sm:gap-2 border-t pt-4 mt-6">
             {isEditMode ? (
               <>
                 <Button variant="outline" onClick={handleCancelEdit}>
@@ -1343,9 +1385,9 @@ const ConfirmedReservationsTabComponent = () => {
                 )}
               </>
             )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Payment Dialog */}
       <PaymentDialog
