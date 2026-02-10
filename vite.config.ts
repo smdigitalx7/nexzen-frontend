@@ -78,10 +78,10 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: path.resolve(__dirname, "dist"),
       emptyOutDir: true,
-      target: "esnext",
+      target: "es2020",
       minify: "terser",
       sourcemap: process.env.NODE_ENV === "development",
-      chunkSizeWarningLimit: 1000,
+      chunkSizeWarningLimit: 1200,
       assetsInlineLimit: 4096,
 
       rollupOptions: {
@@ -97,19 +97,33 @@ export default defineConfig(({ mode }) => {
           },
           manualChunks: (id) => {
             if (id.includes("node_modules")) {
-              if (id.includes("react-dom") || id.includes("/react/")) return "vendor-react";
-              if (id.includes("@tanstack/react-query")) return "vendor-query";
-              if (id.includes("framer-motion")) return "vendor-motion";
-              if (id.includes("lucide-react")) return "vendor-lucide";
-              if (id.includes("zustand")) return "vendor-zustand";
-              if (id.includes("axios")) return "vendor-axios";
-              if (id.includes("recharts")) return "vendor-recharts";
-              if (id.includes("react-router-dom")) return "vendor-router";
-              if (id.includes("@radix-ui")) return "vendor-radix";
+              // Group React core and its immediate UI dependencies together
+              // Splitting Radix from React often causes 'undefined forwardRef' in production
+              if (
+                id.includes("node_modules/react/") ||
+                id.includes("node_modules/react-dom/") ||
+                id.includes("node_modules/scheduler/") ||
+                id.includes("node_modules/@radix-ui/") ||
+                id.includes("node_modules/@tanstack/") ||
+                id.includes("node_modules/framer-motion/") ||
+                id.includes("node_modules/zustand/")
+              ) {
+                return "vendor-framework";
+              }
+              
+              if (id.includes("node_modules/lucide-react/")) return "vendor-lucide";
+              if (id.includes("node_modules/recharts/")) return "vendor-recharts";
+              if (id.includes("node_modules/axios/")) return "vendor-axios";
+              if (id.includes("node_modules/react-router-dom/")) return "vendor-router";
+              
+              // Map other heavy dependencies
+              if (id.includes("node_modules/exceljs/") || id.includes("node_modules/jspdf/")) return "vendor-utils";
+              
+              return "vendor-libs";
             }
           },
         },
-        preserveEntrySignatures: false,
+        preserveEntrySignatures: "exports-only",
       },
 
       // Reduce preload requests: only preload critical chunks; others load on demand
