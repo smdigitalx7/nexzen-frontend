@@ -78,10 +78,10 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: path.resolve(__dirname, "dist"),
       emptyOutDir: true,
-      target: "es2020",
+      target: "es2015",
       minify: "terser",
-      sourcemap: process.env.NODE_ENV === "development",
-      chunkSizeWarningLimit: 1200,
+      sourcemap: false,
+      chunkSizeWarningLimit: 2000,
       assetsInlineLimit: 4096,
 
       rollupOptions: {
@@ -95,35 +95,18 @@ export default defineConfig(({ mode }) => {
             }
             return `assets/[name]-[hash].${ext}`;
           },
+          // Simplify manualChunks: Keep all core deps in one vendor bundle
+          // Splitting React and its hooks providers into multiple chunks is the root cause
+          // of 'undefined useLayoutEffect' and 'forwardRef' errors in production.
           manualChunks: (id) => {
             if (id.includes("node_modules")) {
-              // Group React core and its immediate UI dependencies together
-              // Splitting Radix from React often causes 'undefined forwardRef' in production
-              if (
-                id.includes("node_modules/react/") ||
-                id.includes("node_modules/react-dom/") ||
-                id.includes("node_modules/scheduler/") ||
-                id.includes("node_modules/@radix-ui/") ||
-                id.includes("node_modules/@tanstack/") ||
-                id.includes("node_modules/framer-motion/") ||
-                id.includes("node_modules/zustand/")
-              ) {
-                return "vendor-framework";
-              }
-              
-              if (id.includes("node_modules/lucide-react/")) return "vendor-lucide";
-              if (id.includes("node_modules/recharts/")) return "vendor-recharts";
-              if (id.includes("node_modules/axios/")) return "vendor-axios";
-              if (id.includes("node_modules/react-router-dom/")) return "vendor-router";
-              
-              // Map other heavy dependencies
-              if (id.includes("node_modules/exceljs/") || id.includes("node_modules/jspdf/")) return "vendor-utils";
-              
-              return "vendor-libs";
+              // Group everything into one vendor chunk for maximum stability
+              // This ensures a single instance of React and all hooks
+              return "vendor";
             }
           },
         },
-        preserveEntrySignatures: "exports-only",
+        preserveEntrySignatures: "strict",
       },
 
       // Reduce preload requests: only preload critical chunks; others load on demand
