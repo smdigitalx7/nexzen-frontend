@@ -227,9 +227,9 @@ const AcademicManagement = () => {
         title: "Courses Management",
         description: "Manage standard courses and educational framework",
       },
-      teachers: {
-        title: "Teachers Management",
-        description: "Manage teaching staff and their assignments",
+      lecturers: {
+        title: "Lecturers Management",
+        description: "Manage lecturers and their assignments",
       },
       subjects: {
         title: "Subjects Management",
@@ -314,8 +314,8 @@ const AcademicManagement = () => {
         ),
       },
       {
-        value: "teachers",
-        label: "Teachers",
+        value: "lecturers",
+        label: "Lecturers",
         icon: UserCheck,
         content: <TeachersTab />,
       },

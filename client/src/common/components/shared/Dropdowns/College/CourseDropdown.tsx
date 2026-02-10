@@ -45,7 +45,10 @@ export function CollegeCourseDropdown({
   const { data, isLoading, error, refetch } = useCollegeCourses(groupId, { enabled: shouldFetch && groupId > 0 });
 
   const options = React.useMemo(() => {
-    return data?.items || [];
+    const items = data?.items || [];
+    // Deduplicate items by course_id
+    const uniqueItems = Array.from(new Map(items.map(item => [item.course_id, item])).values());
+    return uniqueItems;
   }, [data]);
 
   // Auto-clear value when groupId changes

@@ -6,7 +6,7 @@ import {
   TransportCreateDialog,
   TransportViewDialog,
 } from './transport';
-import { 
+import {
   useCollegeStudentTransportAssignments,
   useCollegeStudentTransportAssignmentById,
   useCreateCollegeStudentTransportAssignment,
@@ -16,9 +16,9 @@ import {
 import { useBusRoutes, useDistanceSlabs } from '@/features/general/hooks';
 import { useCanViewUIComponent } from '@/core/permissions';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { 
-  CollegeTransportAssignmentCreate, 
-  CollegeTransportAssignmentUpdate, 
+import type {
+  CollegeTransportAssignmentCreate,
+  CollegeTransportAssignmentUpdate,
   CollegeTransportStudent,
 } from '@/features/college/types';
 import { ActionConfig } from '@/common/components/shared/DataTable/types';
@@ -27,16 +27,16 @@ import { Eye, Edit as EditIcon, Trash2 } from 'lucide-react';
 
 export const TransportTabComponent = () => {
   // State management
-  const [query, setQuery] = useState<{ class_id: number | ''; group_id?: number | ''; bus_route_id?: number | '' }>({ 
-    class_id: '', 
-    group_id: '', 
-    bus_route_id: '' 
+  const [query, setQuery] = useState<{ class_id: number | ''; group_id?: number | ''; bus_route_id?: number | '' }>({
+    class_id: '',
+    group_id: '',
+    bus_route_id: ''
   });
 
   // Fetch dropdown data
   const { data: routesData } = useBusRoutes(); // useBusRoutes is usually enabled by default or doesn't have the same flag
   const { distanceSlabs } = useDistanceSlabs();
-  
+
   const enrollmentsApiParams = useMemo(() => {
     if (!query.class_id || !query.group_id) return undefined;
     return {
@@ -44,12 +44,12 @@ export const TransportTabComponent = () => {
       group_id: Number(query.group_id),
     };
   }, [query.class_id, query.group_id]);
-  
+
   const { data: enrollmentsData, isLoading: isLoadingEnrollments } = useCollegeEnrollmentsList(enrollmentsApiParams);
-  
+
   const busRoutes = Array.isArray(routesData) ? routesData : [];
   const slabs = distanceSlabs || [];
-  
+
   const enrollments = useMemo(() => {
     if (!enrollmentsData?.enrollments) return [];
     const allEnrollments: any[] = [];
@@ -115,7 +115,7 @@ export const TransportTabComponent = () => {
       await createMutation.mutateAsync(formData);
       setIsCreateDialogOpen(false);
       resetForm();
-    } catch (error) {}
+    } catch (error) { }
   }, [formData, createMutation, resetForm]);
 
   const handleView = useCallback((student: any) => {
@@ -149,10 +149,10 @@ export const TransportTabComponent = () => {
   }, []);
 
   const handleClassChange = useCallback((value: string) => {
-    setQuery(prev => ({ 
-      ...prev, 
-      class_id: value ? Number(value) : '', 
-      group_id: '' 
+    setQuery(prev => ({
+      ...prev,
+      class_id: value ? Number(value) : '',
+      group_id: ''
     }));
   }, []);
 
@@ -176,16 +176,29 @@ export const TransportTabComponent = () => {
       await deleteMutation.mutateAsync(selectedAssignmentId);
       setIsDeleteDialogOpen(false);
       setSelectedAssignmentId(null);
-    } catch (error) {}
+    } catch (error) { }
   }, [selectedAssignmentId, deleteMutation]);
 
 
   const flatData = useMemo(() => {
-    if (!result.data || !Array.isArray(result.data)) return [];
+    if (!result.data) return [];
+
+    let routes: any[] = [];
+    // Handle wrapped response { data: [...] }
+    if ('data' in (result.data as any) && Array.isArray((result.data as any).data)) {
+      routes = (result.data as any).data;
+    }
+    // Handle direct array response [...]
+    else if (Array.isArray(result.data)) {
+      routes = result.data;
+    } else {
+      return [];
+    }
+
     const flattened: any[] = [];
-    (result.data).forEach((route) => {
+    routes.forEach((route) => {
       if (route.groups && Array.isArray(route.groups)) {
-        route.groups.forEach((group) => {
+        route.groups.forEach((group: any) => {
           if (group.students && Array.isArray(group.students)) {
             group.students.forEach((student: any) => {
               flattened.push({

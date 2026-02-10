@@ -8,8 +8,8 @@ import { DataTable } from "@/common/components/shared/DataTable";
 import { useToast } from '@/common/hooks/use-toast';
 import { useFormState } from "@/common/hooks";
 import type { ColumnDef } from "@tanstack/react-table";
-import { 
-  createIconTextColumn, 
+import {
+  createIconTextColumn,
   createDateColumn,
   createBadgeColumn
 } from "@/common/utils/factory/columnFactories";
@@ -35,16 +35,14 @@ export const TestTab = ({
   hasError = false,
   errorMessage,
 }: TestTabProps) => {
-  // Debug: Log test data
-  // removed debug log
   const createTest = useCreateCollegeTest();
   const [selectedTest, setSelectedTest] = useState<CollegeTestRead | null>(null);
-  const updateTest = useUpdateCollegeTest(selectedTest?.test_id || 0);
+  const updateTest = useUpdateCollegeTest();
   const deleteTest = useDeleteCollegeTest();
   const [isAddTestOpen, setIsAddTestOpen] = useState(false);
   const [isEditTestOpen, setIsEditTestOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  
+
   // Using shared form state management for new test
   const {
     formData: newTest,
@@ -52,14 +50,14 @@ export const TestTab = ({
     updateField: updateNewTestField,
     resetForm: resetNewTest,
   } = useFormState({
-    initialData: { 
-      test_name: "", 
+    initialData: {
+      test_name: "",
       test_date: "",
       pass_marks: "",
       max_marks: ""
     }
   });
-  
+
   // Using shared form state management for edit test
   const {
     formData: editTest,
@@ -67,8 +65,8 @@ export const TestTab = ({
     updateField: updateEditTestField,
     resetForm: resetEditTest,
   } = useFormState({
-    initialData: { 
-      test_name: "", 
+    initialData: {
+      test_name: "",
       test_date: "",
       pass_marks: "",
       max_marks: ""
@@ -167,7 +165,7 @@ export const TestTab = ({
         max_marks: maxMarks,
       };
       await createTest.mutateAsync(payload);
-      
+
       resetNewTest();
       setIsAddTestOpen(false);
       // Toast handled by mutation hook
@@ -178,10 +176,91 @@ export const TestTab = ({
   };
 
   const handleUpdateTest = async () => {
-    if (!editTest.test_name?.trim() || !selectedTest) {
+    console.log("DEBUG: handleUpdateTest called");
+    console.log("DEBUG: selectedTest:", selectedTest);
+    if (!selectedTest) {
+      console.error("DEBUG: selectedTest is null/undefined");
+      return;
+    }
+    console.log("DEBUG: selectedTest.test_id:", selectedTest.test_id);
+
+    // Validate test name
+    if (!editTest.test_name?.trim()) {
       toast({
         title: "Error",
         description: "Test name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate test date
+    if (!editTest.test_date?.trim()) {
+      toast({
+        title: "Error",
+        description: "Test date is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(editTest.test_date)) {
+      toast({
+        title: "Error",
+        description: "Test date must be in YYYY-MM-DD format",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate max marks
+    const maxMarksStr = editTest.max_marks?.toString().trim() || "";
+    if (!maxMarksStr) {
+      toast({
+        title: "Error",
+        description: "Max marks is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const maxMarks = parseInt(maxMarksStr, 10);
+    if (isNaN(maxMarks) || maxMarks <= 0) {
+      toast({
+        title: "Error",
+        description: "Max marks must be a positive number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate pass marks
+    const passMarksStr = editTest.pass_marks?.toString().trim() || "";
+    if (!passMarksStr) {
+      toast({
+        title: "Error",
+        description: "Pass marks is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const passMarks = parseInt(passMarksStr, 10);
+    if (isNaN(passMarks) || passMarks < 0) {
+      toast({
+        title: "Error",
+        description: "Pass marks must be a non-negative number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passMarks > maxMarks) {
+      toast({
+        title: "Error",
+        description: "Pass marks cannot be greater than max marks",
         variant: "destructive",
       });
       return;
@@ -191,11 +270,15 @@ export const TestTab = ({
       const updatePayload: CollegeTestUpdate = {
         test_name: editTest.test_name?.trim() || undefined,
         test_date: editTest.test_date?.trim() || undefined,
-        pass_marks: editTest.pass_marks !== "" && editTest.pass_marks !== undefined ? Number(editTest.pass_marks) : undefined,
-        max_marks: editTest.max_marks !== "" && editTest.max_marks !== undefined ? Number(editTest.max_marks) : undefined,
+        pass_marks: passMarks,
+        max_marks: maxMarks,
       };
-      await updateTest.mutateAsync(updatePayload);
-      
+
+      await updateTest.mutateAsync({
+        testId: selectedTest.test_id,
+        payload: updatePayload
+      });
+
       resetEditTest();
       setSelectedTest(null);
       setIsEditTestOpen(false);
@@ -210,7 +293,7 @@ export const TestTab = ({
 
     try {
       await deleteTest.mutateAsync(selectedTest.test_id);
-      
+
       setSelectedTest(null);
       setIsDeleteDialogOpen(false);
       // Toast handled by mutation hook
@@ -221,7 +304,7 @@ export const TestTab = ({
 
   const handleEditClick = useCallback((test: CollegeTestRead) => {
     setSelectedTest(test);
-    setEditTest({ 
+    setEditTest({
       test_name: test.test_name,
       test_date: test.test_date || "",
       pass_marks: test.pass_marks?.toString() || "50",
@@ -237,20 +320,20 @@ export const TestTab = ({
 
   // Define columns for the data table using column factories
   const columns: ColumnDef<CollegeTestRead>[] = useMemo(() => [
-    createIconTextColumn<CollegeTestRead>("test_name", { 
-      icon: FileText, 
-      header: "Test Name" 
+    createIconTextColumn<CollegeTestRead>("test_name", {
+      icon: FileText,
+      header: "Test Name"
     }),
     createDateColumn<CollegeTestRead>("test_date", { header: "Date", fallback: "Not set" }),
-    createBadgeColumn<CollegeTestRead>("pass_marks", { 
-      header: "Pass Marks", 
+    createBadgeColumn<CollegeTestRead>("pass_marks", {
+      header: "Pass Marks",
       variant: "outline",
       fallback: "50 marks"
     }),
-    createBadgeColumn<CollegeTestRead>("max_marks", { 
-      header: "Max Marks", 
+    createBadgeColumn<CollegeTestRead>("max_marks", {
+      header: "Max Marks",
       variant: "outline",
-      fallback: "50 marks" 
+      fallback: "50 marks"
     })
   ], []);
 
@@ -275,7 +358,7 @@ export const TestTab = ({
     return (
       <div className="flex flex-col items-center justify-center py-12 bg-white rounded-3xl border border-red-100">
         <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
-           <AlertTriangle className="h-6 w-6 text-red-600" />
+          <AlertTriangle className="h-6 w-6 text-red-600" />
         </div>
         <p className="text-red-700 font-bold">{errorMessage || "Failed to load tests"}</p>
         <p className="text-red-500 text-sm mt-1">Please refresh or contact administration</p>

@@ -15,7 +15,7 @@ import {
   Briefcase,
   Info,
 } from "lucide-react";
-import { useTeachersByBranch } from "@/features/general/hooks";
+import { useEmployeesByBranch } from "@/features/general/hooks";
 import { useToast } from "@/common/hooks/use-toast";
 import { Badge } from "@/common/components/ui/badge";
 import { TeacherCourseSubjectAssignmentsTab } from "./TeacherCourseSubjectAssignmentsTab";
@@ -59,7 +59,7 @@ export const TeachersTab = () => {
     isLoading,
     error,
     refetch: refetchEmployees,
-  } = useTeachersByBranch(true);
+  } = useEmployeesByBranch(true);
 
   useEffect(() => {
     if (!isAddOpen && !isEditOpen) {
@@ -140,7 +140,7 @@ export const TeachersTab = () => {
   ) => {
     try {
       await deleteMutation.mutateAsync({ teacherId, courseId, subjectId });
-    } catch (error: any) {}
+    } catch (error: any) { }
   };
 
   const handleFormSubmit = async () => {
@@ -163,7 +163,7 @@ export const TeachersTab = () => {
       });
       resetForm();
       setIsAddOpen(false);
-    } catch (error: any) {}
+    } catch (error: any) { }
   };
 
   const columns: ColumnDef<any>[] = useMemo(
@@ -424,15 +424,15 @@ export const TeachersTab = () => {
             </div>
             <h3 className="text-xl font-bold text-slate-900 mb-1">{selectedTeacher?.employee_name}</h3>
             <p className="text-sm text-slate-500 font-medium mb-4">{selectedTeacher?.designation || "Academic Faculty"}</p>
-            
+
             <div className="inline-flex gap-2">
-               <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none shadow-none font-bold">STAFF-ID: {selectedTeacher?.employee_id}</Badge>
-               <Badge variant={selectedTeacher?.is_active ? "success" : "secondary"} className="shadow-none">
-                 {selectedTeacher?.is_active ? "ACTIVE STATUS" : "INACTIVE STATUS"}
-               </Badge>
+              <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none shadow-none font-bold">STAFF-ID: {selectedTeacher?.employee_id}</Badge>
+              <Badge variant={selectedTeacher?.is_active ? "success" : "secondary"} className="shadow-none">
+                {selectedTeacher?.is_active ? "ACTIVE STATUS" : "INACTIVE STATUS"}
+              </Badge>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <p className="text-sm text-slate-600 bg-blue-50/50 p-4 rounded-xl border border-blue-100/50 flex gap-3 italic">
               <Info className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />

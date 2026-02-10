@@ -45,7 +45,10 @@ export function CollegeGroupDropdown({
   const { data, isLoading, error, refetch } = useCollegeGroups(classId, { enabled: shouldFetch });
 
   const options = React.useMemo(() => {
-    return data?.items || [];
+    const items = data?.items || [];
+    // Deduplicate items by group_id
+    const uniqueItems = Array.from(new Map(items.map(item => [item.group_id, item])).values());
+    return uniqueItems;
   }, [data]);
 
   // Auto-clear value when classId changes (if classId is required)
@@ -76,12 +79,12 @@ export function CollegeGroupDropdown({
   // Allow dropdown to work when classId is undefined (shows all groups)
   const isDisabled = disabled || (classId !== undefined && classId <= 0);
 
-  const displayPlaceholder = 
+  const displayPlaceholder =
     classId !== undefined && classId <= 0
       ? "Select class first"
       : isLoading
-      ? "Loading groups..."
-      : placeholder;
+        ? "Loading groups..."
+        : placeholder;
 
   return (
     <ServerCombobox<GroupOption>
@@ -96,8 +99,8 @@ export function CollegeGroupDropdown({
         classId !== undefined && classId <= 0
           ? "Select class first"
           : error
-          ? "Failed to load groups"
-          : "No groups found."
+            ? "Failed to load groups"
+            : "No groups found."
       }
       className={className}
       valueKey="group_id"
