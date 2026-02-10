@@ -97,51 +97,26 @@ export default defineConfig(({ mode }) => {
           },
           manualChunks: (id) => {
             if (id.includes("node_modules")) {
-              // 1. Omni-Framework (Stability Critical)
-              // Aggressively consolidate ALL React-hook-dependent libraries.
-              // This includes core React, state, router, and ANY package prefixed with 'react-'
-              // or '@radix-ui' or '@tanstack/react-'.
-              if (
-                id.includes("node_modules/react/") ||
-                id.includes("node_modules/react-dom/") ||
-                id.includes("node_modules/scheduler/") ||
-                id.includes("node_modules/lucide-react/") ||
-                id.includes("node_modules/zustand/") ||
-                id.includes("node_modules/framer-motion/") ||
-                id.includes("node_modules/@radix-ui/") ||
-                id.includes("node_modules/@tanstack/react-") ||
-                id.includes("node_modules/react-") ||
-                id.includes("node_modules/cmdk/") ||
-                id.includes("node_modules/vaul/") ||
-                id.includes("node_modules/embla-carousel-react/") ||
-                id.includes("node_modules/@hookform/resolvers/") ||
-                id.includes("node_modules/input-otp/") ||
-                id.includes("node_modules/next-themes/")
-              ) {
-                return "vendor-framework";
-              }
-
-              // 2. Heavy Utils (Lazy-loaded)
+              // Any package that isn't a heavy utility or chart goes into the framework
+              // to ensure perfect shared context across all React dependents.
               if (
                 id.includes("node_modules/exceljs/") ||
                 id.includes("node_modules/jspdf/") ||
                 id.includes("node_modules/date-fns/") ||
-                id.includes("node_modules/clsx/") ||
-                id.includes("node_modules/tailwind-merge/") ||
                 id.includes("node_modules/axios/") ||
                 id.includes("node_modules/dompurify/") ||
-                id.includes("node_modules/immer/")
+                id.includes("node_modules/immer/") ||
+                id.includes("node_modules/zod/")
               ) {
                 return "vendor-utils";
               }
 
-              // 3. Charts (Lazy-loaded)
               if (id.includes("node_modules/recharts/")) {
                 return "vendor-charts";
               }
 
-              // Default for other non-UI libraries
-              return "vendor-libs";
+              // Unified Framework Chunk
+              return "vendor-framework";
             }
           },
         },
