@@ -78,10 +78,10 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: path.resolve(__dirname, "dist"),
       emptyOutDir: true,
-      target: "es2015",
+      target: "es2020",
       minify: "terser",
-      sourcemap: false,
-      chunkSizeWarningLimit: 2000,
+      sourcemap: process.env.NODE_ENV === "development",
+      chunkSizeWarningLimit: 1000,
       assetsInlineLimit: 4096,
 
       rollupOptions: {
@@ -95,18 +95,67 @@ export default defineConfig(({ mode }) => {
             }
             return `assets/[name]-[hash].${ext}`;
           },
-          // Simplify manualChunks: Keep all core deps in one vendor bundle
-          // Splitting React and its hooks providers into multiple chunks is the root cause
-          // of 'undefined useLayoutEffect' and 'forwardRef' errors in production.
           manualChunks: (id) => {
             if (id.includes("node_modules")) {
-              // Group everything into one vendor chunk for maximum stability
-              // This ensures a single instance of React and all hooks
-              return "vendor";
+              // 1. React Core (Must be a single instance)
+              if (
+                id.includes("node_modules/react/") ||
+                id.includes("node_modules/react-dom/") ||
+                id.includes("node_modules/scheduler/")
+              ) {
+                return "vendor-react-core";
+              }
+
+              // 2. State Management
+              if (id.includes("node_modules/zustand/")) {
+                return "vendor-state";
+              }
+
+              // 3. Data Fetching
+              if (id.includes("node_modules/@tanstack/react-query/")) {
+                return "vendor-query";
+              }
+
+              // 4. UI Framework & Animations (Heavy UI deps)
+              if (
+                id.includes("node_modules/@radix-ui/") ||
+                id.includes("node_modules/framer-motion/") ||
+                id.includes("node_modules/lucide-react/") ||
+                id.includes("node_modules/clsx/") ||
+                id.includes("node_modules/tailwind-merge/")
+              ) {
+                return "vendor-ui";
+              }
+
+              // 5. Heavy Utilities (Separated to avoid blocking main content)
+              if (
+                id.includes("node_modules/exceljs/") ||
+                id.includes("node_modules/jspdf/") ||
+                id.includes("node_modules/date-fns/")
+              ) {
+                return "vendor-utils";
+              }
+
+              // 6. Navigation
+              if (
+                id.includes("node_modules/react-router/") ||
+                id.includes("node_modules/react-router-dom/") ||
+                id.includes("node_modules/@remix-run/router/")
+              ) {
+                return "vendor-router";
+              }
+
+              // 7. Charts (Loaded only on pages that need them)
+              if (id.includes("node_modules/recharts/")) {
+                return "vendor-charts";
+              }
+
+              // Default for other smaller libs
+              return "vendor-libs";
             }
           },
         },
-        preserveEntrySignatures: "strict",
+        preserveEntrySignatures: "exports-only",
       },
 
       // Reduce preload requests: only preload critical chunks; others load on demand

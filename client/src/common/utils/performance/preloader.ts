@@ -4,10 +4,12 @@
 
 import React from "react";
 
-// Critical components that should be preloaded
+// Critical components that should be preloaded (Auth + Primary Landing Pages)
 const CRITICAL_COMPONENTS = [
   () => import("@/features/general/pages/Login"),
-  () => import("@/features/general/pages/UserManagementPage"),
+  () => import("@/features/general/pages/AdminDashboard"),
+  () => import("@/features/general/pages/AccountantDashboard"),
+  () => import("@/features/general/pages/AcademicDashboard"),
 ];
 
 // School components
