@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeTuitionBalancesService, type CollegeTuitionBalancesListParams } from "@/features/college/services/tuition-fee-balances.service";
-import type { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats, ConcessionUpdateRequest } from "@/features/college/types/index.ts";
+import type { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats, ConcessionUpdateRequest, CollegeTuitionFeeBalanceUpdate } from "@/features/college/types/index.ts";
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
 import { batchInvalidateQueries } from "@/common/hooks/useGlobalRefetch";
@@ -64,6 +64,19 @@ export function useBulkCreateCollegeTuitionBalances() {
       void qc.refetchQueries({ queryKey: collegeKeys.tuition.root(), type: 'active' });
     },
   }, "Tuition balances created successfully");
+}
+
+export function useUpdateCollegeTuitionBalance(enrollmentId: number) {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: CollegeTuitionFeeBalanceUpdate) =>
+      CollegeTuitionBalancesService.update(enrollmentId, payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.tuition.root(), type: 'active' });
+    },
+  }, "Tuition balance updated successfully");
 }
 
 export function useUpdateTuitionTermPayment(enrollmentId: number) {

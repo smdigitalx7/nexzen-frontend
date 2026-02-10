@@ -176,116 +176,107 @@ const SMSTemplates = () => {
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{editingTemplate ? "Edit Template" : "Add New Template"}</DialogTitle>
-          </DialogHeader>
-          
-          <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-3 space-y-2 mb-2">
-            <p className="text-[11px] font-bold text-blue-700 flex items-center gap-1.5 uppercase tracking-wider">
-              <Info className="h-3.5 w-3.5" /> DLT Registration Process
-            </p>
-            <div className="grid grid-cols-3 gap-2 text-[10px] text-blue-600/80 leading-tight">
-               <div className="bg-white/50 p-1.5 rounded border border-blue-50">
-                 <span className="font-bold block mb-0.5 text-blue-800">1. Register</span>
-                 Signup on DLT Platform (Airtel/PingConnect)
-               </div>
-               <div className="bg-white/50 p-1.5 rounded border border-blue-50">
-                 <span className="font-bold block mb-0.5 text-blue-800">2. Get Approval</span>
-                 Submit & get approval for Header & Template
-               </div>
-               <div className="bg-white/50 p-1.5 rounded border border-blue-50">
-                 <span className="font-bold block mb-0.5 text-blue-800">3. Add Here</span>
-                 Enter Approved DLT ID & Content in our Portal
-               </div>
-            </div>
+      <DialogContent className="sm:max-w-[750px]">
+        <DialogHeader className="pb-2 border-b">
+          <DialogTitle>{editingTemplate ? "Edit Template" : "Add New Template"}</DialogTitle>
+        </DialogHeader>
+
+        <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-2 flex items-center justify-between text-[11px] text-blue-700">
+          <div className="flex items-center gap-2">
+            <Info className="h-4 w-4 shrink-0" />
+            <span className="font-semibold">DLT Registration required before adding templates.</span>
           </div>
+          <div className="flex gap-2 text-[10px] text-blue-600/80">
+            <span>1. Register</span> &rarr;
+            <span>2. Get Approval</span> &rarr;
+            <span>3. Add Here</span>
+          </div>
+        </div>
 
-          <div className="space-y-4 py-2">
-            {editingTemplate && (
-              <div className="flex items-center space-x-2 p-3 bg-amber-50/30 border border-amber-100 rounded-lg mb-2">
-                <Switch 
-                  id="dlt-verified" 
-                  checked={isDltVerified} 
-                  onCheckedChange={setIsDltVerified}
-                  className="data-[state=checked]:bg-amber-600"
-                />
-                <div className="space-y-0.5">
-                  <Label htmlFor="dlt-verified" className="text-xs font-bold text-amber-900 cursor-pointer">
-                    Enable Content Updates
-                  </Label>
-                  <p className="text-[10px] text-amber-700/80">Confirm if you have updated & approved this in DLT platform.</p>
-                </div>
-              </div>
-            )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-2">
+          {/* Left Column: Metadata */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="key" className="text-xs font-semibold">Template Key <span className="text-red-500">*</span></Label>
+              <Input 
+                id="key" 
+                disabled={!!editingTemplate} 
+                placeholder="e.g. EXAM_SCD" 
+                className="h-8 text-sm uppercase"
+                value={formData.template_key}
+                onChange={(e) => setFormData({ ...formData, template_key: e.target.value })}
+              />
+            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="key" className="text-xs font-semibold">Template Key (Required)</Label>
-                <Input 
-                  id="key" 
-                  disabled={!!editingTemplate} 
-                  placeholder="e.g. EXAM_SCD" 
-                  className="h-9 text-sm"
-                  value={formData.template_key}
-                  onChange={(e) => setFormData({ ...formData, template_key: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dlt_id" className="text-xs font-semibold">DLT Template ID (Required)</Label>
-                <Input 
-                  id="dlt_id" 
-                  disabled={!!editingTemplate && !isDltVerified}
-                  placeholder="e.g. 1007..." 
-                  className="h-9 text-sm"
-                  value={formData.dlt_template_id}
-                  onChange={(e) => setFormData({ ...formData, dlt_template_id: e.target.value })}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="dlt_id" className="text-xs font-semibold">DLT Template ID <span className="text-red-500">*</span></Label>
+              <Input 
+                id="dlt_id" 
+                disabled={!!editingTemplate && !isDltVerified}
+                placeholder="e.g. 1007..." 
+                className="h-8 text-sm"
+                value={formData.dlt_template_id}
+                onChange={(e) => setFormData({ ...formData, dlt_template_id: e.target.value })}
+              />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-xs font-semibold">Display Name (Required)</Label>
+              <Label htmlFor="name" className="text-xs font-semibold">Display Name <span className="text-red-500">*</span></Label>
               <Input 
                 id="name" 
                 placeholder="e.g. Exam Schedule Notification" 
-                className="h-9 text-sm"
+                className="h-8 text-sm"
                 value={formData.template_name}
                 onChange={(e) => setFormData({ ...formData, template_name: e.target.value })}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="content" className="text-xs font-semibold">Template Content (Required)</Label>
-              <Textarea 
-                id="content" 
-                disabled={!!editingTemplate && !isDltVerified}
-                placeholder="Dear {#var#}, your exam is on {#var#}" 
-                className="min-h-[100px] text-sm resize-none"
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              />
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                <Info className="h-3 w-3" /> Content is for reference and must match DLT registration.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="vars" className="text-xs font-semibold">Variable Names (Comma separated)</Label>
+              <Label htmlFor="vars" className="text-xs font-semibold">Variable Names</Label>
               <Input 
                 id="vars" 
                 disabled={!!editingTemplate && !isDltVerified}
                 placeholder="e.g. name, date, subject" 
-                className="h-9 text-sm"
+                className="h-8 text-sm"
                 value={formData.variable_names.join(", ")}
                 onChange={(e) => handleVariablesChange(e.target.value)}
               />
-              <p className="text-[10px] text-muted-foreground">
-                Define the order of variables as registered in DLT.
+              <p className="text-[10px] text-muted-foreground">Order must match DLT registration.</p>
+            </div>
+          </div>
+
+          {/* Right Column: Content & Status */}
+          <div className="space-y-4 flex flex-col h-full">
+             {editingTemplate && (
+                <div className="flex items-center space-x-2 p-2 bg-amber-50/50 border border-amber-100 rounded mb-1">
+                  <Switch 
+                    id="dlt-verified" 
+                    checked={isDltVerified} 
+                    onCheckedChange={setIsDltVerified}
+                    className="data-[state=checked]:bg-amber-600"
+                  />
+                  <Label htmlFor="dlt-verified" className="text-[10px] font-bold text-amber-900 cursor-pointer">
+                    Click to Enable Content Updates
+                  </Label>
+                </div>
+              )}
+
+            <div className="space-y-2 flex-1 flex flex-col">
+              <Label htmlFor="content" className="text-xs font-semibold">Template Content <span className="text-red-500">*</span></Label>
+              <Textarea 
+                id="content" 
+                disabled={!!editingTemplate && !isDltVerified}
+                placeholder="Dear {#var#}, your exam is on {#var#}" 
+                className="flex-1 min-h-[180px] text-sm resize-none p-3"
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              />
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <Info className="h-3 w-3" /> Content must exactly match DLT.
               </p>
             </div>
 
-            <div className="flex items-center space-x-2 pt-1 border-t mt-2">
+            <div className="flex items-center space-x-2 pt-2 border-t">
               <Switch 
                 id="active" 
                 checked={!!formData.is_active} 
@@ -294,13 +285,15 @@ const SMSTemplates = () => {
               <Label htmlFor="active" className="text-xs font-semibold cursor-pointer">Mark as Active</Label>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
-               {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save Template"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+        </div>
+
+        <DialogFooter className="border-t pt-3">
+          <Button variant="outline" onClick={() => setIsFormOpen(false)} size="sm" className="h-8">Cancel</Button>
+          <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending} size="sm" className="h-8">
+              {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save Template"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
       </Dialog>
 
       <ConfirmDialog

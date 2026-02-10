@@ -17,10 +17,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/common/components/ui/table";
-import { User, BookOpen, Wallet, Calendar, FileText, Search } from "lucide-react";
-import { useCollegeTuitionBalancesList, useCollegeTuitionBalanceByAdmission } from "@/features/college/hooks";
+import { User, BookOpen, Wallet, Calendar, FileText, Search, Pencil, Check, X } from "lucide-react";
+import { useCollegeTuitionBalancesList, useCollegeTuitionBalanceByAdmission, useUpdateCollegeTuitionBalance } from "@/features/college/hooks";
 import { useCollegeClasses, useCollegeGroups } from "@/features/college/hooks/use-college-dropdowns";
 import { Input } from "@/common/components/ui/input";
+import { Button } from "@/common/components/ui/button";
+import { useToast } from "@/common/hooks/use-toast";
 import type { CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceFullRead } from "@/features/college/types";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
 
@@ -37,15 +39,39 @@ const DetailsSheet = memo(({
   onClose,
   selectedAdmissionNo,
   selectedBalance,
+  enrollmentId,
 }: {
   isOpen: boolean;
   onClose: () => void;
   selectedAdmissionNo: string | null;
   selectedBalance: CollegeTuitionFeeBalanceFullRead | undefined;
+  enrollmentId: number | undefined;
 }) => {
+  const { toast } = useToast();
+  const [isEditingBookFee, setIsEditingBookFee] = useState(false);
+  const [newBookFee, setNewBookFee] = useState("");
+  const updateBalance = useUpdateCollegeTuitionBalance(enrollmentId || 0);
+
+  const handleStartEdit = () => {
+    setNewBookFee(selectedBalance?.book_fee?.toString() || "0");
+    setIsEditingBookFee(true);
+  };
+
+  const handleSaveBookFee = async () => {
+    const val = parseFloat(newBookFee);
+    if (isNaN(val) || val < 0) return;
+    try {
+      await updateBalance.mutateAsync({ book_fee: val });
+      setIsEditingBookFee(false);
+      toast({ title: "Updated", description: "Book fee updated successfully" });
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to update book fee", variant: "destructive" });
+    }
+  };
+
   const formatCurrency = (n: number) => `₹${Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) { onClose(); setIsEditingBookFee(false); } }}>
       <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-0 flex flex-col">
         <SheetHeader className="px-6 pt-6 pb-4 border-b bg-muted/30 shrink-0">
           <SheetTitle>Tuition Fee Balance</SheetTitle>
@@ -123,26 +149,52 @@ const DetailsSheet = memo(({
               <Separator />
 
               {/* Book fee */}
-              <section>
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+              <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-3">
+                <div className="flex items-center gap-2">
                   <BookOpen className="h-4 w-4" />
                   Book Fee
                 </div>
-                <div className="rounded-lg border bg-card p-4 space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Book Fee</span>
+                {!isEditingBookFee && (
+                  <Button variant="ghost" size="sm" className="h-7 px-2" onClick={handleStartEdit}>
+                    <Pencil className="h-3 w-3 mr-1.5" />
+                    Edit
+                  </Button>
+                )}
+              </div>
+              <div className="rounded-lg border bg-card p-4 space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Book Fee</span>
+                  {isEditingBookFee ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-muted-foreground">₹</span>
+                        <Input 
+                          type="number" 
+                          value={newBookFee} 
+                          onChange={(e) => setNewBookFee(e.target.value)}
+                          className="h-8 w-24 text-right pr-1"
+                        />
+                      </div>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={handleSaveBookFee} disabled={updateBalance.isPending}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => setIsEditingBookFee(false)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
                     <span className="font-medium">{formatCurrency(selectedBalance.book_fee)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Paid</span>
-                    <span className="font-medium">{formatCurrency(selectedBalance.book_paid)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Status</span>
-                    <span className="font-medium">{selectedBalance.book_paid_status}</span>
-                  </div>
+                  )}
                 </div>
-              </section>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Paid</span>
+                  <span className="font-medium">{formatCurrency(selectedBalance.book_paid)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Status</span>
+                  <span className="font-medium">{selectedBalance.book_paid_status}</span>
+                </div>
+              </div>
 
               <Separator />
 
@@ -375,6 +427,7 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
         onClose={handleCloseDetails}
         selectedAdmissionNo={selectedAdmissionNo}
         selectedBalance={selectedBalance}
+        enrollmentId={selectedBalance?.enrollment_id}
       />
     </motion.div>
   );

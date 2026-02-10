@@ -151,7 +151,7 @@ export const CumulativeReportPage = ({
                     {final_overall_grade}
                 </div>
                  <div className="text-sm font-medium text-slate-600 mt-1">
-                    {final_overall_percentage.toFixed(2)}%
+                    {(final_overall_percentage ?? 0).toFixed(2)}%
                 </div>
             </div>
         </div>
@@ -165,7 +165,7 @@ export const CumulativeReportPage = ({
                  <h3 className="font-semibold text-slate-900">Attendance Summary</h3>
             </div>
              <div className="text-sm font-medium">
-                Overall: <span className={cn(getPercentageColor(attendance.attendance_percentage))}>{attendance.attendance_percentage.toFixed(1)}%</span>
+                Overall: <span className={cn(getPercentageColor(attendance.attendance_percentage ?? 0))}>{(attendance.attendance_percentage ?? 0).toFixed(1)}%</span>
             </div>
          </div>
          <div className="p-6">
@@ -205,8 +205,8 @@ export const CumulativeReportPage = ({
                                     <TableCell className="text-center">{m.total_working_days}</TableCell>
                                     <TableCell className="text-center text-emerald-600">{m.present_days}</TableCell>
                                     <TableCell className="text-center text-red-600">{m.absent_days}</TableCell>
-                                    <TableCell className={cn("text-right font-medium", getPercentageColor(m.attendance_percentage))}>
-                                        {m.attendance_percentage.toFixed(1)}%
+                                    <TableCell className={cn("text-right font-medium", getPercentageColor(m.attendance_percentage ?? 0))}>
+                                        {(m.attendance_percentage ?? 0).toFixed(1)}%
                                     </TableCell>
                                     <TableCell className="text-center">
                                         <span className={cn("px-2 py-0.5 rounded text-xs font-semibold", 
@@ -265,8 +265,8 @@ export const CumulativeReportPage = ({
                                             {examData ? (
                                                 <div className="flex flex-col items-center">
                                                     <span className="font-medium text-slate-900">{examData.marks_obtained}</span>
-                                                    <span className={cn("text-xs", getPercentageColor(examData.exam_percentage))}>
-                                                        {examData.exam_percentage.toFixed(0)}%
+                                                    <span className={cn("text-xs", getPercentageColor(examData.exam_percentage ?? 0))}>
+                                                        {(examData.exam_percentage ?? 0).toFixed(0)}%
                                                     </span>
                                                 </div>
                                             ) : (
@@ -277,8 +277,8 @@ export const CumulativeReportPage = ({
                                 })}
                                 <TableCell className="text-center font-bold border-l bg-slate-50">
                                     <div className="flex flex-col items-center">
-                                        <span className={cn("text-lg", getPercentageColor(subject.subject_percentage))}>
-                                            {subject.subject_percentage.toFixed(1)}%
+                                        <span className={cn("text-lg", getPercentageColor(subject.subject_percentage ?? 0))}>
+                                            {(subject.subject_percentage ?? 0).toFixed(1)}%
                                         </span>
                                         <span className="text-xs text-slate-500">
                                             Grade: {subject.subject_grade}

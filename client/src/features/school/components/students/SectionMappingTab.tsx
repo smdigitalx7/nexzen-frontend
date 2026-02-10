@@ -132,7 +132,7 @@ const SectionMappingTab = () => {
         label: 'Change section',
         icon: LayoutGrid,
         onClick: (row) => setChangeSectionRow(row),
-        showLabel: false,
+        showLabel: true,
       },
     ],
     []
@@ -191,21 +191,26 @@ const SectionMappingTab = () => {
       </div>
 
       {/* Block 1: Roll numbers */}
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Hash className="h-5 w-5" />
-          Roll numbers
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Re-sequence roll numbers 001, 002, … by student name (alphabetical) for this class.
-        </p>
-        <Button
-          variant="default"
-          onClick={() => setShowGenerateConfirm(true)}
-          disabled={generateRollNumbersMutation.isPending || enrollments.length === 0}
-        >
-          {generateRollNumbersMutation.isPending ? 'Generating...' : 'Generate roll numbers'}
-        </Button>
+      <section className="p-6 bg-blue-50/50 border border-blue-100 rounded-xl space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold flex items-center gap-2 text-blue-900">
+              <Hash className="h-5 w-5" />
+              Roll numbers
+            </h3>
+            <p className="text-sm text-blue-700/80">
+              Re-sequence roll numbers 001, 002, … by student name (alphabetical) for this class.
+            </p>
+          </div>
+          <Button
+            variant="default"
+            onClick={() => setShowGenerateConfirm(true)}
+            disabled={generateRollNumbersMutation.isPending || enrollments.length === 0}
+            className="bg-blue-600 hover:bg-blue-700 h-11 px-6 text-base"
+          >
+            {generateRollNumbersMutation.isPending ? 'Generating...' : 'Generate roll numbers'}
+          </Button>
+        </div>
       </section>
 
       {/* Block 2: Section assignment */}
@@ -263,6 +268,7 @@ const SectionMappingTab = () => {
             title="Students for section assignment"
             selectable={true}
             onSelectionChange={onSelectionChange}
+            getRowId={(row) => row.enrollment_id}
             searchKey="student_name"
             searchPlaceholder="Search students..."
             loading={isLoading}

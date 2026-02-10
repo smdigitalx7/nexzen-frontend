@@ -1,4 +1,4 @@
-import { useMemo, startTransition } from "react";
+import { useMemo, startTransition, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -35,6 +35,13 @@ import {
   getLogoAltByBranchType,
   brand,
 } from "@/lib/config";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/common/components/ui/tooltip";
+import IssueReportDialog from "@/features/general/components/Support/IssueReportDialog";
 
 interface NavigationItem {
   title: string;
@@ -47,6 +54,7 @@ interface NavigationItem {
 }
 
 const Sidebar = () => {
+  const [showIssueReportDialog, setShowIssueReportDialog] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, currentBranch, logoutAsync } = useAuthStore();
@@ -283,7 +291,8 @@ const Sidebar = () => {
   }: {
     item: NavigationItem;
     isActive: boolean;
-  }) => (
+  }) => {
+    const NavItemContent = (
     <Link
       to={item.href}
       onClick={(e) => {
@@ -306,12 +315,13 @@ const Sidebar = () => {
     >
       <div
         className={cn(
-          "w-full flex items-center justify-start gap-3 px-3 py-2 relative transition-colors duration-200 group rounded-md overflow-hidden cursor-pointer", 
-          isActive ? themeColors.active : themeColors.inactive
+          "w-full flex items-center justify-start gap-3 px-3 py-2 relative transition-all duration-200 group rounded-md overflow-hidden cursor-pointer", 
+          isActive ? themeColors.active : themeColors.inactive,
+          !sidebarOpen && "justify-center px-0 py-2"
         )}
         data-testid={`nav-${item.title.toLowerCase().replace(" ", "-")}`}
       >
-        <div className="flex items-center gap-3 flex-1">
+        <div className={cn("flex items-center gap-3 flex-1", !sidebarOpen && "justify-center flex-none")}>
           <item.icon
             className="h-4 w-4 shrink-0 transition-opacity duration-200"
             style={{ 
@@ -339,7 +349,38 @@ const Sidebar = () => {
     </Link>
   );
 
+  return sidebarOpen ? (
+    NavItemContent
+  ) : (
+    <Tooltip delayDuration={0}>
+      <TooltipTrigger asChild>
+        {NavItemContent}
+      </TooltipTrigger>
+      <TooltipContent 
+        side="right" 
+        sideOffset={10} 
+        className="bg-slate-900 border-slate-800 text-slate-50 font-medium shadow-xl px-3 py-1.5"
+      >
+        <div className="flex items-center gap-2">
+          <span>{item.title}</span>
+          {item.badge && (
+            <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-slate-700 px-1 text-[10px]">
+              {item.badge}
+            </span>
+          )}
+        </div>
+        {item.description && (
+          <p className="text-[10px] text-slate-400 mt-0.5 max-w-[150px] leading-tight">
+            {item.description}
+          </p>
+        )}
+      </TooltipContent>
+    </Tooltip>
+  );
+};
+
   return (
+    <TooltipProvider delayDuration={0}>
     <aside
       className={cn(
         "fixed left-0 top-0 z-40 h-screen bg-gradient-to-b from-slate-50 to-white border-r border-slate-200/80",
@@ -427,7 +468,7 @@ const Sidebar = () => {
                   </Badge>
                 </div>
               )}
-              <div className="space-y-1">
+              <div className={cn("space-y-1", !sidebarOpen && "space-y-2")}>
                 {schemaModules.map((item: NavigationItem) => (
                   <NavItem
                     key={item.href}
@@ -463,7 +504,7 @@ const Sidebar = () => {
                   </Badge>
                 </div>
               )}
-              <div className="space-y-1">
+              <div className={cn("space-y-1", !sidebarOpen && "space-y-2")}>
                 {generalModules.map((item: NavigationItem) => (
                   <NavItem
                     key={item.href}
@@ -499,12 +540,7 @@ const Sidebar = () => {
                   <span>{__BUILD_DATE__}</span>
                   <span className="text-slate-300">|</span>
                   <button
-                    onClick={() =>
-                      window.open(
-                        "https://www.jotform.com/form/253145100074039",
-                        "_blank"
-                      )
-                    }
+                    onClick={() => setShowIssueReportDialog(true)}
                     className="hover:text-slate-600 transition-colors cursor-pointer flex items-center gap-1"
                     title="Report an Issue"
                   >
@@ -605,7 +641,14 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
+
+      {/* Issue Report Dialog */}
+      <IssueReportDialog 
+        isOpen={showIssueReportDialog} 
+        onClose={() => setShowIssueReportDialog(false)} 
+      />
     </aside>
+    </TooltipProvider>
   );
 };
 

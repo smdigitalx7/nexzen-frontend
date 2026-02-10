@@ -1356,7 +1356,7 @@ const ConfirmedReservationsTabComponent = () => {
       <Sheet open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <SheetContent
           side="right"
-          className="w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide"
+          className="w-full sm:max-w-2xl h-full overflow-y-auto scrollbar-hide"
         >
           <SheetHeader className="pr-10">
             <div className="flex items-start justify-between">

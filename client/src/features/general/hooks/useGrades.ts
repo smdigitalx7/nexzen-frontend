@@ -52,10 +52,10 @@ export const useGrades = (options?: { enabled?: boolean }) => {
         description: "Grade created successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error?.response?.data?.detail || "Failed to create grade",
+        description: error.message || "Failed to create grade",
         variant: "destructive",
       });
     },
@@ -74,10 +74,10 @@ export const useGrades = (options?: { enabled?: boolean }) => {
         description: "Grade updated successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error?.response?.data?.detail || "Failed to update grade",
+        description: error.message || "Failed to update grade",
         variant: "destructive",
       });
     },
@@ -95,10 +95,10 @@ export const useGrades = (options?: { enabled?: boolean }) => {
         description: "Grade deleted successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error?.response?.data?.detail || "Failed to delete grade",
+        description: error.message || "Failed to delete grade",
         variant: "destructive",
       });
     },

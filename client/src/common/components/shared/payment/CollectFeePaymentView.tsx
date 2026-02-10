@@ -19,6 +19,7 @@ import {
   Check,
   Lock,
   CheckCircle,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/common/components/ui/card";
@@ -70,6 +71,7 @@ export interface CollectFeePaymentViewProps {
   isBookFeePending: boolean;
   enrollmentId: number;
   onPaymentComplete: (data: MultiplePaymentData) => Promise<{ blobUrl?: string; receiptNo?: string } | void>;
+  onUpdateBookFee?: (amount: number) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -86,6 +88,7 @@ export function CollectFeePaymentView({
   isBookFeePending,
   enrollmentId,
   onPaymentComplete,
+  onUpdateBookFee,
   onCancel,
 }: CollectFeePaymentViewProps) {
   const { toast } = useToast();
@@ -98,6 +101,9 @@ export function CollectFeePaymentView({
   const [addOtherFee, setAddOtherFee] = useState(false);
   const [otherFeeAmount, setOtherFeeAmount] = useState("");
   const [otherFeeReason, setOtherFeeReason] = useState("");
+  const [editingBookFeeId, setEditingBookFeeId] = useState<string | null>(null);
+  const [newBookFeeValue, setNewBookFeeValue] = useState("");
+  const [isUpdatingBookFee, setIsUpdatingBookFee] = useState(false);
 
   const allFeeItems = useMemo(
     () => [
@@ -465,33 +471,117 @@ export function CollectFeePaymentView({
                 <ul className="space-y-2 p-3 pt-2">
                   {feeCategories.BOOK_FEE.map((item) => {
                     const isSelected = !!selectedItems[item.id];
+                    const isEditing = editingBookFeeId === item.id;
                     const amountVal = customAmounts[item.id] !== undefined ? String(customAmounts[item.id]) : String(item.originalAmount);
+
+                    const handleSaveBookFee = async (e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      if (!onUpdateBookFee) return;
+                      const val = parseFloat(newBookFeeValue);
+                      if (isNaN(val) || val < 0) return;
+                      
+                      setIsUpdatingBookFee(true);
+                      try {
+                        await onUpdateBookFee(val);
+                        setEditingBookFeeId(null);
+                        toast({
+                          title: "Book fee updated",
+                          description: "The allocated book fee has been permanently changed.",
+                          variant: "success",
+                        });
+                      } catch (err) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to update book fee.",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsUpdatingBookFee(false);
+                      }
+                    };
+
                     return (
                       <li key={item.id} className="list-none">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleItem(item.id, !isSelected)}
-                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleToggleItem(item.id, !isSelected); } }}
-                          className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-left transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-inset ${isSelected ? ROW_SELECTED : ROW_PENDING}`}
-                          aria-pressed={isSelected}
-                          aria-label={`${item.label}, ${formatCurrency(item.originalAmount)}${isSelected ? ", selected" : ""}`}
-                        >
-                          <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"}`}>
-                            {isSelected && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="font-semibold text-sm text-foreground">{item.label}</span>
-                            {item.paymentMonth && <span className="text-xs text-muted-foreground ml-1.5">{new Date(item.paymentMonth).toLocaleString("default", { month: "short", year: "numeric" })}</span>}
-                          </div>
-                          {isSelected ? (
-                            <div className="flex items-center gap-0.5 w-20 shrink-0" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                              <span className="text-muted-foreground text-xs">₹</span>
-                              <Input type="number" value={amountVal} onChange={(e) => handleAmountChange(item.id, e.target.value)} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} className="h-8 border-0 border-b border-muted-foreground/40 rounded-none px-1 text-right text-sm font-bold bg-transparent focus-visible:ring-0 focus-visible:border-primary" step="0.01" min="0" aria-label={`Amount for ${item.label}`} />
+                        <div className="group/item flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => !isEditing && handleToggleItem(item.id, !isSelected)}
+                            onKeyDown={(e) => { if (!isEditing && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); handleToggleItem(item.id, !isSelected); } }}
+                            className={`flex-1 flex items-center gap-3 rounded-md px-3 py-2.5 text-left transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-inset ${isSelected ? ROW_SELECTED : ROW_PENDING} ${isEditing ? "cursor-default" : ""}`}
+                            aria-pressed={isSelected}
+                            aria-label={`${item.label}, ${formatCurrency(item.originalAmount)}${isSelected ? ", selected" : ""}`}
+                          >
+                            <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"}`}>
+                              {isSelected && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                             </div>
-                          ) : (
-                            <span className="text-sm font-bold tabular-nums text-foreground shrink-0">{formatCurrency(item.originalAmount)}</span>
+                            <div className="flex-1 min-w-0">
+                              <span className="font-semibold text-sm text-foreground">{item.label}</span>
+                              {item.paymentMonth && <span className="text-xs text-muted-foreground ml-1.5">{new Date(item.paymentMonth).toLocaleString("default", { month: "short", year: "numeric" })}</span>}
+                            </div>
+                            
+                            {isEditing ? (
+                              <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                <div className="flex items-center gap-0.5 w-20 shrink-0">
+                                  <span className="text-muted-foreground text-xs">₹</span>
+                                  <Input 
+                                    autoFocus
+                                    type="number" 
+                                    value={newBookFeeValue} 
+                                    onChange={(e) => setNewBookFeeValue(e.target.value)}
+                                    className="h-8 border-0 border-b border-primary/50 rounded-none px-1 text-right text-sm font-bold bg-transparent focus-visible:ring-0 focus-visible:border-primary" 
+                                    step="0.01" 
+                                    min="0" 
+                                  />
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-7 px-2 text-primary hover:bg-primary/10" 
+                                  onClick={handleSaveBookFee}
+                                  disabled={isUpdatingBookFee}
+                                >
+                                  {isUpdatingBookFee ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-7 px-2 text-muted-foreground hover:bg-muted" 
+                                  onClick={() => setEditingBookFeeId(null)}
+                                  disabled={isUpdatingBookFee}
+                                >
+                                  Esc
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                {isSelected ? (
+                                  <div className="flex items-center gap-0.5 w-20 shrink-0" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                                    <span className="text-muted-foreground text-xs">₹</span>
+                                    <Input type="number" value={amountVal} onChange={(e) => handleAmountChange(item.id, e.target.value)} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} className="h-8 border-0 border-b border-muted-foreground/40 rounded-none px-1 text-right text-sm font-bold bg-transparent focus-visible:ring-0 focus-visible:border-primary" step="0.01" min="0" aria-label={`Amount for ${item.label}`} />
+                                  </div>
+                                ) : (
+                                  <span className="text-sm font-bold tabular-nums text-foreground shrink-0">{formatCurrency(item.originalAmount)}</span>
+                                )}
+                              </>
+                            )}
+                          </button>
+                          
+                          {onUpdateBookFee && !isEditing && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingBookFeeId(item.id);
+                                setNewBookFeeValue(item.originalAmount.toString());
+                              }}
+                              title="Edit Allocated Book Fee"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
                           )}
-                        </button>
+                        </div>
                       </li>
                     );
                   })}

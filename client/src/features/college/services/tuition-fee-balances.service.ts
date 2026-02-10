@@ -43,6 +43,11 @@ export const CollegeTuitionBalancesService = {
     return Api.post<CollegeTuitionBalanceBulkCreateResult>(`/college/tuition-fee-balances/bulk-create`, payload);
   },
 
+  // PUT /api/v1/college/tuition-fee-balances/{enrollment_id}
+  update(enrollment_id: number, payload: any) {
+    return Api.put<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment_id}`, payload);
+  },
+
   // GET /api/v1/college/tuition-fee-balances/reports/unpaid-terms/
   getUnpaidTerms(params?: { page?: number; pageSize?: number }) {
     return Api.get<CollegeTuitionUnpaidTermsResponse>(`/college/tuition-fee-balances/reports/unpaid-terms`, params as Record<string, string | number | boolean | null | undefined> | undefined);

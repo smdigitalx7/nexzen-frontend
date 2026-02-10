@@ -55,6 +55,12 @@ export interface PromotionResult {
 
 export interface PromotionResponse {
   results: PromotionResult[];
+  summary: {
+    promoted: number;
+    skipped: number;
+    errors: number;
+    message: string | null;
+  };
 }
 
 export interface DropoutRequest {

@@ -5,6 +5,7 @@ import {
   type FeeItemShape,
 } from "@/common/components/shared/payment/CollectFeePaymentView";
 import type { StudentFeeDetails } from "./CollectFee";
+import { useUpdateCollegeTuitionBalance } from "@/features/college/hooks/use-college-tuition-balances";
 
 function getItemId(type: string, id: string | number) {
   return `${type}_${id}`;
@@ -24,6 +25,12 @@ export const CollectFeePaymentView = ({
   const branchName = useAuthStore((s) => s.currentBranch?.branch_name ?? "Branch");
   const { enrollment, tuitionBalance, transportExpectedPayments, transportBalance } =
     studentDetails;
+
+  const updateTuitionBalance = useUpdateCollegeTuitionBalance(enrollment.enrollment_id);
+
+  const handleUpdateBookFee = async (amount: number) => {
+    await updateTuitionBalance.mutateAsync({ book_fee: amount });
+  };
 
   const feeCategories = useMemo(() => {
     const categories: {
@@ -121,6 +128,7 @@ export const CollectFeePaymentView = ({
       isBookFeePending={isBookFeePending}
       enrollmentId={enrollment.enrollment_id}
       onPaymentComplete={onPaymentComplete}
+      onUpdateBookFee={handleUpdateBookFee}
       onCancel={onCancel}
     />
   );

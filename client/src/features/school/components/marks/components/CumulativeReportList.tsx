@@ -131,7 +131,7 @@ export const CumulativeReportList = ({
           <div className="p-8 text-center text-red-500">
             <p>Failed to load students. Please try again.</p>
           </div>
-        ) : (data?.items || []).length === 0 ? (
+        ) : (data?.enrollments || data?.items || []).length === 0 ? (
           <div className="p-8 text-center text-slate-500">
             <p>No students found for the selected criteria.</p>
           </div>
@@ -146,7 +146,7 @@ export const CumulativeReportList = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(data?.items || []).map((student: SchoolEnrollmentWithStudentDetails) => (
+              {(data?.enrollments || data?.items || []).map((student: any) => (
                 <TableRow key={student.enrollment_id}>
                   <TableCell className="font-medium text-slate-700">
                     {student.roll_number || "-"}
