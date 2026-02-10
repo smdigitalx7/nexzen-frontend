@@ -131,14 +131,14 @@ export const StudentMarksReportPage = ({
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!data) {
       toast({ title: "No data available", description: "Please wait for the marks data to load.", variant: "destructive" });
       return;
     }
     try {
       const name = data.student_details.student_name.replaceAll(/[^a-z0-9]/gi, "_").toLowerCase();
-      exportStudentMarksToPDF(data, `student-marks-${name}`);
+      await exportStudentMarksToPDF(data, `student-marks-${name}`);
       toast({ title: "Export successful", variant: "success", description: "Student marks have been exported to PDF." });
     } catch (err) {
       console.error("Error exporting to PDF:", err);

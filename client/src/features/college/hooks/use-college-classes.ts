@@ -1,12 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeClassesService } from "@/features/college/services/classes.service";
-import type {
-  CollegeClassCreate,
-  CollegeClassList,
-  CollegeClassResponse,
-  CollegeClassUpdate,
-  CollegeClassWithGroups,
-} from "@/features/college/types/index.ts";
+import type { CollegeClassCreate, CollegeClassUpdate } from "@/features/college/types/index.ts";
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
 
@@ -101,19 +95,27 @@ export function useCollegeClassGroups(classId: number | null | undefined) {
 
 export function useRemoveCollegeClassGroup(classId: number) {
   const qc = useQueryClient();
-  return useMutationWithSuccessToast({
-    mutationFn: (groupId: number) =>
-      CollegeClassesService.removeGroup(classId, groupId),
-    onSuccess: () => {
-      void qc.invalidateQueries({
-        queryKey: [...collegeKeys.classes.detail(classId), "groups"],
-      });
-      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
-      void qc.refetchQueries({
-        queryKey: [...collegeKeys.classes.detail(classId), "groups"],
-        type: 'active'
-      });
-      void qc.refetchQueries({ queryKey: collegeKeys.classes.root(), type: 'active' });
+  return useMutationWithSuccessToast(
+    {
+      mutationFn: (groupId: number) =>
+        CollegeClassesService.removeGroup(classId, groupId),
+      onSuccess: () => {
+        void qc.invalidateQueries({
+          queryKey: [...collegeKeys.classes.detail(classId), "groups"],
+        });
+        void qc.invalidateQueries({
+          queryKey: collegeKeys.enrollments.academicTotal(),
+        });
+        void qc.refetchQueries({
+          queryKey: [...collegeKeys.classes.detail(classId), "groups"],
+          type: "active",
+        });
+        void qc.refetchQueries({
+          queryKey: collegeKeys.classes.root(),
+          type: "active",
+        });
+      },
     },
-  }, "Group removed from class successfully");
+    "Group removed from class successfully",
+  );
 }

@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf';
 import type { StudentMarksResponse as CollegeStudentMarksResponse } from '@/features/college/types/student-marks';
 import type { StudentMarksResponse as SchoolStudentMarksResponse } from '@/features/school/types/marks';
 import { getExportFilename } from './excel-export-utils';
@@ -273,16 +272,17 @@ export const exportStudentMarksToExcel = async (
 /**
  * Export student marks to PDF format
  */
-export const exportStudentMarksToPDF = (
+export const exportStudentMarksToPDF = async (
   marksData: StudentMarksData,
   filename: string = 'student-marks-report'
-): void => {
+): Promise<void> => {
   if (!marksData || !marksData.subjects || marksData.subjects.length === 0) {
     console.warn('No marks data to export');
     return;
   }
 
   try {
+    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();

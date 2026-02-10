@@ -1,4 +1,3 @@
-import jsPDF from "jspdf";
 import type { AdvanceRead } from "@/features/general/types/advances";
 import { getExportFilename } from "./excel-export-utils";
 
@@ -14,7 +13,7 @@ interface AdvanceVoucherData {
  * Generate Advance Voucher PDF (Half A4 size)
  * Opens in a new tab for printing
  */
-export const generateAdvanceVoucherPDF = (data: AdvanceVoucherData): void => {
+export const generateAdvanceVoucherPDF = async (data: AdvanceVoucherData): Promise<void> => {
   const {
     advance,
     employeeName,
@@ -23,6 +22,7 @@ export const generateAdvanceVoucherPDF = (data: AdvanceVoucherData): void => {
     appliedByUserName,
   } = data;
 
+  const { default: jsPDF } = await import("jspdf");
   // Half A4 size in landscape: 148.5mm x 105mm (A4 is 210mm x 297mm)
   const doc = new jsPDF({
     orientation: "landscape",

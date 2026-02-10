@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/common/components/ui
 import { Alert, AlertDescription } from '@/common/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader as AlertHeader, AlertDialogTitle } from '@/common/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/common/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,6 +23,7 @@ import {
   CollegeSubjectDropdown,
   CollegeTestDropdown,
 } from '@/common/components/shared/Dropdowns';
+import { ServerCombobox } from '@/common/components/ui/server-combobox';
 import { 
   useCollegeTestMarksList,
   useCollegeTestMark,
@@ -252,22 +252,21 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
     };
 
     if (editingTestMark) {
+      // Backend expects only marks_obtained and remarks for update
       updateTestMarkMutation.mutate({
         marks_obtained: markData.marks_obtained,
-        percentage: 0, // Will be calculated by backend
-        grade: '', // Will be calculated by backend
         remarks: markData.remarks,
-        conducted_at: new Date().toISOString(),
       });
-      } else {
-        createTestMarkMutation.mutate({
-          enrollment_id: markData.enrollment_id,
-          test_id: markData.test_id,
-          subject_id: markData.subject_id,
-          marks_obtained: markData.marks_obtained,
-          remarks: markData.remarks,
-        });
-      }
+    } else {
+      // Create still sends full payload; backend will compute percentage/grade
+      createTestMarkMutation.mutate({
+        enrollment_id: markData.enrollment_id,
+        test_id: markData.test_id,
+        subject_id: markData.subject_id,
+        marks_obtained: markData.marks_obtained,
+        remarks: markData.remarks,
+      });
+    }
 
     testMarkForm.reset();
     setEditingTestMark(null);
@@ -605,24 +604,26 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
                       control={testMarkForm.control}
                       name="enrollment_id"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Student</FormLabel>
-                              <FormControl>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!!editingTestMark}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select student" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                              {enrollments.map((enrollment) => (
-                                  <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
-                                    {enrollment.student_name} ({enrollment.admission_no})
-                                  </SelectItem>
-                                ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
+                    <FormItem>
+                      <FormLabel>Student</FormLabel>
+                      <FormControl>
+                        <ServerCombobox<any>
+                          items={enrollments}
+                          value={field.value}
+                          onSelect={field.onChange}
+                          disabled={!!editingTestMark}
+                          placeholder="Select student"
+                          searchPlaceholder="Search students..."
+                          emptyText={enrollments.length ? "No matching students" : "No students found"}
+                          valueKey="enrollment_id"
+                          labelKey={(item) =>
+                            `${item.student_name} (${item.admission_no || "No admission no"})`
+                          }
+                          width="w-full"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                           )}
                         />
                       <div className="grid grid-cols-2 gap-4">
@@ -778,18 +779,19 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
                                 <FormItem>
                                   <FormLabel>Student</FormLabel>
                                   <FormControl>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select student" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {enrollments.map((enrollment) => (
-                                          <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
-                                            {enrollment.student_name} ({enrollment.admission_no})
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <ServerCombobox<any>
+                                      items={enrollments}
+                                      value={field.value}
+                                      onSelect={field.onChange}
+                                      placeholder="Select student"
+                                      searchPlaceholder="Search students..."
+                                      emptyText={enrollments.length ? "No matching students" : "No students found"}
+                                      valueKey="enrollment_id"
+                                      labelKey={(item) =>
+                                        `${item.student_name} (${item.admission_no || "No admission no"})`
+                                      }
+                                      width="w-full"
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -971,27 +973,28 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
                             <FormItem>
                               <FormLabel>Student</FormLabel>
                               <FormControl>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={true}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select student" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {enrollments.map((enrollment) => {
-                                      const displayParts = [
-                                        enrollment.student_name,
-                                        enrollment.class_name || '',
-                                        enrollment.group_name || '',
-                                      ].filter(Boolean);
-                                      const displayText = displayParts.join(' - ');
-                                      const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
-                                      return (
-                                        <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
-                                          {displayText}{rollNumber}
-                                        </SelectItem>
-                                      );
-                                    })}
-                                  </SelectContent>
-                                </Select>
+                                <ServerCombobox<any>
+                                  items={enrollments}
+                                  value={field.value}
+                                  onSelect={field.onChange}
+                                  disabled={true}
+                                  placeholder="Select student"
+                                  searchPlaceholder="Search students..."
+                                  emptyText={enrollments.length ? "No matching students" : "No students found"}
+                                  valueKey="enrollment_id"
+                                  labelKey={(enrollment) => {
+                                    const displayParts = [
+                                      enrollment.student_name,
+                                      enrollment.class_name || "",
+                                      enrollment.group_name || "",
+                                    ].filter(Boolean);
+                                    const rollNumber = enrollment.roll_number
+                                      ? ` (Roll: ${enrollment.roll_number})`
+                                      : "";
+                                    return `${displayParts.join(" - ")}${rollNumber}`;
+                                  }}
+                                  width="w-full"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>

@@ -1,8 +1,10 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeTuitionBalancesService, type CollegeTuitionBalancesListParams } from "@/features/college/services/tuition-fee-balances.service";
 import type { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats, ConcessionUpdateRequest } from "@/features/college/types/index.ts";
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
+import { batchInvalidateQueries } from "@/common/hooks/useGlobalRefetch";
+import { COLLEGE_INVALIDATION_MAPS, resolveInvalidationKeys } from "@/common/hooks/invalidation-maps";
 
 export function useCollegeTuitionBalancesList(params?: CollegeTuitionBalancesListParams) {
   return useQuery({
@@ -91,16 +93,23 @@ export function useUpdateBookFeePayment(enrollmentId: number) {
 }
 
 export function useUpdateCollegeTuitionConcession(enrollmentId: number) {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: ConcessionUpdateRequest) =>
-      CollegeTuitionBalancesService.updateConcession(enrollmentId, payload),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
-      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
-      void qc.refetchQueries({ queryKey: collegeKeys.tuition.root(), type: 'active' });
+    mutationFn: async (payload: ConcessionUpdateRequest) => {
+      const result = await CollegeTuitionBalancesService.updateConcession(enrollmentId, payload);
+      if (result && (result as any).success === false) {
+        throw new Error((result as any).message || "Tuition concession update failed");
+      }
+      return result;
     },
-  }, "Tuition concession updated successfully");
+    onSuccess: () => {
+      const keysToInvalidate = resolveInvalidationKeys(COLLEGE_INVALIDATION_MAPS.fee.update, enrollmentId);
+      batchInvalidateQueries(keysToInvalidate);
+    },
+  }, (result) =>
+    result && typeof (result as any).message === "string"
+      ? (result as any).message
+      : "Tuition concession updated successfully"
+  );
 }
 
 export function useCollegeTuitionFeeBalancesDashboard() {

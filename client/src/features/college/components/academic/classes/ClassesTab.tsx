@@ -1,10 +1,10 @@
-﻿import { useState, memo, useMemo, useCallback } from "react";
-import { BookOpen, Edit as EditIcon, Trash2, AlertTriangle } from "lucide-react";
+import { useState, memo, useMemo, useCallback } from "react";
+import { BookOpen, Edit as EditIcon, AlertTriangle } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
-import { FormDialog, ConfirmDialog } from "@/common/components/shared";
+import { FormDialog } from "@/common/components/shared";
 import { DataTable } from "@/common/components/shared/DataTable";
-import { useCollegeClasses, useUpdateCollegeClass, useCreateCollegeClass } from '@/features/college/hooks';
+import { useUpdateCollegeClass, useCreateCollegeClass } from "@/features/college/hooks";
 import { useToast } from '@/common/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -31,7 +31,6 @@ export const ClassesTab = memo(({
 }: ClassesTabProps) => {
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
   const [isEditClassOpen, setIsEditClassOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<import("@/features/college/types").CollegeClassResponse | null>(null);
   const [newClass, setNewClass] = useState({ class_name: "" });
   const [editClass, setEditClass] = useState({ class_name: "" });
@@ -39,7 +38,6 @@ export const ClassesTab = memo(({
   const { toast } = useToast();
   const createClassMutation = useCreateCollegeClass();
   const updateClassMutation = useUpdateCollegeClass(selectedClass?.class_id || 0);
-  
 
   const handleCreateClass = async () => {
     if (!newClass.class_name.trim()) {
@@ -86,29 +84,10 @@ export const ClassesTab = memo(({
     }
   };
 
-  const handleDeleteClass = async () => {
-    if (!selectedClass) return;
-
-    // Delete functionality not yet implemented - API endpoint missing
-      toast({
-      title: "Not Available",
-      description: "Delete functionality is not yet implemented",
-      variant: "destructive",
-      });
-      
-      setSelectedClass(null);
-      setIsDeleteDialogOpen(false);
-  };
-
   const handleEditClick = useCallback((classItem: import("@/features/college/types").CollegeClassResponse) => {
     setSelectedClass(classItem);
     setEditClass({ class_name: classItem.class_name });
     setIsEditClassOpen(true);
-  }, []);
-
-  const handleDeleteClick = useCallback((classItem: any) => {
-    setSelectedClass(classItem);
-    setIsDeleteDialogOpen(true);
   }, []);
 
   // Define columns for the data table
@@ -116,22 +95,18 @@ export const ClassesTab = memo(({
     createIconTextColumn<any>("class_name", { header: "Class Name", icon: BookOpen })
   ], []);
 
-  // Action config for DataTable V2
-  const actions: import("@/common/components/shared/DataTable/types").ActionConfig<any>[] = useMemo(() => [
-    {
-      id: 'edit',
-      label: 'Edit',
-      icon: (props) => <EditIcon className={props.className} />,
-      onClick: (row) => handleEditClick(row),
-    },
-    {
-      id: 'delete',
-      label: 'Delete',
-      icon: (props) => <Trash2 className={props.className} />,
-      onClick: (row) => handleDeleteClick(row),
-      variant: 'destructive',
-    }
-  ], [handleEditClick, handleDeleteClick]);
+  // Only edit action – backend does not support delete for college classes
+  const actions: import("@/common/components/shared/DataTable/types").ActionConfig<any>[] = useMemo(
+    () => [
+      {
+        id: "edit",
+        label: "Edit",
+        icon: (props) => <EditIcon className={props.className} />,
+        onClick: (row) => handleEditClick(row),
+      },
+    ],
+    [handleEditClick],
+  );
 
   if (hasError) {
     return (
@@ -217,20 +192,6 @@ export const ClassesTab = memo(({
         </div>
       </FormDialog>
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        title="Delete Class"
-        description={`Are you sure you want to delete the class "${selectedClass?.class_name}"? This action cannot be undone.`}
-        onConfirm={handleDeleteClass}
-        onCancel={() => {
-          setIsDeleteDialogOpen(false);
-          setSelectedClass(null);
-        }}
-        confirmText="Delete"
-        variant="destructive"
-      />
     </div>
   );
 });

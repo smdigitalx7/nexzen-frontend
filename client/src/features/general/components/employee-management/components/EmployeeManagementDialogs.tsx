@@ -1,4 +1,4 @@
-﻿import { ConfirmDialog } from "@/common/components/shared";
+import { ConfirmDialog } from "@/common/components/shared";
 import EmployeeFormDialog from "../employee/EmployeeFormDialog";
 import EmployeeDetailDialog from "../employee/EmployeeDetailDialog";
 import EmployeeDeleteDialog from "../employee/EmployeeDeleteDialog";
@@ -479,13 +479,13 @@ export const EmployeeManagementDialogs = ({
             ? employees.find((e: any) => e.employee_id === advanceForVoucher.employee_id)?.employee_name || 'Unknown Employee'
             : ''
         }
-        onPrint={() => {
+        onPrint={async () => {
           if (advanceForVoucher) {
             const { user, currentBranch } = useAuthStore.getState();
             const selectedEmployee = employees.find((e: any) => e.employee_id === advanceForVoucher.employee_id);
             
             if (selectedEmployee && currentBranch && user) {
-              generateAdvanceVoucherPDF({
+              await generateAdvanceVoucherPDF({
                 advance: advanceForVoucher,
                 employeeName: selectedEmployee.employee_name || 'Unknown Employee',
                 employeeSalary: selectedEmployee.salary || 0,

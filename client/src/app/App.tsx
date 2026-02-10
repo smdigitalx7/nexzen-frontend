@@ -50,15 +50,12 @@ function App() {
   // (Network status is handled in RootLayout)
 
 
-  // Preload components based on user role
+  // Preload only critical chunks (Login + UserManagement). Do NOT preload role-based
+  // route chunks here — that caused 700+ requests and 30MB+ transfer (continuous loading).
+  // Routes load on demand when user navigates; matches fast-loading reference (ADA).
   useEffect(() => {
-    if (user?.role) {
-      // Preload critical components immediately
-      componentPreloader.preloadCritical();
-
-      // Preload role-specific components in background
-      componentPreloader.preloadByRole(user.role);
-    }
+    if (!user?.role) return;
+    void componentPreloader.preloadCritical();
   }, [user?.role]);
 
   return (

@@ -602,7 +602,9 @@ const AddExamMarkForm = ({
                         <SelectValue placeholder="Select student" />
                       </SelectTrigger>
                       <SelectContent>
-                        {enrollments.map((enrollment) => {
+                        {enrollments
+                          .filter((enrollment) => enrollment.enrollment_id != null)
+                          .map((enrollment) => {
                           const displayParts = [
                             enrollment.student_name,
                             enrollment.class_name || '',
@@ -611,7 +613,7 @@ const AddExamMarkForm = ({
                           const displayText = displayParts.join(' - ');
                           const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
                           return (
-                            <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
+                            <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id!.toString()}>
                               {displayText}{rollNumber}
                             </SelectItem>
                           );

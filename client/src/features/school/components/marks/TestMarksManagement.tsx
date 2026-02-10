@@ -711,14 +711,16 @@ const TestMarksManagementComponent = ({
                                   <SelectValue placeholder="Select student" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {enrollments.map((enrollment) => (
-                                    <SelectItem
-                                      key={enrollment.enrollment_id}
-                                      value={enrollment.enrollment_id?.toString() || ""}
-                                    >
-                                      {enrollment.student_name} {enrollment.roll_number ? `(${enrollment.roll_number})` : ''} - {enrollment.class_name}
-                                    </SelectItem>
-                                  ))}
+                                  {enrollments
+                                    .filter((enrollment) => enrollment.enrollment_id != null)
+                                    .map((enrollment) => (
+                                      <SelectItem
+                                        key={enrollment.enrollment_id}
+                                        value={enrollment.enrollment_id!.toString()}
+                                      >
+                                        {enrollment.student_name} {enrollment.roll_number ? `(${enrollment.roll_number})` : ''} - {enrollment.class_name}
+                                      </SelectItem>
+                                    ))}
                                 </SelectContent>
                               </Select>
                             </FormControl>
@@ -818,14 +820,16 @@ const TestMarksManagementComponent = ({
                                   <SelectValue placeholder="Select student" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {enrollments.map((enrollment) => (
-                                    <SelectItem
-                                      key={enrollment.enrollment_id}
-                                      value={enrollment.enrollment_id?.toString() || ""}
-                                    >
-                                      {enrollment.student_name} {enrollment.roll_number ? `(${enrollment.roll_number})` : ''}
-                                    </SelectItem>
-                                  ))}
+                                  {enrollments
+                                    .filter((enrollment) => enrollment.enrollment_id != null)
+                                    .map((enrollment) => (
+                                      <SelectItem
+                                        key={enrollment.enrollment_id}
+                                        value={enrollment.enrollment_id!.toString()}
+                                      >
+                                        {enrollment.student_name} {enrollment.roll_number ? `(${enrollment.roll_number})` : ''}
+                                      </SelectItem>
+                                    ))}
                                 </SelectContent>
                               </Select>
                             </FormControl>
@@ -932,11 +936,13 @@ const TestMarksManagementComponent = ({
                                 <SelectValue placeholder="Select student" />
                               </SelectTrigger>
                               <SelectContent>
-                                {enrollments.map((enrollment) => (
-                                  <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ""}>
-                                    {enrollment.student_name}
-                                  </SelectItem>
-                                ))}
+                                {enrollments
+                                  .filter((enrollment) => enrollment.enrollment_id != null)
+                                  .map((enrollment) => (
+                                    <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id!.toString()}>
+                                      {enrollment.student_name}
+                                    </SelectItem>
+                                  ))}
                               </SelectContent>
                             </Select>
                          </FormControl>

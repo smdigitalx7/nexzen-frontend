@@ -1,4 +1,3 @@
-import { jsPDF } from "jspdf";
 import {
   SchoolAdmissionListItem,
   SchoolAdmissionDetails,
@@ -387,6 +386,7 @@ export async function exportSingleAdmissionToExcel(
 export async function exportSchoolAdmissionFormToPDF(
   admission: SchoolAdmissionDetails
 ) {
+  const { jsPDF } = await import("jspdf");
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 12;
@@ -793,6 +793,7 @@ export async function exportSchoolAdmissionFormToPDF(
 export async function exportCollegeAdmissionFormToPDF(
   admission: CollegeAdmissionDetails
 ) {
+  const { jsPDF } = await import("jspdf");
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 12;

@@ -58,7 +58,6 @@ export default defineConfig(({ mode }) => {
         "react",
         "react-dom",
         "scheduler",
-        "wouter",
         "zustand",
         "@tanstack/react-query",
         "@tanstack/react-table",
@@ -104,14 +103,18 @@ export default defineConfig(({ mode }) => {
               if (id.includes("lucide-react")) return "vendor-lucide";
               if (id.includes("zustand")) return "vendor-zustand";
               if (id.includes("axios")) return "vendor-axios";
+              if (id.includes("recharts")) return "vendor-recharts";
+              if (id.includes("react-router-dom")) return "vendor-router";
+              if (id.includes("@radix-ui")) return "vendor-radix";
             }
           },
         },
         preserveEntrySignatures: false,
       },
 
+      // Reduce preload requests: only preload critical chunks; others load on demand
       modulePreload: {
-        polyfill: true,
+        polyfill: false,
       },
 
       terserOptions: {

@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { User, Wallet, Eye } from "lucide-react";
 import { Badge } from "@/common/components/ui/badge";
@@ -26,6 +26,7 @@ interface StudentFeeBalance {
   transport_paid: boolean;
   last_payment_date: string;
   status: 'PAID' | 'PARTIAL' | 'OUTSTANDING';
+  concession_amount: number;
 }
 
 interface StudentFeeBalancesTableProps {
@@ -200,7 +201,7 @@ export const StudentFeeBalancesTable = ({
         isOpen={concessionModalOpen}
         onClose={() => setConcessionModalOpen(false)}
         onUpdate={handleUpdateConcession}
-        currentConcession={0}
+        currentConcession={selectedStudent?.concession_amount ?? 0}
         studentName={selectedStudent?.student_name}
       />
     </motion.div>

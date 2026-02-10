@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ColumnDef } from '@tanstack/react-table';
 import { Trash2, Shield, ShieldX, Eye, Edit } from 'lucide-react';
@@ -567,7 +567,7 @@ const UserManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {rolesLoading ? (
-                      <SelectItem value="" disabled>Loading roles...</SelectItem>
+                      <SelectItem value="loading" disabled>Loading roles...</SelectItem>
                     ) : (
                       roles.map((role) => (
                         <SelectItem key={role.role_id} value={role.role_id.toString()}>
@@ -586,7 +586,7 @@ const UserManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {branchesLoading ? (
-                      <SelectItem value="" disabled>Loading branches...</SelectItem>
+                      <SelectItem value="loading" disabled>Loading branches...</SelectItem>
                     ) : (
                       branchesArray.map((branch: BranchRead) => (
                         <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
@@ -821,7 +821,7 @@ const UserManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {branchesLoading ? (
-                      <SelectItem value="" disabled>Loading branches...</SelectItem>
+                      <SelectItem value="loading" disabled>Loading branches...</SelectItem>
                     ) : (
                       branchesArray.map((branch: BranchRead) => (
                         <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
@@ -843,7 +843,7 @@ const UserManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {rolesLoading ? (
-                      <SelectItem value="" disabled>Loading roles...</SelectItem>
+                      <SelectItem value="loading" disabled>Loading roles...</SelectItem>
                     ) : (
                       roles.map((role) => (
                         <SelectItem key={role.role_id} value={role.role_id.toString()}>

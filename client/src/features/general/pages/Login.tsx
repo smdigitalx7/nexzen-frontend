@@ -17,6 +17,7 @@ import { assets, brand, brandConfig } from "@/lib/config";
 const Login = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<"login" | "forgot" | "otp" | "reset">("login");
+  // identifier can be email or mobile number
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -66,9 +67,11 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
-    // Validate email and password
-    if (!email || !email.trim()) {
-      setError("Email address is required");
+    const identifier = email.trim();
+
+    // Validate identifier (email or mobile) and password
+    if (!identifier) {
+      setError("Email or mobile number is required");
       return;
     }
 
@@ -77,10 +80,11 @@ const Login = () => {
       return;
     }
 
-    // Basic email validation
+    // Accept either a valid email OR a 10-digit mobile number
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address");
+    const mobileRegex = /^\d{10}$/;
+    if (!emailRegex.test(identifier) && !mobileRegex.test(identifier)) {
+      setError("Please enter a valid email address or 10-digit mobile number");
       return;
     }
 
@@ -88,8 +92,8 @@ const Login = () => {
     setError("");
 
     try {
-      // Call login from auth store
-      await login(email, password);
+      // Call login from auth store (backend treats identifier as email or mobile)
+      await login(identifier, password);
 
       // Handle remember me functionality
       if (rememberMe) {
@@ -275,13 +279,13 @@ const Login = () => {
                 >
                   <div className="space-y-1">
                     <Input
-                      id="email"
-                      type="email"
-                      label="Email Address"
-                      placeholder="Enter your email address"
+                      id="identifier"
+                      type="text"
+                      label="Email or Mobile Number"
+                      placeholder="Enter email or 10-digit mobile number"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      leftIcon={<Mail className="h-4 w-4" />}
+                      leftIcon={<KeyRound className="h-4 w-4" />}
                       required
                       className="h-12 text-base bg-blue-500/5 border border-gray-300 dark:border-gray-600 focus:border-blue-400 dark:focus:border-gray-500"
                     />

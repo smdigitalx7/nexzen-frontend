@@ -1,6 +1,6 @@
 import { SchoolFinanceReport } from '@/features/school/types/income';
 import { CollegeFinanceReport } from '@/features/college/types/income';
-import jsPDF from 'jspdf';
+import type jsPDF from 'jspdf';
 import type ExcelJS from 'exceljs';
 import { getExportFilename } from './excel-export-utils';
 
@@ -550,7 +550,7 @@ export const generateExportFilename = (reportData: SchoolFinanceReport[] | Colle
 /**
  * Export finance report to PDF format (Day Sheet Report)
  */
-export const exportFinanceReportToPDF = (
+export const exportFinanceReportToPDF = async (
   reportData: SchoolFinanceReport[] | CollegeFinanceReport[],
   filename: string = 'day-sheet-report'
 ) => {
@@ -559,6 +559,7 @@ export const exportFinanceReportToPDF = (
     return;
   }
 
+  const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',

@@ -5,13 +5,6 @@ import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
 import { Input } from "@/common/components/ui/input";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/common/components/ui/dialog";
-import {
   Alert,
   AlertDescription,
   AlertTitle,
@@ -20,23 +13,13 @@ import {
   FileSpreadsheet,
   FileText,
   GraduationCap,
-  CreditCard,
   AlertCircle,
   Search,
   Eye,
 } from "lucide-react";
-import { ReceiptPreviewModal } from "@/common/components/shared";
-import { handleCollegePayByStudentWithIncomeId } from "@/core/api/api-college";
-import { getReceiptNoFromResponse } from "@/core/api/payment-types";
-import { openReceiptInNewTab } from "@/common/utils/payment";
 import { DataTable } from "@/common/components/shared/DataTable";
 import type { ActionConfig } from "@/common/components/shared/DataTable/types";
-import {
-  useCollegeAdmissions,
-  useCollegeAdmissionById,
-} from "@/features/college/hooks";
-import { collegeKeys } from "@/features/college/hooks/query-keys";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCollegeAdmissions } from "@/features/college/hooks";
 import { toast } from "@/common/hooks/use-toast";
 import {
   exportAdmissionsToExcel,
@@ -44,6 +27,7 @@ import {
   exportCollegeAdmissionFormToPDF,
 } from "@/common/utils/export/admissionsExport";
 import type { CollegeAdmissionDetails, CollegeAdmissionListItem } from "@/features/college/types/admissions";
+import { useNavigate } from "react-router-dom";
 
 // Memoized status badge component
 const StatusBadge = memo(({ status }: { status: string }) => {
@@ -78,16 +62,7 @@ const AdmissionsList = () => {
     setCurrentPage(1);
   }, [debouncedSearch]);
 
-  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
-    null
-  );
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: admissionsResp, isLoading } = useCollegeAdmissions({
     page: currentPage,
@@ -95,13 +70,14 @@ const AdmissionsList = () => {
     search: debouncedSearch || undefined,
   });
   const admissions = useMemo(() => admissionsResp?.data ?? [], [admissionsResp?.data]);
-  const { data: selectedAdmission } = useCollegeAdmissionById(selectedStudentId);
 
   // Memoized handlers
-  const handleViewDetails = useCallback((admission: CollegeAdmissionListItem) => {
-    setSelectedStudentId(admission.student_id);
-    setShowDetailsDialog(true);
-  }, []);
+  const handleViewDetails = useCallback(
+    (admission: CollegeAdmissionListItem) => {
+      navigate(`/college/admissions/${admission.student_id}`);
+    },
+    [navigate]
+  );
 
   const handleExportAll = useCallback(async () => {
     try {
@@ -157,131 +133,7 @@ const AdmissionsList = () => {
     }
   }, []);
 
-  const handlePayAdmissionFee = useCallback(() => {
-    if (selectedAdmission) {
-      // Clear any previous errors
-      setPaymentError(null);
-      // Close details dialog before opening payment dialog to avoid modal stacking
-      setShowDetailsDialog(false);
-      // Small delay to ensure smooth transition
-      setTimeout(() => {
-        setShowPaymentDialog(true);
-      }, 100);
-    }
-  }, [selectedAdmission]);
-
-  const handleProcessPayment = useCallback(async () => {
-    if (!selectedAdmission) return;
-    // API expects integer student_id in path, not admission_no
-    if (selectedStudentId == null || selectedStudentId === 0) {
-      setPaymentError("Student ID is required for payment.");
-      return;
-    }
-
-    // Clear any previous errors
-    setPaymentError(null);
-
-    const admissionFee = parseFloat(selectedAdmission.admission_fee?.toString() || "0");
-    if (admissionFee <= 0) {
-      setPaymentError("Admission fee amount is invalid. Please check the fee amount.");
-      return;
-    }
-
-    setIsProcessingPayment(true);
-
-    try {
-      const paymentResponse = await handleCollegePayByStudentWithIncomeId(
-        selectedStudentId,
-        {
-          details: [
-            {
-              purpose: "ADMISSION_FEE",
-              paid_amount: admissionFee,
-              payment_method: "CASH",
-            },
-          ],
-          remarks: "Admission fee payment",
-        }
-      );
-
-      const { blobUrl, paymentData } = paymentResponse;
-
-      setShowPaymentDialog(false);
-      setShowDetailsDialog(false);
-      setPaymentError(null);
-      if (blobUrl) {
-        openReceiptInNewTab(blobUrl, getReceiptNoFromResponse(paymentData));
-        toast({
-          title: "Payment successful",
-          description: "Receipt opened in new tab.",
-          variant: "success",
-        });
-      } else {
-        toast({
-          title: "Payment Successful",
-          description: "Admission fee payment processed successfully",
-          variant: "success",
-        });
-      }
-
-      // React-query: invalidate and refetch Student Admissions (list + detail) after successful payment
-      requestAnimationFrame(() => {
-        queryClient.invalidateQueries({
-          queryKey: collegeKeys.admissions.root(),
-          exact: false,
-          refetchType: "none",
-        });
-        // Refetch all admissions queries so list and detail show updated fee status
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: collegeKeys.admissions.root(),
-            exact: false,
-          });
-        }, 400);
-      });
-      batchInvalidateQueriesSelective([["college", "admissions"]], { refetchType: "none", delay: 0 });
-    } catch (error: any) {
-      console.error("Payment failed:", error);
-      // Show error in the dialog instead of toast
-      setPaymentError(
-        error?.message ||
-        "Failed to process admission fee payment. Please try again."
-      );
-    } finally {
-      setIsProcessingPayment(false);
-    }
-  }, [selectedAdmission, selectedStudentId, queryClient]);
-
-  const handleCloseReceiptModal = useCallback(() => {
-    // ✅ CRITICAL FIX: Close modal state immediately
-    setShowReceiptModal(false);
-    
-    // ✅ CRITICAL FIX: Clean up blob URL immediately (synchronous)
-    if (receiptBlobUrl) {
-      try {
-        URL.revokeObjectURL(receiptBlobUrl);
-      } catch (e) {
-        // Ignore errors during cleanup
-      }
-      setReceiptBlobUrl(null);
-    }
-
-    // ✅ CRITICAL FIX: Defer query invalidation to prevent UI blocking
-    if (selectedStudentId) {
-      if (typeof requestIdleCallback !== "undefined") {
-        requestIdleCallback(
-          () => {
-            batchInvalidateQueriesSelective([["college", "admissions", selectedStudentId]], { refetchType: "none", delay: 0 });
-          },
-          { timeout: 1000 }
-        );
-      } else {
-        setTimeout(() => {
-          batchInvalidateQueriesSelective([["college", "admissions", selectedStudentId]], { refetchType: "none", delay: 0 });
-        }, 500);
-      }
-    }
-  }, [selectedStudentId, receiptBlobUrl]);
+  // Payment and receipt handling are now managed in the dedicated admission details page.
 
   // ✅ MIGRATED: Use DataTable V2 actions format
   const actions: ActionConfig<CollegeAdmissionListItem>[] = useMemo(() => [

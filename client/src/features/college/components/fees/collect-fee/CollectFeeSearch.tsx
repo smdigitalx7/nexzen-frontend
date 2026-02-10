@@ -50,50 +50,108 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
   }, [setSearchResults, setSearchQuery]);
 
   // Handle search
-  const handleSearch = useCallback(async (query?: string) => {
-    const searchTerm = query || searchQuery;
-    if (!searchTerm.trim()) {
-      toast({
-        title: "Search Required",
-        description: "Please enter a student admission number or name to search.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSearch = useCallback(
+    async (query?: string) => {
+      const searchTerm = query || searchQuery;
+      const trimmed = searchTerm.trim();
 
-    setIsSearching(true);
-    setSearchResults([]);
+      if (!trimmed) {
+        toast({
+          title: "Search Required",
+          description:
+            "Please enter a student admission number or name to search.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    try {
-      const enrollment = await CollegeEnrollmentsService.getByAdmission(searchTerm.trim());
+      if (!selectedClassId || !selectedGroupId) {
+        toast({
+          title: "Class & Group Required",
+          description: "Please select both class and group before searching.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const [tuitionBalance, transportSummary, transportExpectedPayments] = await Promise.all([
-        CollegeTuitionBalancesService.getById(enrollment.enrollment_id).catch(() => null),
-        CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(enrollment.enrollment_id).catch(() => null),
-        CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(enrollment.enrollment_id).catch(() => undefined),
-      ]);
-
-      const studentDetails: StudentFeeDetails = {
-        enrollment,
-        tuitionBalance,
-        transportSummary,
-        transportExpectedPayments,
-        transportBalance: transportSummary ?? null,
-      };
-
-      setSearchResults([studentDetails]);
-    } catch (error) {
-      console.error("Search error:", error);
-      toast({
-        title: "Student Not Found",
-        description: "No student found with the provided admission number or name.",
-        variant: "default",
-      });
+      setIsSearching(true);
       setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [searchQuery, setSearchResults, toast]);
+
+      try {
+        // Use enrollments list with search so both admission no and student name are supported
+        const response = await CollegeEnrollmentsService.list({
+          class_id: selectedClassId,
+          group_id: selectedGroupId,
+          page: 1,
+          pageSize: 10,
+          search: trimmed,
+        });
+
+        const list = Array.isArray(response?.enrollments)
+          ? response.enrollments
+          : [];
+
+        if (list.length === 0) {
+          toast({
+            title: "Student Not Found",
+            description:
+              "No student found with the provided admission number or name.",
+            variant: "default",
+          });
+          setSearchResults([]);
+          return;
+        }
+
+        const details = await Promise.all(
+          list.slice(0, 10).map(async (e: any) => {
+            const [
+              tuitionBalance,
+              transportSummary,
+              transportExpectedPayments,
+            ] = await Promise.all([
+              CollegeTuitionBalancesService.getById(
+                e.enrollment_id,
+              ).catch(() => null),
+              CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(
+                e.enrollment_id,
+              ).catch(() => null),
+              CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(
+                e.enrollment_id,
+              ).catch(() => undefined),
+            ]);
+
+            return {
+              enrollment: e,
+              tuitionBalance,
+              transportSummary,
+              transportExpectedPayments,
+              transportBalance: transportSummary ?? null,
+            } as StudentFeeDetails;
+          }),
+        );
+
+        setSearchResults(details);
+      } catch (error) {
+        console.error("Search error:", error);
+        toast({
+          title: "Search Failed",
+          description:
+            "Unable to search enrollments. Please try again or contact support.",
+          variant: "destructive",
+        });
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [
+      searchQuery,
+      selectedClassId,
+      selectedGroupId,
+      setSearchResults,
+      toast,
+    ],
+  );
 
 
   // Handle Enter key press
@@ -119,13 +177,14 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
       try {
         const query = debouncedSearchQuery.trim();
 
-        // If class_id is selected, use list endpoint with admission_no filter
+        // If class_id is selected, use list endpoint with search filter
         if (selectedClassId && selectedGroupId && query.length >= 2) {
             const response = await CollegeEnrollmentsService.list({
               class_id: selectedClassId,
               group_id: selectedGroupId,
               page: 1,
               pageSize: 10,
+              search: query,
             });
 
             if (response?.enrollments && response.enrollments.length > 0) {
@@ -232,27 +291,25 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
           <CardContent className="p-8">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="space-y-2">
-                  <Label htmlFor="class-select">Class Filter (Optional)</Label>
+                  <Label htmlFor="class-select">Class *</Label>
                   <CollegeClassDropdown
                     id="class-select"
                     value={selectedClassId}
                     onChange={handleClassChange}
-                    placeholder="All classes"
+                    placeholder="Select class"
                     className="w-full"
-                    emptyValue
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="group-select">Group Filter (Optional)</Label>
+                  <Label htmlFor="group-select">Group *</Label>
                   <CollegeGroupDropdown
                     id="group-select"
                     classId={selectedClassId || 0}
                     value={selectedGroupId}
                     onChange={handleGroupChange}
                     disabled={!selectedClassId}
-                    placeholder={selectedClassId ? "All groups" : "Select class first"}
+                    placeholder={selectedClassId ? "Select group" : "Select class first"}
                     className="w-full"
-                    emptyValue
                   />
                 </div>
              </div>

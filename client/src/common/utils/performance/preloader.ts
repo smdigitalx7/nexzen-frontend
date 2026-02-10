@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Component preloading utilities for better performance
  */
 
@@ -105,31 +105,31 @@ class ComponentPreloader {
   }
 
   /**
-   * Preload components based on user role
+   * Preload components based on user role (runs in background via requestIdleCallback;
+   * does not block initial load). Call after critical preload and a short delay.
    */
-  async preloadByRole(
+  preloadByRole(
     role: "ADMIN" | "INSTITUTE_ADMIN" | "ACADEMIC" | "ACCOUNTANT"
-  ): Promise<void> {
-    const preloadTasks = [this.preloadCritical()];
+  ): void {
+    const schedule = (components: Array<() => Promise<any>>, groupName: string) => {
+      this.preloadInBackground(components, groupName);
+    };
 
     switch (role) {
       case "ADMIN":
       case "INSTITUTE_ADMIN":
-        preloadTasks.push(
-          this.preloadSchool(),
-          this.preloadCollege(),
-          this.preloadGeneral()
-        );
+        schedule(SCHOOL_COMPONENTS, "school");
+        schedule(COLLEGE_COMPONENTS, "college");
+        schedule(GENERAL_COMPONENTS, "general");
         break;
       case "ACADEMIC":
-        preloadTasks.push(this.preloadSchool(), this.preloadCollege());
+        schedule(SCHOOL_COMPONENTS, "school");
+        schedule(COLLEGE_COMPONENTS, "college");
         break;
       case "ACCOUNTANT":
-        preloadTasks.push(this.preloadGeneral());
+        schedule(GENERAL_COMPONENTS, "general");
         break;
     }
-
-    await Promise.allSettled(preloadTasks);
   }
 
   /**
@@ -195,10 +195,10 @@ export const usePreloader = () => {
   );
 
   const preloadByRole = React.useCallback(
-    async (role: "ADMIN" | "INSTITUTE_ADMIN" | "ACADEMIC" | "ACCOUNTANT") => {
+    (role: "ADMIN" | "INSTITUTE_ADMIN" | "ACADEMIC" | "ACCOUNTANT") => {
       setIsPreloading(true);
       try {
-        await componentPreloader.preloadByRole(role);
+        componentPreloader.preloadByRole(role);
         setPreloadStatus(componentPreloader.getStatus());
       } finally {
         setIsPreloading(false);

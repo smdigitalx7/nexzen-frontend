@@ -100,6 +100,8 @@ export const SCHOOL_INVALIDATION_MAPS = {
     update: (balanceId: number) => [
       schoolKeys.tuition.detail(balanceId),
       schoolKeys.tuition.root(),
+      schoolKeys.transport.detail(balanceId),
+      schoolKeys.transport.root(),
       schoolKeys.students.root(),
       schoolKeys.enrollments.root(),
     ],
@@ -212,6 +214,8 @@ export const COLLEGE_INVALIDATION_MAPS = {
     update: (balanceId: number) => [
       collegeKeys.tuition.detail(balanceId),
       collegeKeys.tuition.root(),
+      collegeKeys.transport.detail(balanceId),
+      collegeKeys.transport.root(),
       collegeKeys.students.root(),
       collegeKeys.enrollments.root(),
     ],

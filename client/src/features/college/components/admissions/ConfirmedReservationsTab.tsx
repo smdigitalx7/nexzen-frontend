@@ -22,6 +22,14 @@ import {
   DialogFooter,
 } from "@/common/components/ui/dialog";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/common/components/ui/sheet";
+import {
   UserCheck,
   GraduationCap,
   Edit,
@@ -899,11 +907,20 @@ const ConfirmedReservationsTabComponent = () => {
       cell: ({ row }) => <span className="text-muted-foreground">{formatDate(row.getValue("reservation_date"))}</span>,
     },
     {
-      accessorKey: "class_name",
-      header: "Class",
+      accessorKey: "group_name",
+      header: "Group",
       cell: ({ row }) => (
         <Badge variant="outline" className="bg-slate-50">
-          {row.getValue("class_name")}
+          {row.getValue("group_name") || "-"}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "course_name",
+      header: "Course",
+      cell: ({ row }) => (
+        <Badge variant="outline" className="bg-slate-50">
+          {row.getValue("course_name") || "-"}
         </Badge>
       ),
     },
@@ -1335,16 +1352,19 @@ const ConfirmedReservationsTabComponent = () => {
         className="w-full"
       />
 
-      {/* Reservation Details Dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader className="pr-10">
+      {/* Reservation Details Sheet (aligned with school UI) */}
+      <Sheet open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide"
+        >
+          <SheetHeader className="pr-10">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <DialogTitle>Student Enrollment Details</DialogTitle>
-                <DialogDescription>
+                <SheetTitle>Student Enrollment Details</SheetTitle>
+                <SheetDescription>
                   Review and confirm student details before enrollment
-                </DialogDescription>
+                </SheetDescription>
               </div>
               {!isEditMode && (
                 <Button
@@ -1358,10 +1378,10 @@ const ConfirmedReservationsTabComponent = () => {
                 </Button>
               )}
             </div>
-          </DialogHeader>
+          </SheetHeader>
 
           {editForm && (
-            <div className="space-y-6">
+            <div className="space-y-6 py-6">
               <ReservationInfo reservation={editForm} />
               <StudentInfoSection
                 editForm={editForm}
@@ -1387,7 +1407,7 @@ const ConfirmedReservationsTabComponent = () => {
             </div>
           )}
 
-          <DialogFooter>
+          <SheetFooter className="flex flex-row gap-2 sm:gap-2 border-t pt-4 mt-6">
             {isEditMode ? (
               <>
                 <Button variant="outline" onClick={handleCancelEdit}>
@@ -1420,9 +1440,9 @@ const ConfirmedReservationsTabComponent = () => {
                 )}
               </>
             )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Payment Dialog */}
       <PaymentDialog

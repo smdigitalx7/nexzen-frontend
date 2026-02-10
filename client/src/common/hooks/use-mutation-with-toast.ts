@@ -114,9 +114,13 @@ export function useMutationWithToast<TData = unknown, TError = unknown, TVariabl
 /**
  * Create mutation hook with automatic success toast
  */
+export type SuccessMessageResolver<TData = unknown, TVariables = void> =
+  | string
+  | ((data: TData, variables: TVariables) => string | null | undefined);
+
 export function useMutationWithSuccessToast<TData = unknown, TError = unknown, TVariables = void, TContext = unknown>(
   mutationOptions: UseMutationOptions<TData, TError, TVariables, TContext>,
-  successMessage: string
+  successMessage: SuccessMessageResolver<TData, TVariables>
 ) {
   const { toast } = useToast();
 
@@ -128,12 +132,20 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
       onMutateResult: TContext | undefined,
       context: MutationFunctionContext
     ) => {
-      // Show success toast immediately
-      toast({
-        title: 'Success',
-        description: successMessage,
-        variant: 'success',
-      });
+      // Resolve success message – can be static string or derived from response data
+      const resolvedMessage =
+        typeof successMessage === "function"
+          ? successMessage(data, variables)
+          : successMessage;
+
+      if (resolvedMessage) {
+        // Show success toast immediately
+        toast({
+          title: 'Success',
+          description: resolvedMessage,
+          variant: 'success',
+        });
+      }
 
       // Call the provided onSuccess callback if it exists (do this first)
       mutationOptions.onSuccess?.(data, variables, onMutateResult, context);

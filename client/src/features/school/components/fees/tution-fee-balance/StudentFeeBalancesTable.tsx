@@ -35,6 +35,7 @@ interface StudentFeeBalance {
   transport_paid: boolean;
   last_payment_date: string;
   status: 'PAID' | 'PARTIAL' | 'OUTSTANDING';
+  concession_amount: number;
 }
 
 interface StudentFeeBalancesTableProps {
@@ -257,7 +258,7 @@ export const StudentFeeBalancesTable = ({
         isOpen={concessionModalOpen}
         onClose={() => setConcessionModalOpen(false)}
         onUpdate={handleUpdateConcession}
-        currentConcession={0} // Note: The table doesn't have current concession, we might need it for a better UX
+        currentConcession={selectedStudent?.concession_amount ?? 0}
         studentName={selectedStudent?.student_name}
       />
     </motion.div>

@@ -326,12 +326,40 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
   type ExamMarkRow = CollegeExamMarkMinimalRead & { exam_name?: string; subject_name?: string; class_name?: string; max_marks?: number; exam_id?: number; subject_id?: number };
   const flattenedMarks = useMemo(() => {
     if (!examMarksData) return [] as ExamMarkRow[];
+
+    // Normalize API response into a simple array so we can support:
+    // - Raw array: CollegeExamGroupAndClassResponse[]
+    // - Wrapped objects: { data: [...], items: [...], results: [...] }
+    let dataArray: any[] = [];
+    const raw: unknown = examMarksData;
+
+    if (Array.isArray(raw)) {
+      dataArray = raw;
+    } else if (raw && typeof raw === "object") {
+      const wrapped = raw as any;
+      if (Array.isArray(wrapped.data)) {
+        dataArray = wrapped.data;
+      } else if (Array.isArray(wrapped.items)) {
+        dataArray = wrapped.items;
+      } else if (Array.isArray(wrapped.results)) {
+        dataArray = wrapped.results;
+      } else {
+        // Unknown structure – log in dev and bail out
+        if (process.env.NODE_ENV === "development") {
+          // eslint-disable-next-line no-console
+          console.warn("Exam marks response has unexpected shape:", wrapped);
+        }
+        return [] as ExamMarkRow[];
+      }
+    } else {
+      return [] as ExamMarkRow[];
+    }
     
-    if (Array.isArray(examMarksData) && examMarksData.length > 0) {
+    if (dataArray.length > 0) {
       const flattened: ExamMarkRow[] = [];
       
       // Check if data has nested structure: exams -> subjects -> students
-      const firstItem = examMarksData[0];
+      const firstItem = dataArray[0];
       const hasNestedStructure = 
         firstItem &&
         typeof firstItem === 'object' &&
@@ -340,7 +368,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
 
       if (hasNestedStructure) {
         // Handle nested structure: exams -> subjects -> students
-        examMarksData.forEach((exam: unknown) => {
+        dataArray.forEach((exam: unknown) => {
           if (
             exam &&
             typeof exam === 'object' &&
@@ -402,7 +430,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
       }
 
       // Check if data has flat structure with subjects directly (old format)
-      const hasFlatSubjectStructure = examMarksData.some(
+      const hasFlatSubjectStructure = dataArray.some(
         (item) =>
           item &&
           typeof item === 'object' &&
@@ -413,7 +441,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
 
       if (hasFlatSubjectStructure) {
         // Flatten grouped data: iterate through groups and extract students
-        examMarksData.forEach((group: unknown) => {
+        dataArray.forEach((group: unknown) => {
           if (
             group &&
             typeof group === 'object' &&
@@ -451,7 +479,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
       }
       
       // If data is already flat, ensure it has the required fields
-      return examMarksData
+      return dataArray
         .filter((mark: unknown): mark is Record<string, unknown> => 
           mark !== null && 
           typeof mark === 'object' && 
@@ -590,7 +618,9 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                                   <SelectValue placeholder="Select student" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {enrollments.map((enrollment) => {
+                                  {enrollments
+                                    .filter((enrollment) => enrollment.enrollment_id != null)
+                                    .map((enrollment) => {
                                     const displayParts = [
                                       enrollment.student_name,
                                       enrollment.class_name || '',
@@ -599,7 +629,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                                     const displayText = displayParts.join(' - ');
                                     const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
                                     return (
-                                      <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
+                                      <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id!.toString()}>
                                         {displayText}{rollNumber}
                                       </SelectItem>
                                     );
@@ -769,11 +799,16 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                                         <SelectValue placeholder="Select student" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        {enrollments.map((enrollment) => (
-                                          <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
-                                            {enrollment.student_name} ({enrollment.admission_no})
-                                          </SelectItem>
-                                        ))}
+                                        {enrollments
+                                          .filter((enrollment) => enrollment.enrollment_id != null)
+                                          .map((enrollment) => (
+                                            <SelectItem
+                                              key={enrollment.enrollment_id}
+                                              value={enrollment.enrollment_id!.toString()}
+                                            >
+                                              {enrollment.student_name} ({enrollment.admission_no})
+                                            </SelectItem>
+                                          ))}
                                       </SelectContent>
                                     </Select>
                                   </FormControl>
@@ -965,11 +1000,16 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                                     <SelectValue placeholder="Select student" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {enrollments.map((enrollment) => (
-                                      <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
-                                        {enrollment.student_name} ({enrollment.admission_no})
-                                      </SelectItem>
-                                    ))}
+                                    {enrollments
+                                      .filter((enrollment) => enrollment.enrollment_id != null)
+                                      .map((enrollment) => (
+                                        <SelectItem
+                                          key={enrollment.enrollment_id}
+                                          value={enrollment.enrollment_id!.toString()}
+                                        >
+                                          {enrollment.student_name} ({enrollment.admission_no})
+                                        </SelectItem>
+                                      ))}
                                   </SelectContent>
                                 </Select>
                               </FormControl>

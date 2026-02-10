@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf';
 import type { StudentPerformanceResponse as CollegeStudentPerformanceResponse } from '@/features/college/types/student-marks';
 import type { StudentPerformanceResponse as SchoolStudentPerformanceResponse } from '@/features/school/types/marks';
 import { getExportFilename } from './excel-export-utils';
@@ -165,16 +164,17 @@ export const exportStudentPerformanceToExcel = async (
 /**
  * Export student performance to PDF format
  */
-export const exportStudentPerformanceToPDF = (
+export const exportStudentPerformanceToPDF = async (
   performanceData: StudentPerformanceData,
   filename: string = 'student-performance-report'
-): void => {
+): Promise<void> => {
   if (!performanceData || !performanceData.subjects || performanceData.subjects.length === 0) {
     console.warn('No performance data to export');
     return;
   }
 
   try {
+    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();

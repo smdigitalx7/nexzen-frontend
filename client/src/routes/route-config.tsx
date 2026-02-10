@@ -1,4 +1,4 @@
-﻿import { lazy } from "react";
+import { lazy } from "react";
 import type { UserRole } from "@/common/constants/auth/roles";
 
 // Lazy-loaded General Components
@@ -73,6 +73,9 @@ export const CollegeReservationManagement = lazy(
 );
 export const CollegeAdmissionsManagement = lazy(
   () => import("@/features/college/pages/CollegeAdmissionsPage")
+);
+export const CollegeAdmissionDetails = lazy(
+  () => import("@/features/college/components/admissions/AdmissionDetailsPage")
 );
 export const CollegeClassesManagement = lazy(
   () => import("@/features/college/pages/CollegeClassesPage")
@@ -220,6 +223,11 @@ export const routes: RouteConfig[] = [
     roles: ["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"],
     component: CollegeAdmissionsManagement,
     preventDirectAccess: true,
+  },
+  {
+    path: "/college/admissions/:id",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"],
+    component: CollegeAdmissionDetails,
   },
   {
     path: "/college/classes",

@@ -9,12 +9,11 @@ export interface CollegeTestMarkCreate {
   conducted_at?: string | null;
 }
 
+// Update payload matches backend schema for:
+// PUT /api/v1/college/test-marks/{mark_id}
 export interface CollegeTestMarkUpdate {
   marks_obtained: number;
-  percentage: number;
-  grade: string;
   remarks: string;
-  conducted_at: string;
 }
 
 export interface CollegeTestMarkMinimalRead {

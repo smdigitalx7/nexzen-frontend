@@ -5,8 +5,17 @@ import { Label } from "@/common/components/ui/label";
 import { Button } from "@/common/components/ui/button";
 import { FormDialog } from "@/common/components/shared";
 import { TabSwitcher } from "@/common/components/shared";
-import { User, BookOpen, ArrowRight, Phone, Mail, IdCard, Briefcase, Info } from "lucide-react";
-import { useEmployeesByBranch } from "@/features/general/hooks";
+import {
+  User,
+  BookOpen,
+  ArrowRight,
+  Phone,
+  Mail,
+  IdCard,
+  Briefcase,
+  Info,
+} from "lucide-react";
+import { useTeachersByBranch } from "@/features/general/hooks";
 import { useToast } from "@/common/hooks/use-toast";
 import { Badge } from "@/common/components/ui/badge";
 import { TeacherCourseSubjectAssignmentsTab } from "./TeacherCourseSubjectAssignmentsTab";
@@ -21,13 +30,7 @@ import {
   useCollegeCourses,
   useCollegeSubjects,
 } from "@/features/college/hooks/use-college-dropdowns";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/common/components/ui/select";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import { Checkbox } from "@/common/components/ui/checkbox";
 import { ActionConfig } from '@/common/components/shared/DataTable/types';
 import { DataTable } from '@/common/components/shared/DataTable';
@@ -47,13 +50,16 @@ export const TeachersTab = () => {
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [isActive, setIsActive] = useState(true);
-
-  const [teachersDropdownOpen, setTeachersDropdownOpen] = useState(false);
   const [groupsDropdownOpen, setGroupsDropdownOpen] = useState(false);
   const [coursesDropdownOpen, setCoursesDropdownOpen] = useState(false);
   const [subjectsDropdownOpen, setSubjectsDropdownOpen] = useState(false);
 
-  const { data: allEmployees = [], isLoading, error, refetch: refetchEmployees } = useEmployeesByBranch(teachersDropdownOpen);
+  const {
+    data: allEmployees = [],
+    isLoading,
+    error,
+    refetch: refetchEmployees,
+  } = useTeachersByBranch(true);
 
   useEffect(() => {
     if (!isAddOpen && !isEditOpen) {
@@ -95,16 +101,21 @@ export const TeachersTab = () => {
   const deleteMutation = useDeleteTeacherCourseSubjectRelation();
   const { toast } = useToast();
 
-  const { data: groupsData } = useCollegeGroups({ enabled: groupsDropdownOpen });
+  const { data: groupsData, isLoading: isLoadingGroups } = useCollegeGroups({
+    enabled: groupsDropdownOpen,
+  });
   const groups = Array.isArray(groupsData) ? groupsData : [];
 
-  const { data: coursesData } = useCollegeCourses(
+  const { data: coursesData, isLoading: isLoadingCourses } = useCollegeCourses(
     coursesDropdownOpen && selectedGroupId ? parseInt(selectedGroupId) : 0,
     { enabled: coursesDropdownOpen && !!selectedGroupId }
   );
   const courses = coursesData?.items || [];
 
-  const { data: subjectsData } = useCollegeSubjects(
+  const {
+    data: subjectsData,
+    isLoading: isLoadingSubjects,
+  } = useCollegeSubjects(
     subjectsDropdownOpen && selectedGroupId ? parseInt(selectedGroupId) : 0,
     { enabled: subjectsDropdownOpen && !!selectedGroupId }
   );
@@ -311,89 +322,73 @@ export const TeachersTab = () => {
         <div className="space-y-5 py-2">
           <div className="space-y-2">
             <Label className="text-sm font-semibold text-slate-700">Educator *</Label>
-            <Select
+            <ServerCombobox
+              items={teachers}
+              isLoading={isLoading}
               value={selectedTeacherId}
-              onValueChange={setSelectedTeacherId}
-              onOpenChange={setTeachersDropdownOpen}
-            >
-              <SelectTrigger className="h-11 rounded-lg">
-                <SelectValue placeholder="Select faculty member" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl shadow-xl border-slate-100">
-                {teachers.map((teacher: any) => (
-                  <SelectItem key={teacher.employee_id} value={teacher.employee_id.toString()} className="py-2.5">
-                    {teacher.employee_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onSelect={setSelectedTeacherId}
+              placeholder="Select faculty member"
+              searchPlaceholder="Search educators..."
+              valueKey="employee_id"
+              labelKey="employee_name"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-slate-700">Group *</Label>
-              <Select
+              <ServerCombobox
+                items={groups}
+                isLoading={isLoadingGroups}
                 value={selectedGroupId}
-                onValueChange={(value) => {
+                onSelect={(value) => {
                   setSelectedGroupId(value);
                   setSelectedCourseId("");
+                  setSelectedSubjectId("");
                 }}
-                onOpenChange={setGroupsDropdownOpen}
-              >
-                <SelectTrigger className="h-11 rounded-lg">
-                  <SelectValue placeholder="Select group" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl shadow-xl border-slate-100">
-                  {Array.isArray(groups) && groups.map((group: any) => (
-                    <SelectItem key={group.group_id} value={group.group_id.toString()} className="py-2.5">
-                      {group.group_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select group"
+                searchPlaceholder="Search groups..."
+                valueKey="group_id"
+                labelKey="group_name"
+                onDropdownOpen={setGroupsDropdownOpen}
+              />
             </div>
 
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-slate-700">Course / Level *</Label>
-              <Select
+              <ServerCombobox
+                items={courses}
+                isLoading={isLoadingCourses}
                 value={selectedCourseId}
-                onValueChange={setSelectedCourseId}
+                onSelect={setSelectedCourseId}
                 disabled={!selectedGroupId}
-                onOpenChange={setCoursesDropdownOpen}
-              >
-                <SelectTrigger className="h-11 rounded-lg">
-                  <SelectValue placeholder={selectedGroupId ? "Select course" : "Select group first"} />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl shadow-xl border-slate-100">
-                  {Array.isArray(courses) && courses.map((course: any) => (
-                    <SelectItem key={course.course_id} value={course.course_id.toString()} className="py-2.5">
-                      {course.course_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder={
+                  selectedGroupId ? "Select course" : "Select group first"
+                }
+                searchPlaceholder="Search courses..."
+                valueKey="course_id"
+                labelKey="course_name"
+                onDropdownOpen={setCoursesDropdownOpen}
+              />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-semibold text-slate-700">Academic Subject *</Label>
-            <Select
+            <ServerCombobox
+              items={subjects}
+              isLoading={isLoadingSubjects}
               value={selectedSubjectId}
-              onValueChange={setSelectedSubjectId}
+              onSelect={setSelectedSubjectId}
               disabled={!selectedGroupId}
-              onOpenChange={setSubjectsDropdownOpen}
-            >
-              <SelectTrigger className="h-11 rounded-lg">
-                <SelectValue placeholder={selectedGroupId ? "Select subject" : "Select group first"} />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl shadow-xl border-slate-100">
-                {Array.isArray(subjects) && subjects.map((subject: any) => (
-                  <SelectItem key={subject.subject_id} value={subject.subject_id.toString()} className="py-2.5">
-                    {subject.subject_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder={
+                selectedGroupId ? "Select subject" : "Select group first"
+              }
+              searchPlaceholder="Search subjects..."
+              valueKey="subject_id"
+              labelKey="subject_name"
+              onDropdownOpen={setSubjectsDropdownOpen}
+            />
           </div>
 
           <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-xl border border-slate-100 mt-2">

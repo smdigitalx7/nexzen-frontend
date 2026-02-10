@@ -85,7 +85,7 @@ export const StudentPerformanceView = ({
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!data) {
       toast({
         title: "No data available",
@@ -97,7 +97,7 @@ export const StudentPerformanceView = ({
 
     try {
       const studentName = data.student_details.student_name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-      exportStudentPerformanceToPDF(data, `student-performance-${studentName}`);
+      await exportStudentPerformanceToPDF(data, `student-performance-${studentName}`);
       toast({
         title: "Export successful",
         variant: "success",

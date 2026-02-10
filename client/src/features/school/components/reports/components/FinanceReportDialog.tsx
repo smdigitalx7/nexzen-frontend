@@ -125,10 +125,10 @@ export const FinanceReportDialog: React.FC<FinanceReportDialogProps> = ({
     }
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     try {
       const filename = generateExportFilename(reportData);
-      exportFinanceReportToPDF(reportData, filename);
+      await exportFinanceReportToPDF(reportData, filename);
     } catch (error) {
       console.error('Error exporting PDF report:', error);
     }

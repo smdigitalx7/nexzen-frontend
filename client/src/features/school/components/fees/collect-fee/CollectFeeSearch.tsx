@@ -64,47 +64,100 @@ export const CollectFeeSearch = ({
   }, [setSearchResults, setSearchQuery]);
 
   // Handle search
-  const handleSearch = useCallback(async (query?: string) => {
-    const searchTerm = query || searchQuery;
-    if (!searchTerm.trim()) {
-      toast({
-        title: "Search Required",
-        description: "Please enter a student admission number or name to search.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSearch = useCallback(
+    async (query?: string) => {
+      const searchTerm = query || searchQuery;
+      const trimmed = searchTerm.trim();
 
-    setIsSearching(true);
-    setSearchResults([]);
+      if (!trimmed) {
+        toast({
+          title: "Search Required",
+          description:
+            "Please enter a student admission number or name to search.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    try {
-      const enrollment = await EnrollmentsService.getByAdmission(searchTerm.trim());
-      
-      const [tuitionBalance, transportBalance] = await Promise.all([
-        SchoolTuitionFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null),
-        SchoolTransportFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null)
-      ]);
+      if (!selectedClassId) {
+        toast({
+          title: "Class Required",
+          description: "Please select a class before searching.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const studentDetails: StudentFeeDetails = {
-        enrollment,
-        tuitionBalance,
-        transportBalance,
-      };
-
-      setSearchResults([studentDetails]);
-    } catch (error) {
-      console.error("Search error:", error);
-      toast({
-        title: "Student Not Found",
-        description: "No student found with the provided admission number or name. Please try again.",
-        variant: "destructive",
-      });
+      setIsSearching(true);
       setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [searchQuery, setSearchResults, toast]);
+
+      try {
+        // Use enrollments search API so both admission number and student name are supported
+        const response = await EnrollmentsService.list({
+          class_id: selectedClassId,
+          section_id: selectedSectionId || undefined,
+          page: 1,
+          page_size: 10,
+          search: trimmed,
+        });
+
+        const list = Array.isArray(response?.enrollments)
+          ? response.enrollments
+          : [];
+
+        if (list.length === 0) {
+          toast({
+            title: "Student Not Found",
+            description:
+              "No student found with the provided admission number or name. Please try again.",
+            variant: "destructive",
+          });
+          setSearchResults([]);
+          return;
+        }
+
+        // Fetch fee balances for each enrollment in parallel
+        const details = await Promise.all(
+          list.slice(0, 10).map(async (e: any) => {
+            const [tuitionBalance, transportBalance] = await Promise.all([
+              SchoolTuitionFeeBalancesService.getById(e.enrollment_id).catch(
+                () => null,
+              ),
+              SchoolTransportFeeBalancesService.getById(
+                e.enrollment_id,
+              ).catch(() => null),
+            ]);
+
+            return {
+              enrollment: e as SchoolEnrollmentWithStudentDetails,
+              tuitionBalance,
+              transportBalance,
+            } as StudentFeeDetails;
+          }),
+        );
+
+        setSearchResults(details);
+      } catch (error) {
+        console.error("Search error:", error);
+        toast({
+          title: "Search Failed",
+          description:
+            "Unable to search enrollments. Please try again or contact support.",
+          variant: "destructive",
+        });
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [
+      searchQuery,
+      selectedClassId,
+      selectedSectionId,
+      setSearchResults,
+      toast,
+    ],
+  );
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -128,15 +181,15 @@ export const CollectFeeSearch = ({
       try {
         const query = debouncedSearchQuery.trim();
         
-        // If class_id is selected, use list endpoint with admission_no filter
+        // If class_id is selected, use list endpoint with search filter
         if (selectedClassId && query.length >= 2) {
           try {
             const response = await EnrollmentsService.list({
               class_id: selectedClassId,
               section_id: selectedSectionId || undefined,
-              admission_no: query,
               page: 1,
               page_size: 10,
+              search: query,
             });
             
             if (response?.enrollments && response.enrollments.length > 0) {
@@ -258,15 +311,13 @@ export const CollectFeeSearch = ({
           <CardContent className="p-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="space-y-2">
-                <Label htmlFor="class-select">Class Filter (Optional)</Label>
+                <Label htmlFor="class-select">Class *</Label>
                 <SchoolClassDropdown
                   id="class-select"
                   value={selectedClassId}
                   onChange={handleClassChange}
-                  placeholder="All classes"
+                  placeholder="Select class"
                   className="w-full"
-                  emptyValue
-                  emptyValueLabel="All Classes"
                 />
               </div>
               <div className="space-y-2">

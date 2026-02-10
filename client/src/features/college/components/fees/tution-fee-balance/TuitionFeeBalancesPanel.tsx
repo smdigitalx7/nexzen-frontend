@@ -285,6 +285,7 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
         transport_paid: false,
         last_payment_date: new Date().toISOString(),
         status: outstanding <= 0 ? 'PAID' : paidTotal > 0 ? 'PARTIAL' : 'OUTSTANDING',
+        concession_amount: t.concession_amount ?? 0,
       };
     });
   }, [tuitionResp]);

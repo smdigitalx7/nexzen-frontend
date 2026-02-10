@@ -163,7 +163,11 @@ export function useUpdateSchoolTuitionConcession(enrollmentId: number) {
       const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
       batchInvalidateQueries(keysToInvalidate);
     },
-  }, "Tuition concession updated successfully");
+  }, (result) =>
+    result && typeof (result as any).message === "string"
+      ? (result as any).message
+      : "Tuition concession updated successfully"
+  );
 }
 
 // Transport
@@ -258,7 +262,11 @@ export function useUpdateSchoolTransportConcession(enrollmentId: number) {
       const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
       batchInvalidateQueries(keysToInvalidate);
     },
-  }, "Transport concession updated successfully");
+  }, (result) =>
+    result && typeof (result as any).message === "string"
+      ? (result as any).message
+      : "Transport concession updated successfully"
+  );
 }
 
 
