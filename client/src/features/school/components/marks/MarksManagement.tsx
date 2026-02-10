@@ -17,6 +17,7 @@ import {
   ExamMarksReport, 
   TestMarksReport,
   StudentReportView,
+  CumulativeReportManager,
 } from "./components";
 import { useAuthStore } from "@/core/auth/authStore";
 import { useFilteredTabs } from "@/core/permissions";
@@ -87,8 +88,8 @@ const MarksManagementComponent = () => {
     }
   }, [activeTab]);
 
-  // Reports tab state: Exam Reports | Test Reports | Student Reports
-  const [reportsActiveTab, setReportsActiveTab] = useState<"exam" | "test" | "student">("exam");
+  // Reports tab state: Exam Reports | Test Reports | Student Reports | Cumulative Reports
+  const [reportsActiveTab, setReportsActiveTab] = useState<"exam" | "test" | "student" | "cumulative">("exam");
 
   // Memoized tabs configuration - components receive props but instances stay stable
   // ✅ OPTIMIZATION: TabSwitcher defaults to forceMount={false}, so inactive tabs are not mounted
@@ -164,9 +165,15 @@ const MarksManagementComponent = () => {
                   icon: FileText,
                   content: <StudentReportView />,
                 },
+                {
+                  value: "cumulative",
+                  label: "Cumulative Report",
+                  icon: BarChart3,
+                  content: <CumulativeReportManager />,
+                },
               ]}
               activeTab={reportsActiveTab}
-              onTabChange={(value) => setReportsActiveTab(value as "exam" | "test" | "student")}
+              onTabChange={(value) => setReportsActiveTab(value as "exam" | "test" | "student" | "cumulative")}
             />
           </div>
         ),

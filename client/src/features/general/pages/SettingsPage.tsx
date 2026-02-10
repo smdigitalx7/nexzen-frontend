@@ -8,7 +8,10 @@ import {
   RefreshCw,
   Save,
   Database,
+  ArrowLeft,
+  Headphones,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/common/components/ui/button";
 import { useUIStore } from "@/store/uiStore";
 import { useToast } from "@/common/hooks/use-toast";
@@ -17,12 +20,13 @@ import SecurityTab from "./components/settings/SecurityTab";
 import ConfigurationTab from "./components/settings/ConfigurationTab";
 import DataManagementTab from "./components/settings/DataManagementTab";
 import AboutTab from "./components/settings/AboutTab";
+import SupportTab from "./components/settings/SupportTab";
 
 type SettingsSection =
-  | "profile"
   | "security"
   | "configuration"
   | "data"
+  | "support"
   | "about";
 
 interface SettingsMenuItem {
@@ -34,42 +38,42 @@ interface SettingsMenuItem {
 
 const settingsMenuItems: SettingsMenuItem[] = [
   {
-    id: "profile",
-    label: "Profile Settings",
-    description: "Manage your personal information and preferences",
-    icon: User,
-  },
-  {
     id: "security",
     label: "Security",
-    description: "Password, authentication, and security settings",
+    description: "Password and authentication",
     icon: Lock,
   },
   {
     id: "configuration",
     label: "Configuration",
-    description: "System configuration and settings",
+    description: "System settings and logos",
     icon: SettingsIcon,
   },
   {
     id: "data",
     label: "Data Management",
-    description: "Backup, export, and data management",
+    description: "Backup and export",
     icon: Database,
+  },
+  {
+    id: "support",
+    label: "Support",
+    description: "Help and contact info",
+    icon: Headphones,
   },
   {
     id: "about",
     label: "About",
-    description: "Application information and support",
+    description: "App info and support",
     icon: Info,
   },
 ];
 
 const SettingsPage = () => {
-  const [activeSection, setActiveSection] =
-    useState<SettingsSection>("profile");
+  const [activeSection, setActiveSection] = useState<SettingsSection>("security");
   const { toast } = useToast();
   const { resetPreferences } = useUIStore();
+  const navigate = useNavigate();
 
   const handleResetAll = () => {
     resetPreferences();
@@ -88,135 +92,100 @@ const SettingsPage = () => {
 
   const renderActiveContent = () => {
     switch (activeSection) {
-      case "profile":
-        return <ProfileSettingsTab />;
       case "security":
         return <SecurityTab />;
       case "configuration":
         return <ConfigurationTab />;
       case "data":
         return <DataManagementTab />;
+      case "support":
+        return <SupportTab />;
       case "about":
         return <AboutTab />;
       default:
-        return <ProfileSettingsTab />;
+        return <SecurityTab />;
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50"
-    >
+    <div className="min-h-screen bg-slate-50/50">
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="flex items-center justify-between mb-8"
-        >
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Settings
-            </h1>
-            <p className="text-muted-foreground mt-1.5">
-              Manage your account settings and preferences
-            </p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/")}
+              className="h-9 w-9 hover:bg-slate-100 rounded-full"
+            >
+              <ArrowLeft className="h-5 w-5 text-slate-600" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 font-outfit">
+                Settings
+              </h1>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Manage system configuration and preferences
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
               onClick={handleResetAll}
-              className="gap-2"
+              className="gap-2 h-9 text-xs"
             >
-              <RefreshCw className="h-4 w-4" />
-              Reset All
+              <RefreshCw className="h-3.5 w-3.5" />
+              Reset
             </Button>
-            <Button onClick={handleSaveChanges} className="gap-2">
-              <Save className="h-4 w-4" />
-              Save Changes
+            <Button onClick={handleSaveChanges} className="gap-2 h-9 text-xs">
+              <Save className="h-3.5 w-3.5" />
+              Save
             </Button>
           </div>
-        </motion.div>
+        </div>
 
         {/* Main Content Area */}
-        <div className="flex gap-6">
+        <div className="flex gap-8">
           {/* Sidebar Navigation */}
-          <motion.aside
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            className="w-80 flex-shrink-0"
-          >
-            <nav className="space-y-1 bg-white rounded-lg border border-blue-200 shadow-sm p-2">
-              {settingsMenuItems.map((item, index) => {
+          <aside className="w-72 flex-shrink-0">
+            <nav className="space-y-1">
+              {settingsMenuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
 
                 return (
-                  <motion.button
+                  <button
                     key={item.id}
                     onClick={() => setActiveSection(item.id)}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.2, delay: 0.3 + index * 0.05 }}
-                    className={`w-full text-left rounded-lg px-4 py-3 transition-all duration-300 ease-in-out ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 transition-colors duration-200 rounded-lg text-sm ${
                       isActive
-                        ? "bg-blue-50 border border-blue-300 text-blue-900 shadow-sm"
-                        : "text-foreground hover:bg-blue-50/50 border border-transparent hover:border-blue-200"
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
                     }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <Icon
-                        className={`h-5 w-5 mt-0.5 flex-shrink-0 transition-colors duration-200 ${
-                          isActive ? "text-blue-600" : "text-slate-600"
-                        }`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div
-                          className={`font-medium text-sm transition-colors duration-200 ${
-                            isActive ? "text-blue-900" : "text-foreground"
-                          }`}
-                        >
-                          {item.label}
-                        </div>
-                        <div
-                          className={`text-xs mt-0.5 transition-colors duration-200 ${
-                            isActive ? "text-blue-700" : "text-muted-foreground"
-                          }`}
-                        >
-                          {item.description}
-                        </div>
-                      </div>
+                    <Icon
+                      className={`h-4 w-4 shrink-0 ${
+                        isActive ? "text-blue-600" : "text-slate-400"
+                      }`}
+                    />
+                    <div className="flex flex-col items-start min-w-0">
+                      <span className="truncate">{item.label}</span>
                     </div>
-                  </motion.button>
+                  </button>
                 );
               })}
             </nav>
-          </motion.aside>
+          </aside>
 
           {/* Main Content Panel */}
-          <main className="flex-1 min-w-0">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeSection}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="bg-white rounded-lg border border-blue-200 shadow-sm"
-              >
-                {renderActiveContent()}
-              </motion.div>
-            </AnimatePresence>
+          <main className="flex-1 min-w-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            {renderActiveContent()}
           </main>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

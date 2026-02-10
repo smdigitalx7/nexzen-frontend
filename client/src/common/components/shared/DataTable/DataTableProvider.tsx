@@ -33,6 +33,7 @@ export interface DataTableProviderProps<TData> {
   
   // Selection callback
   onSelectionChange?: (rows: TData[]) => void;
+  getRowId?: (row: TData) => string | number;
 }
 
 export function DataTableProvider<TData>({
@@ -48,6 +49,7 @@ export function DataTableProvider<TData>({
   onPageChange,
   onPageSizeChange,
   onSelectionChange,
+  getRowId,
 }: DataTableProviderProps<TData>) {
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
@@ -249,6 +251,7 @@ export function DataTableProvider<TData>({
       pagination,
       pageSizeOptions,
       searchKey: searchKey as string | undefined,
+      getRowId,
     },
   };
 

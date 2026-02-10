@@ -9,7 +9,7 @@ import { useToast } from "@/common/hooks/use-toast";
 /**
  * ✅ OPTIMIZATION: Query key stabilized, supports enabled flag for tab gating
  */
-export function useSchoolEnrollmentsList(params?: SchoolEnrollmentFilterParams & { enabled?: boolean }) {
+export function useSchoolEnrollmentsList(params?: SchoolEnrollmentFilterParams & { enabled?: boolean; search?: string | null }) {
   // ✅ OPTIMIZATION: Stabilize query key
   const stableParams = useMemo(() => {
     if (!params) return undefined;

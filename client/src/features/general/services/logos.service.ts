@@ -12,7 +12,7 @@ export const LogosService = {
     formData.append("logo_type", payload.logo_type);
     formData.append("file", payload.file);
 
-    return Api.postForm<LogoFileRead>("/public/logos/upload", formData);
+    return Api.postForm<LogoFileRead>("/logos/upload", formData);
   },
 
   /**
@@ -20,7 +20,7 @@ export const LogosService = {
    * @param branchId Branch ID
    */
   getStatus(branchId: number): Promise<LogoStatusResponse> {
-    return Api.get<LogoStatusResponse>(`/public/logos/branch/${branchId}/status`);
+    return Api.get<LogoStatusResponse>(`/logos/branch/${branchId}/status`);
   },
 
   /**
@@ -28,7 +28,7 @@ export const LogosService = {
    * @param branchId Branch ID
    */
   list(branchId: number): Promise<LogoFileRead[]> {
-    return Api.get<LogoFileRead[]>(`/public/logos/branch/${branchId}/list`);
+    return Api.get<LogoFileRead[]>(`/logos/branch/${branchId}/list`);
   },
 
   /**
@@ -37,7 +37,7 @@ export const LogosService = {
    * @param logoType Logo type (LEFT or RIGHT)
    */
   delete(branchId: number, logoType: LogoType): Promise<void> {
-    return Api.delete<void>(`/public/logos/branch/${branchId}/${logoType}`);
+    return Api.delete<void>(`/logos/branch/${branchId}/${logoType}`);
   },
 };
 

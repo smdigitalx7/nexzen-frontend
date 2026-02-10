@@ -114,6 +114,7 @@ export interface DataTableProps<TData> {
   // Selection
   selectable?: boolean;
   onSelectionChange?: (rows: TData[]) => void;
+  getRowId?: (row: TData) => string | number;
   
   // Styling
   className?: string;
@@ -162,6 +163,7 @@ export interface DataTableContextValue<TData = unknown> {
     pagination: "client" | "server" | "none";
     pageSizeOptions: number[];
     searchKey?: string;
+    getRowId?: (row: TData) => string | number;
   };
 }
 

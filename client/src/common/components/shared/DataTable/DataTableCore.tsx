@@ -72,7 +72,9 @@ function DataTableCoreComponent<TData>({
     setSorting,
     selectedRows,
     setSelectedRows,
+    config,
   } = useDataTableContext<TData>();
+  const { getRowId } = config;
 
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
@@ -187,10 +189,12 @@ function DataTableCoreComponent<TData>({
   const table = useReactTable({
     data: paginatedData,
     columns: tableColumns,
+    getRowId: (row) => getRowId ? String(getRowId(row)) : undefined as any,
     state: {
       sorting: sorting as TanStackSortingState,
-      rowSelection: selectedRows.reduce((acc, row, index) => {
-        acc[index] = true;
+      rowSelection: selectedRows.reduce((acc, row) => {
+        const id = getRowId ? String(getRowId(row)) : undefined;
+        if (id !== undefined) acc[id] = true;
         return acc;
       }, {} as Record<string, boolean>),
     },
@@ -201,11 +205,26 @@ function DataTableCoreComponent<TData>({
       setSorting(newSorting.map(s => ({ id: s.id, desc: s.desc })));
     },
     onRowSelectionChange: (updater) => {
+      const currentSelection = selectedRows.reduce((acc, row) => {
+        const id = getRowId ? String(getRowId(row)) : undefined;
+        if (id !== undefined) acc[id] = true;
+        return acc;
+      }, {} as Record<string, boolean>);
+
       const newSelection = typeof updater === "function"
-        ? updater(selectedRows.reduce((acc, _, i) => ({ ...acc, [i]: true }), {}))
+        ? (updater as any)(currentSelection)
         : updater;
-      const selectedIndices = Object.keys(newSelection).filter(k => newSelection[k]);
-      const newSelectedRows = selectedIndices.map(i => paginatedData[parseInt(i)]).filter(Boolean);
+        
+      const selectedIds = Object.keys(newSelection).filter(k => newSelection[k]);
+      
+      // Map selected IDs back to data objects
+      const newSelectedRows = selectedIds.map(id => 
+        paginatedData.find(item => {
+          const itemId = getRowId ? String(getRowId(item)) : undefined;
+          return itemId === id;
+        })
+      ).filter((item): item is TData => !!item);
+      
       setSelectedRows(newSelectedRows);
     },
     getCoreRowModel: getCoreRowModel(),

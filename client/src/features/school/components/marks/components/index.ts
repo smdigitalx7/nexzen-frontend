@@ -7,4 +7,4 @@ export { StudentPerformanceSearchView } from "./StudentPerformanceSearchView";
 export { StudentReportView } from "./StudentReportView";
 export { StudentPerformanceReportPage } from "./StudentPerformanceReportPage";
 export { StudentMarksReportPage } from "./StudentMarksReportPage";
-
+export { CumulativeReportManager } from "./CumulativeReportManager";

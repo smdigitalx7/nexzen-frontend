@@ -44,7 +44,6 @@ const AcademicYearSwitcher = () => {
 
   useEffect(() => {
     if (!academicYearsData || academicYearsData.length === 0) return;
-    if (academicYears.length > 0) return;
 
     const { setAcademicYears, setAcademicYear } = useAuthStore.getState();
 
@@ -58,13 +57,17 @@ const AcademicYearSwitcher = () => {
       })
     );
 
-    setAcademicYears(transformedData);
+    // Sync if data is different or not set
+    if (JSON.stringify(transformedData) !== JSON.stringify(academicYears)) {
+      setAcademicYears(transformedData);
+    }
+
     const activeYear =
       academicYearsData.find((y: any) => y.is_active) || academicYearsData[0];
     if (!academicYear && activeYear) {
       setAcademicYear(activeYear.year_name);
     }
-  }, [academicYearsData, academicYears.length, academicYear]);
+  }, [academicYearsData, academicYears, academicYear]);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -120,11 +123,12 @@ const AcademicYearSwitcher = () => {
                     <span className="truncate" title={year.year_name}>
                       {year.year_name}
                     </span>
-                    {year.is_active && (
-                      <Badge variant="default" className="ml-auto text-xs">
-                        Active
-                      </Badge>
-                    )}
+                    <Badge 
+                      variant={year.is_active ? "success" : "secondary"} 
+                      className="ml-auto text-[10px] px-1.5 py-0 h-4 uppercase tracking-wider font-bold"
+                    >
+                      {year.is_active ? "Active" : "Inactive"}
+                    </Badge>
                   </div>
                 </DropdownMenuItem>
               ))}

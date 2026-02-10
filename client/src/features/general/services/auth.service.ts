@@ -92,4 +92,21 @@ export const AuthService = {
       purpose 
     }); // This requires auth token, so not using public flag
   },
+  
+  // Profile Updates
+  changeMobileSendOtp: (new_mobile_no: string) => {
+    return unifiedApi.post("/auth/change-mobile/send-otp", { new_mobile_no });
+  },
+  changeMobileVerify: (otp_code: string, new_mobile_no: string) => {
+    return unifiedApi.post("/auth/change-mobile/verify", { otp_code, new_mobile_no });
+  },
+  changeEmailSendOtp: (new_email: string) => {
+    return unifiedApi.post("/auth/change-email/send-otp", { new_email });
+  },
+  changeEmailVerify: (otp_code: string, new_email: string) => {
+    return unifiedApi.post("/auth/change-email/verify", { otp_code, new_email });
+  },
+  updateFullName: (full_name: string) => {
+    return unifiedApi.patch("/auth/profile/full-name", { full_name });
+  },
 };

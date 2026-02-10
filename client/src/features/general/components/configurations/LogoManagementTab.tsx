@@ -115,77 +115,58 @@ export default function LogoManagementTab() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Left Logo Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+        <Card className="border-slate-200 shadow-none">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center justify-between">
               <span>Left Logo</span>
               {logoStatus?.has_left_logo ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
               ) : (
-                <XCircle className="h-5 w-5 text-gray-400" />
+                <XCircle className="h-4 w-4 text-slate-300" />
               )}
             </CardTitle>
-            <CardDescription>Logo displayed on the left side of documents</CardDescription>
+            <CardDescription className="text-xs">
+              Displayed on the left side of documents
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {leftLogo ? (
-              <div className="space-y-3">
-                <div className="relative w-full h-32 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+              <div className="space-y-4">
+                <div className="relative w-full h-32 border border-slate-200 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center">
                   <img
-                    src={`/api/v1/public/logos/${leftLogo.logo_id}/image`}
+                    src={leftLogo.logo_data}
                     alt="Left logo preview"
                     className="max-w-full max-h-full object-contain"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                    <ImageIcon className="h-8 w-8 text-gray-400" />
-                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>
-                    <strong>File:</strong> {leftLogo.file_name}
-                  </p>
-                  <p>
-                    <strong>Size:</strong> {(leftLogo.file_size / 1024).toFixed(2)} KB
-                  </p>
-                  <p>
-                    <strong>Type:</strong> {leftLogo.content_type}
-                  </p>
+                <div className="text-[10px] text-slate-500">
+                  Uploaded: {new Date(leftLogo.created_at).toLocaleDateString()}
                 </div>
                 <Button
-                  variant="destructive"
+                  variant="ghost"
                   size="sm"
                   onClick={() => handleDelete("LEFT")}
                   disabled={deleteLogo.isPending}
-                  className="w-full"
+                  className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 h-8 text-xs"
                 >
                   {deleteLogo.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Deleting...
-                    </>
+                    <Loader2 className="h-3 w-3 mr-2 animate-spin" />
                   ) : (
-                    <>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Logo
-                    </>
+                    <Trash2 className="h-3 w-3 mr-2" />
                   )}
+                  Delete Logo
                 </Button>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                  <div className="text-center">
-                    <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No logo uploaded</p>
-                  </div>
+              <div className="w-full h-32 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center bg-slate-50/50">
+                <div className="text-center">
+                  <ImageIcon className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs text-slate-400">No logo uploaded</p>
                 </div>
               </div>
             )}
 
-            <div>
+            <div className="pt-2">
               <input
                 type="file"
                 id="left-logo-upload"
@@ -194,7 +175,6 @@ export default function LogoManagementTab() {
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null;
                   handleFileSelect("LEFT", file);
-                  // Reset input
                   e.target.value = "";
                 }}
                 disabled={uploadingType !== null}
@@ -204,101 +184,72 @@ export default function LogoManagementTab() {
                 size="sm"
                 onClick={() => document.getElementById("left-logo-upload")?.click()}
                 disabled={uploadingType !== null || uploadLogo.isPending}
-                className="w-full"
+                className="w-full h-9 text-xs"
               >
                 {uploadingType === "LEFT" ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : leftLogo ? (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Replace Logo
-                  </>
+                  <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
                 ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Logo
-                  </>
+                  <Upload className="h-3.5 w-3.5 mr-2" />
                 )}
+                {leftLogo ? "Replace Logo" : "Upload Logo"}
               </Button>
             </div>
           </CardContent>
         </Card>
 
         {/* Right Logo Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+        <Card className="border-slate-200 shadow-none">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center justify-between">
               <span>Right Logo</span>
               {logoStatus?.has_right_logo ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
               ) : (
-                <XCircle className="h-5 w-5 text-gray-400" />
+                <XCircle className="h-4 w-4 text-slate-300" />
               )}
             </CardTitle>
-            <CardDescription>Logo displayed on the right side of documents</CardDescription>
+            <CardDescription className="text-xs">
+              Displayed on the right side of documents
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {rightLogo ? (
-              <div className="space-y-3">
-                <div className="relative w-full h-32 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+              <div className="space-y-4">
+                <div className="relative w-full h-32 border border-slate-200 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center">
                   <img
-                    src={`/api/v1/public/logos/${rightLogo.logo_id}/image`}
+                    src={rightLogo.logo_data}
                     alt="Right logo preview"
                     className="max-w-full max-h-full object-contain"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                    <ImageIcon className="h-8 w-8 text-gray-400" />
-                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>
-                    <strong>File:</strong> {rightLogo.file_name}
-                  </p>
-                  <p>
-                    <strong>Size:</strong> {(rightLogo.file_size / 1024).toFixed(2)} KB
-                  </p>
-                  <p>
-                    <strong>Type:</strong> {rightLogo.content_type}
-                  </p>
+                <div className="text-[10px] text-slate-500">
+                  Uploaded: {new Date(rightLogo.created_at).toLocaleDateString()}
                 </div>
                 <Button
-                  variant="destructive"
+                  variant="ghost"
                   size="sm"
                   onClick={() => handleDelete("RIGHT")}
                   disabled={deleteLogo.isPending}
-                  className="w-full"
+                  className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 h-8 text-xs"
                 >
                   {deleteLogo.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Deleting...
-                    </>
+                    <Loader2 className="h-3 w-3 mr-2 animate-spin" />
                   ) : (
-                    <>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Logo
-                    </>
+                    <Trash2 className="h-3 w-3 mr-2" />
                   )}
+                  Delete Logo
                 </Button>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                  <div className="text-center">
-                    <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No logo uploaded</p>
-                  </div>
+              <div className="w-full h-32 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center bg-slate-50/50">
+                <div className="text-center">
+                  <ImageIcon className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs text-slate-400">No logo uploaded</p>
                 </div>
               </div>
             )}
 
-            <div>
+            <div className="pt-2">
               <input
                 type="file"
                 id="right-logo-upload"
@@ -307,7 +258,6 @@ export default function LogoManagementTab() {
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null;
                   handleFileSelect("RIGHT", file);
-                  // Reset input
                   e.target.value = "";
                 }}
                 disabled={uploadingType !== null}
@@ -317,24 +267,14 @@ export default function LogoManagementTab() {
                 size="sm"
                 onClick={() => document.getElementById("right-logo-upload")?.click()}
                 disabled={uploadingType !== null || uploadLogo.isPending}
-                className="w-full"
+                className="w-full h-9 text-xs"
               >
                 {uploadingType === "RIGHT" ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : rightLogo ? (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Replace Logo
-                  </>
+                  <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
                 ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Logo
-                  </>
+                  <Upload className="h-3.5 w-3.5 mr-2" />
                 )}
+                {rightLogo ? "Replace Logo" : "Upload Logo"}
               </Button>
             </div>
           </CardContent>

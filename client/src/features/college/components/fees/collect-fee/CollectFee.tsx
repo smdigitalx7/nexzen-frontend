@@ -103,77 +103,16 @@ export const CollectFee = ({
     removeAdmissionFromUrl();
   }, [removeAdmissionFromUrl]);
 
-  // ✅ FIX: Search student function - removed CacheUtils, using React Query cache
-  const searchStudent = useCallback(
-    async (admissionNo: string, showToast = true, forceRefresh = false) => {
-      try {
-        if (forceRefresh) {
-          setSearchResults([]);
-          // React Query will handle cache invalidation automatically
-        }
 
-        setSearchQuery(admissionNo);
-        updateUrlWithAdmission(admissionNo);
 
-        // ✅ FIX: Removed cacheOptions - React Query handles caching
-        const enrollment: CollegeEnrollmentWithStudentDetails =
-          await CollegeEnrollmentsService.getByAdmission(admissionNo);
-
-        const [tuitionBalance, transportSummary, transportExpectedPayments] =
-          await Promise.all([
-            CollegeTuitionBalancesService.getById(
-              enrollment.enrollment_id
-            ).catch(() => null),
-            CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(
-              enrollment.enrollment_id
-            ).catch(() => null),
-            CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(
-              enrollment.enrollment_id
-            ).catch(() => undefined),
-          ]);
-
-        const studentDetails: StudentFeeDetails = {
-          enrollment,
-          tuitionBalance,
-          transportExpectedPayments,
-          transportSummary,
-          // Keep legacy alias populated for `CollectFeeSearch` compatibility.
-          transportBalance: transportSummary ?? null,
-        };
-
-        setSearchResults([studentDetails]);
-
-        if (showToast) {
-          toast({
-            title: "Payment Successful",
-            description:
-              "Student fee information has been refreshed with updated balances.",
-            variant: "success",
-          });
-        }
-      } catch (error) {
-        if (showToast) {
-          toast({
-            title: "Refresh Failed",
-            description:
-              "Payment was successful but could not refresh student information. Please search again.",
-             variant: "default", // Changed from destructive to default as it's not critical if payment succeeded
-          });
-        }
-      }
-    },
-    [setSearchQuery, updateUrlWithAdmission, setSearchResults, toast]
-  );
-
-  // Auto-search on mount if admission number is in URL
+  // Auto-set admission on mount if admission number is in URL
   useEffect(() => {
-    if (!hasInitializedRef.current && admissionNoFromUrl && !searchQuery) {
+    if (!hasInitializedRef.current && admissionNoFromUrl) {
       hasInitializedRef.current = true;
       setSearchQuery(admissionNoFromUrl);
       setSelectedAdmissionNo(admissionNoFromUrl);
-      void searchStudent(admissionNoFromUrl, false);
     }
-  }, [admissionNoFromUrl, searchQuery, setSearchQuery, searchStudent]);
+  }, [admissionNoFromUrl, setSearchQuery]);
 
   const handleFormClose = useCallback(() => {
     paymentSuccessRef.current = null;

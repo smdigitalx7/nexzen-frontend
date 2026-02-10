@@ -22,13 +22,13 @@ export function useTabNavigation(defaultTab: string = "overview") {
    * Updates the URL with the tab parameter
    */
   const setActiveTab = useCallback(
-    (tab: string) => {
-      const newSearchParams = new URLSearchParams(search);
+    (tab: string, options?: { clearOtherParams?: boolean }) => {
+      const newSearchParams = options?.clearOtherParams
+        ? new URLSearchParams()
+        : new URLSearchParams(search);
       newSearchParams.set("tab", tab);
       const newSearch = newSearchParams.toString();
-      navigate(
-        `${location.pathname}${newSearch ? `?${newSearch}` : ""}`
-      );
+      navigate(`${location.pathname}${newSearch ? `?${newSearch}` : ""}`);
     },
     [navigate, search, location.pathname]
   );

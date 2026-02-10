@@ -117,15 +117,14 @@ export const CollectFee = ({
     }
   }, [setSearchQuery, setSearchResults, toast]);
 
-  // Auto-search on mount if admission number is in URL
+  // Auto-set admission on mount if admission number is in URL
   useEffect(() => {
     if (!hasInitializedRef.current && admissionNoFromUrl) {
       hasInitializedRef.current = true;
       setSearchQuery(admissionNoFromUrl);
       setSelectedAdmissionNo(admissionNoFromUrl);
-      void searchStudent(admissionNoFromUrl, false);
     }
-  }, [admissionNoFromUrl, searchQuery, setSearchQuery, searchStudent]);
+  }, [admissionNoFromUrl, setSearchQuery]);
 
   const handleFormClose = useCallback(async () => {
     paymentSuccessRef.current = null;

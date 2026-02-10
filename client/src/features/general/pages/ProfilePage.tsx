@@ -11,51 +11,69 @@ import {
   Briefcase,
   KeyRound,
   Pencil,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { Badge } from "@/common/components/ui/badge";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/common/components/ui/input-otp";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/common/hooks/use-toast";
 import { useAuthMe } from "@/features/general/hooks/useAuthMe";
-import { useUpdateUser, useUser } from "@/features/general/hooks/useUsers";
+import { useUser } from "@/features/general/hooks/useUsers";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { ResetPasswordDialog } from "@/features/general/components/ResetPasswordDialog";
 import { Avatar, AvatarFallback } from "@/common/components/ui/avatar";
+import { AuthService } from "@/features/general/services/auth.service";
 
 const ProfilePage = () => {
   const queryClient = useQueryClient();
   const { data: me, isLoading: meLoading, error: meError } = useAuthMe();
   const { toast } = useToast();
-  const updateUserMutation = useUpdateUser();
+  // removed useUpdateUser as we are using specific auth service endpoints now
+  
   const [isEditing, setIsEditing] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: "",
-    email: "",
-    mobile_no: "",
-  });
+
+  // Form States
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
+
+  // OTP States
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [mobileOtpSent, setMobileOtpSent] = useState(false);
+  const [emailOtp, setEmailOtp] = useState("");
+  const [mobileOtp, setMobileOtp] = useState("");
+  
+  // Loading States
+  const [loadingName, setLoadingName] = useState(false);
+  const [loadingEmail, setLoadingEmail] = useState(false);
+  const [loadingMobile, setLoadingMobile] = useState(false);
+
+  // Current values to check for changes
+  const [currentEmail, setCurrentEmail] = useState("");
+  const [currentMobile, setCurrentMobile] = useState("");
 
   const userId = me?.user_id ?? null;
   const { data: userData } = useUser(userId ?? 0);
-  const [currentMobileNo, setCurrentMobileNo] = useState<string>("");
 
   useEffect(() => {
-    if (me && !isEditing) {
-      setFormData({
-        full_name: me.full_name || "",
-        email: me.email || "",
-        mobile_no: currentMobileNo || userData?.mobile_no || "",
-      });
+    if (me) {
+      setFullName(me.full_name || "");
+      setEmail(me.email || "");
+      const mob = userData?.mobile_no || "";
+      setMobile(mob);
+      
+      setCurrentEmail(me.email || "");
+      setCurrentMobile(mob);
     }
-  }, [me, isEditing, currentMobileNo, userData]);
-
-  useEffect(() => {
-    if (userData?.mobile_no) {
-      setCurrentMobileNo(userData.mobile_no);
-    }
-  }, [userData]);
+  }, [me, userData]);
 
   const getRoleDisplay = (role: string) => {
     const upperRole = role?.toUpperCase() || "";
@@ -78,68 +96,115 @@ const ProfilePage = () => {
     ? [...new Set(me.roles.map((r) => getRoleDisplay(r.role)))].join(", ")
     : "";
 
-  const handleSave = async () => {
-    if (!me?.user_id) {
-      toast({
-        title: "Error",
-        description: "User information not found. Please try logging in again.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!formData.full_name.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Full name is required.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!formData.email.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Email is required.",
-        variant: "destructive",
-      });
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter a valid email address.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleUpdateName = async () => {
+    if (!fullName.trim()) return;
+    setLoadingName(true);
     try {
-      const uid = me.user_id;
-      if (Number.isNaN(uid)) throw new Error("Invalid user ID");
-
-      const updatedUser = await updateUserMutation.mutateAsync({
-        id: uid,
-        payload: {
-          full_name: formData.full_name.trim(),
-          email: formData.email.trim(),
-          mobile_no: formData.mobile_no.trim() || null,
-        },
-      });
-
-      if (updatedUser.mobile_no) setCurrentMobileNo(updatedUser.mobile_no);
+      await AuthService.updateFullName(fullName);
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-      setIsEditing(false);
-    } catch (error) {
-      console.error("Failed to update profile:", error);
+      toast({ title: "Success", description: "Full name updated successfully", variant: "success" });
+    } catch (error: any) {
+        toast({ 
+            title: "Error", 
+            description: error.response?.data?.detail || "Failed to update name", 
+            variant: "destructive" 
+        });
+    } finally {
+      setLoadingName(false);
+    }
+  };
+
+  const handleSendEmailOtp = async () => {
+    if (!email || email === currentEmail) return;
+    setLoadingEmail(true);
+    try {
+      await AuthService.changeEmailSendOtp(email);
+      setEmailOtpSent(true);
+      toast({ title: "OTP Sent", description: `OTP sent to ${email}`, variant: "success" });
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.response?.data?.detail || "Failed to send OTP", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoadingEmail(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    if (!emailOtp || emailOtp.length !== 6) return;
+    setLoadingEmail(true);
+    try {
+      await AuthService.changeEmailVerify(emailOtp, email);
+      setEmailOtpSent(false);
+      setEmailOtp("");
+      setCurrentEmail(email);
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      toast({ title: "Success", description: "Email updated successfully", variant: "success" });
+    } catch (error: any) {
+      toast({ 
+        title: "Verification Failed", 
+        description: error.response?.data?.detail || "Invalid OTP", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoadingEmail(false);
+    }
+  };
+
+  const handleSendMobileOtp = async () => {
+    if (!mobile) return;
+    setLoadingMobile(true);
+    try {
+      await AuthService.changeMobileSendOtp(mobile);
+      setMobileOtpSent(true);
+      toast({ title: "OTP Sent", description: `OTP sent to ${mobile}`, variant: "default" });
+    } catch (error: any) {
+        toast({ 
+            title: "Error", 
+            description: error.response?.data?.detail || "Failed to send OTP", 
+            variant: "destructive" 
+        });
+    } finally {
+      setLoadingMobile(false);
+    }
+  };
+
+  const handleVerifyMobileOtp = async () => {
+    if (!mobileOtp || mobileOtp.length !== 6) return;
+    setLoadingMobile(true);
+    try {
+      await AuthService.changeMobileVerify(mobileOtp, mobile);
+      setMobileOtpSent(false);
+      setMobileOtp("");
+      setCurrentMobile(mobile);
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      await queryClient.invalidateQueries({ queryKey: ["users"] }); // refetch user details for mobile
+      toast({ title: "Success", description: "Mobile number updated successfully", variant: "success" });
+    } catch (error: any) {
+        toast({ 
+            title: "Verification Failed", 
+            description: error.response?.data?.detail || "Invalid OTP", 
+            variant: "destructive" 
+        });
+    } finally {
+      setLoadingMobile(false);
     }
   };
 
   const handleCancel = () => {
-    setFormData({
-      full_name: me?.full_name || "",
-      email: me?.email || "",
-      mobile_no: currentMobileNo || userData?.mobile_no || "",
-    });
+    // Reset form
+    setFullName(me?.full_name || "");
+    setEmail(me?.email || "");
+    setMobile(currentMobile);
+    
+    // Reset OTP states
+    setEmailOtpSent(false);
+    setMobileOtpSent(false);
+    setEmailOtp("");
+    setMobileOtp("");
+    
     setIsEditing(false);
   };
 
@@ -234,66 +299,176 @@ const ProfilePage = () => {
           {/* Details: grid or edit form */}
           <div className="p-8">
             {isEditing ? (
-              <div className="max-w-xl space-y-5">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="full_name">Full name</Label>
+              <div className="max-w-xl space-y-6">
+                
+                {/* Full Name Edit */}
+                <div className="space-y-2">
+                  <Label htmlFor="full_name">Full name</Label>
+                  <div className="flex gap-3">
                     <Input
                       id="full_name"
-                      value={formData.full_name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, full_name: e.target.value })
-                      }
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       placeholder="Your full name"
-                      className="h-11 bg-background"
+                      className="h-10 bg-background"
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      placeholder="you@example.com"
-                      className="h-11 bg-background"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mobile_no">Mobile</Label>
-                    <Input
-                      id="mobile_no"
-                      type="tel"
-                      value={formData.mobile_no}
-                      onChange={(e) =>
-                        setFormData({ ...formData, mobile_no: e.target.value })
-                      }
-                      placeholder="10-digit number"
-                      className="h-11 bg-background"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Without country code
-                    </p>
+                    <Button 
+                        size="sm"
+                        onClick={handleUpdateName} 
+                        disabled={loadingName || !fullName || fullName === me.full_name}
+                        className="shrink-0"
+                    >
+                        {loadingName && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Update
+                    </Button>
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 pt-2">
+
+                {/* Email Edit */}
+                <div className="space-y-2">
+                   <div className="flex items-center justify-between">
+                        <Label htmlFor="email">Email</Label>
+                   </div>
+                   <div className="flex gap-3 items-start">
+                        <div className="grid gap-2 flex-1">
+                            <Input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="you@example.com"
+                            className="h-10 bg-background"
+                            disabled={emailOtpSent}
+                            />
+                            {emailOtpSent && (
+                                <div className="animate-in fade-in slide-in-from-top-2">
+                                    <Label htmlFor="email-otp" className="text-xs text-muted-foreground mb-1 block">
+                                        Enter OTP sent to {email}
+                                    </Label>
+                                    <InputOTP
+                                        maxLength={6}
+                                        value={emailOtp}
+                                        onChange={(val) => setEmailOtp(val)}
+                                    >
+                                      <InputOTPGroup>
+                                        <InputOTPSlot index={0} />
+                                        <InputOTPSlot index={1} />
+                                        <InputOTPSlot index={2} />
+                                        <InputOTPSlot index={3} />
+                                        <InputOTPSlot index={4} />
+                                        <InputOTPSlot index={5} />
+                                      </InputOTPGroup>
+                                    </InputOTP>
+                                    <p className="text-xs text-muted-foreground mt-2 cursor-pointer hover:text-primary underline" onClick={() => setEmailOtpSent(false)}>
+                                        Change email address?
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                         {!emailOtpSent ? (
+                            <Button 
+                                size="sm"
+                                onClick={handleSendEmailOtp}
+                                disabled={loadingEmail || !email || email === currentEmail}
+                                variant="outline"
+                                className="shrink-0"
+                            >
+                                {loadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Send OTP
+                            </Button>
+                        ) : (
+                            <Button 
+                                size="sm"
+                                onClick={handleVerifyEmailOtp}
+                                disabled={loadingEmail || emailOtp.length !== 6}
+                                className="shrink-0"
+                            >
+                                {loadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Verify
+                            </Button>
+                        )}
+                   </div>
+                </div>
+
+                {/* Mobile Edit */}
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="mobile_no">Mobile</Label>
+                    </div>
+                    
+                    <div className="flex gap-3 items-start">
+                        <div className="grid gap-2 flex-1">
+                            <Input
+                                id="mobile_no"
+                                type="tel"
+                                value={mobile}
+                                onChange={(e) => setMobile(e.target.value)}
+                                placeholder="10-digit number"
+                                className="h-10 bg-background"
+                                disabled={mobileOtpSent}
+                            />
+                            {mobileOtpSent && (
+                                <div className="animate-in fade-in slide-in-from-top-2">
+                                    <Label htmlFor="mobile-otp" className="text-xs text-muted-foreground mb-1 block">
+                                        Enter OTP sent to {mobile}
+                                    </Label>
+                                    <InputOTP
+                                        maxLength={6}
+                                        value={mobileOtp}
+                                        onChange={(val) => setMobileOtp(val)}
+                                    >
+                                      <InputOTPGroup>
+                                        <InputOTPSlot index={0} />
+                                        <InputOTPSlot index={1} />
+                                        <InputOTPSlot index={2} />
+                                        <InputOTPSlot index={3} />
+                                        <InputOTPSlot index={4} />
+                                        <InputOTPSlot index={5} />
+                                      </InputOTPGroup>
+                                    </InputOTP>
+                                     <p className="text-xs text-muted-foreground mt-2 cursor-pointer hover:text-primary underline" onClick={() => setMobileOtpSent(false)}>
+                                        Change mobile number?
+                                    </p>
+                                </div>
+                            )}
+                            {!mobileOtpSent && (
+                                <p className="text-xs text-muted-foreground">Without country code</p>
+                            )}
+                        </div>
+                        
+                        {!mobileOtpSent ? (
+                            <Button 
+                                size="sm"
+                                onClick={handleSendMobileOtp}
+                                disabled={loadingMobile || !mobile}
+                                variant="outline"
+                                className="shrink-0"
+                            >
+                                {loadingMobile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Send OTP
+                            </Button>
+                        ) : (
+                            <Button 
+                                size="sm"
+                                onClick={handleVerifyMobileOtp}
+                                disabled={loadingMobile || mobileOtp.length !== 6}
+                                className="shrink-0"
+                            >
+                                {loadingMobile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Verify
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t border-border mt-6">
                   <Button
                     variant="ghost"
                     onClick={handleCancel}
-                    disabled={updateUserMutation.isPending}
                   >
                     <X className="h-4 w-4 mr-2" />
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    disabled={updateUserMutation.isPending}
-                    className="gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    {updateUserMutation.isPending ? "Saving…" : "Save changes"}
+                    Close
                   </Button>
                 </div>
               </div>
@@ -323,7 +498,7 @@ const ProfilePage = () => {
                   </div>
                   <div className="min-w-0">
                     <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Mobile</dt>
-                    <dd className="text-sm font-medium text-foreground mt-1">{currentMobileNo || userData?.mobile_no || "—"}</dd>
+                    <dd className="text-sm font-medium text-foreground mt-1">{currentMobile || "—"}</dd>
                   </div>
                 </div>
                 <div className="flex gap-4">

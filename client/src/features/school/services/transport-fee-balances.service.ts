@@ -12,7 +12,7 @@ import type {
 } from "@/features/school/types";
 
 export const SchoolTransportFeeBalancesService = {
-  list(params: { class_id: number; page?: number; page_size?: number; section_id?: number; search?: string }) {
+  list(params: { class_id: number; page?: number; page_size?: number; section_id?: number }) {
     return Api.get<SchoolTransportPaginatedResponse>(`/school/transport-fee-balances`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
   getById(enrollment_id: number) {

@@ -9,12 +9,10 @@ export interface LogoUploadRequest {
 }
 
 export interface LogoFileRead {
-  logo_id: number;
+  logo_file_id: number;
   branch_id: number;
   logo_type: LogoType;
-  file_name: string;
-  file_size: number;
-  content_type: string;
+  logo_data: string; // Base64 string
   created_at: string;
   updated_at?: string | null;
 }

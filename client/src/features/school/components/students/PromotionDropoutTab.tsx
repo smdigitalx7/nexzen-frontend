@@ -329,6 +329,7 @@ export const PromotionDropoutTab = () => {
         columns={columns}
         loading={isLoading}
         selectable={true}
+        getRowId={(row) => row.enrollment_id}
         onSelectionChange={onSelectionChange}
         searchKey="student_name"
         searchPlaceholder="Search by admission no or student name..."

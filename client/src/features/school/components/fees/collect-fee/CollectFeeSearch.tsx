@@ -41,7 +41,7 @@ export const CollectFeeSearch = ({
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [suggestions, setSuggestions] = useState<Array<{ admission_no: string; student_name: string; enrollment_id: number }>>([]);
+  const [suggestions, setSuggestions] = useState<Array<{ enrollment: SchoolEnrollmentWithStudentDetails }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -168,6 +168,12 @@ export const CollectFeeSearch = ({
     }
   }, [handleSearch]);
 
+  const matchesAdmission = useCallback((query: string) => {
+    const q = query.toLowerCase();
+    // Simple heuristic: if it contains digits or starts with common prefix
+    return /[0-9]/.test(q) || q.startsWith('nzn');
+  }, []);
+
   // Fetch suggestions as user types
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -181,7 +187,7 @@ export const CollectFeeSearch = ({
       try {
         const query = debouncedSearchQuery.trim();
         
-        // If class_id is selected, use list endpoint with search filter
+        // Try exact match by name or admission number using list endpoint if class is selected
         if (selectedClassId && query.length >= 2) {
           try {
             const response = await EnrollmentsService.list({
@@ -195,36 +201,15 @@ export const CollectFeeSearch = ({
             if (response?.enrollments && response.enrollments.length > 0) {
               const list = response.enrollments;
               const allSuggestions = list
-                .filter((e: { admission_no?: string; student_name?: string }) => {
-                  const matchesAdmission = e.admission_no?.toLowerCase().includes(query.toLowerCase());
-                  const matchesName = e.student_name?.toLowerCase().includes(query.toLowerCase());
-                  return matchesAdmission || matchesName;
-                })
                 .slice(0, 10)
-                .map((e: { admission_no: string; student_name: string; enrollment_id: number }) => ({
-                  admission_no: e.admission_no,
-                  student_name: e.student_name,
-                  enrollment_id: e.enrollment_id,
+                .map((e: SchoolEnrollmentWithStudentDetails) => ({
+                  enrollment: e
                 }));
               setSuggestions(allSuggestions);
               setShowSuggestions(true);
-              return;
+            } else {
+              setSuggestions([]);
             }
-          } catch {
-            // Fall through to try exact match
-          }
-        }
-        
-        // Try exact match by admission number (works for any length >= 3)
-        if (query.length >= 3) {
-          try {
-            const enrollment = await EnrollmentsService.getByAdmission(query);
-            setSuggestions([{
-              admission_no: enrollment.admission_no,
-              student_name: enrollment.student_name,
-              enrollment_id: enrollment.enrollment_id,
-            }]);
-            setShowSuggestions(true);
           } catch {
             setSuggestions([]);
           }
@@ -261,12 +246,40 @@ export const CollectFeeSearch = ({
   }, []);
 
   // Handle suggestion selection
-  const handleSuggestionSelect = useCallback((suggestion: { admission_no: string; student_name: string; enrollment_id: number }) => {
-    setSearchQuery(suggestion.admission_no);
+  const handleSuggestionSelect = useCallback(async (suggestion: { enrollment: SchoolEnrollmentWithStudentDetails }) => {
+    const e = suggestion.enrollment;
+    
+    // Set query to what makes sense (if it was an admission search, set to admission, else name)
+    const isAdmission = matchesAdmission(searchQuery);
+    setSearchQuery(isAdmission ? e.admission_no : e.student_name);
     setShowSuggestions(false);
-    // Trigger search automatically when suggestion is selected
-    void handleSearch(suggestion.admission_no);
-  }, [setSearchQuery, handleSearch]);
+    
+    // Proceed directly: Fetch fee balances for THIS enrollment without another search list API call
+    setIsSearching(true);
+    try {
+      const [tuitionBalance, transportBalance] = await Promise.all([
+        SchoolTuitionFeeBalancesService.getById(e.enrollment_id).catch(() => null),
+        SchoolTransportFeeBalancesService.getById(e.enrollment_id).catch(() => null),
+      ]);
+
+      const details: StudentFeeDetails = {
+        enrollment: e,
+        tuitionBalance,
+        transportBalance,
+      };
+
+      setSearchResults([details]);
+    } catch (error) {
+      console.error("Balance fetch error:", error);
+      toast({
+        title: "Error",
+        description: "Could not fetch fee details.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  }, [searchQuery, matchesAdmission, setSearchQuery, setSearchResults, toast]);
 
   const getTotalOutstanding = useCallback(
     (studentDetails: StudentFeeDetails) => {
@@ -371,22 +384,30 @@ export const CollectFeeSearch = ({
                       <Loader.Data message="Searching..." />
                     </div>
                   )}
-                  {!isLoadingSuggestions && suggestions.length > 0 && suggestions.map((s, i) => (
+                  {!isLoadingSuggestions && suggestions.length > 0 && suggestions.map((s, i) => {
+                    const e = s.enrollment;
+                    const isAdmission = matchesAdmission(searchQuery);
+                    return (
                       <button
-                        key={`${s.enrollment_id}-${i}`}
+                        key={`${e.enrollment_id}-${i}`}
                         type="button"
-                        onClick={() => handleSuggestionSelect(s)}
+                        onClick={() => void handleSuggestionSelect(s)}
                         className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b last:border-0 border-gray-50 dark:border-slate-700"
                       >
                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
                           <User className="h-4 w-4" />
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900 dark:text-gray-100">{s.student_name}</div>
-                          <div className="text-xs text-muted-foreground font-mono">{s.admission_no}</div>
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                            {isAdmission ? e.admission_no : e.student_name}
+                          </div>
+                          <div className="text-xs text-muted-foreground font-mono">
+                            {isAdmission ? e.student_name : e.admission_no}
+                          </div>
                         </div>
                       </button>
-                    ))}
+                    );
+                  })}
                 </div>
               )}
               <div className="mt-4 flex justify-end">
@@ -416,26 +437,27 @@ export const CollectFeeSearch = ({
               const sectionLabel = (details.enrollment as any).section_name
                 ? ` / ${(details.enrollment as any).section_name}`
                 : "";
-              return (
-                <div
-                  key={details.enrollment.admission_no || i}
-                  className="bg-white dark:bg-slate-900 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 overflow-hidden hover:shadow-lg transition-shadow"
-                >
-                  <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-16 w-16 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-2xl border-4 border-white dark:border-slate-800 shadow-sm">
-                        {details.enrollment.student_name.charAt(0)}
-                      </div>
-                      <div className="text-center sm:text-left">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                          {details.enrollment.student_name}
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {details.enrollment.admission_no} • {classLabel}
-                          {sectionLabel}
-                        </p>
-                      </div>
-                    </div>
+                      const isAdmissionHighlight = matchesAdmission(searchQuery);
+                      return (
+                        <div
+                          key={details.enrollment.admission_no || i}
+                          className="bg-white dark:bg-slate-900 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 overflow-hidden hover:shadow-lg transition-shadow"
+                        >
+                          <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+                            <div className="flex items-center gap-4">
+                              <div className="h-16 w-16 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-2xl border-4 border-white dark:border-slate-800 shadow-sm">
+                                {details.enrollment.student_name.charAt(0)}
+                              </div>
+                              <div className="text-center sm:text-left">
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                                  {isAdmissionHighlight ? details.enrollment.admission_no : details.enrollment.student_name}
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  {isAdmissionHighlight ? details.enrollment.student_name : details.enrollment.admission_no} • {classLabel}
+                                  {sectionLabel}
+                                </p>
+                              </div>
+                            </div>
                     <div className="flex items-center gap-6">
                       <div className="text-center sm:text-right">
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import React, { useMemo, memo, useCallback } from "react";
+import React, { useMemo, memo, useCallback, useEffect, useState } from "react";
 import { CreditCard, Building2, Truck, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/common/components/shared";
@@ -114,12 +114,18 @@ const FeesManagementComponent = () => {
     enabled: isTransportTabActive,
   });
   
-  // Stats section visibility (header button + right-edge tag both control this)
-  const [statsOpen, setStatsOpen] = React.useState(true);
-
   // State for collect fee search persistence across tab switches
-  const [collectFeeSearchResults, setCollectFeeSearchResults] = React.useState<any[]>([]);
-  const [collectFeeSearchQuery, setCollectFeeSearchQuery] = React.useState("");
+  const [collectFeeSearchResults, setCollectFeeSearchResults] = useState<any[]>([]);
+  const [collectFeeSearchQuery, setCollectFeeSearchQuery] = useState("");
+
+  // Stats section visibility (header button + right-edge tag both control this)
+  const [statsOpen, setStatsOpen] = useState(true);
+
+  // ✅ RESET: Reset search state when branch changes or tab changes
+  useEffect(() => {
+    setCollectFeeSearchResults([]);
+    setCollectFeeSearchQuery("");
+  }, [currentBranch?.branch_id, activeTab]);
 
   // Memoized data transformation
   const filteredStudentBalances = useMemo(() => {
@@ -240,7 +246,7 @@ const FeesManagementComponent = () => {
       <TabSwitcher
         tabs={tabsConfig}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => setActiveTab(tab, { clearOtherParams: true })}
       />
     </div>
   );

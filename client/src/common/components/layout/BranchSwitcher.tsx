@@ -23,26 +23,11 @@ const BranchSwitcher = () => {
   const handleBranchSwitch = useCallback(
     async (branch: Branch) => {
       try {
-        const currentUrl = window.location.pathname;
-        const currentBranchType = currentBranch?.branch_type || "COLLEGE";
-        const targetBranchType = branch.branch_type;
-        const equivalentUrl = getEquivalentUrl(
-          currentUrl,
-          currentBranchType,
-          targetBranchType
-        );
-
         await switchBranch(branch);
         setOpen(false);
 
-        // Total refresh so all API calls use new X-Branch-ID / X-Branch-Type cookies
-        const fullUrl =
-          equivalentUrl + (window.location.search || "");
-        if (window.location.pathname !== equivalentUrl) {
-          window.location.href = fullUrl;
-        } else {
-          window.location.reload();
-        }
+        // Total refresh: Navigate to root and clear search parameters to ensure a clean state for the new branch
+        window.location.href = "/";
       } catch {
         // Error toast shown by switchBranch; keep dropdown open so user can retry
       }

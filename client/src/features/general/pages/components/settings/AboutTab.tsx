@@ -1,5 +1,4 @@
 import { Info, FileText, Headphones, Bug, Tag, Mail, Phone } from "lucide-react";
-import { Button } from "@/common/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,11 +8,11 @@ import {
 } from "@/common/components/ui/dialog";
 import { useState } from "react";
 import { Separator } from "@/common/components/ui/separator";
+import IssueReportDialog from "../../../components/Support/IssueReportDialog";
 
 const AboutTab = () => {
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
-  const [isPrivacyPolicyDialogOpen, setIsPrivacyPolicyDialogOpen] =
-    useState(false);
+  const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
 
   return (
     <div className="p-8">
@@ -97,13 +96,7 @@ const AboutTab = () => {
             </button>
 
             <button
-              onClick={() => {
-                window.open(
-                  "https://www.jotform.com/form/253145100074039",
-                  "_blank",
-                  "noopener,noreferrer"
-                );
-              }}
+              onClick={() => setIsIssueDialogOpen(true)}
               className="group p-6 bg-white border border-slate-200 rounded-lg hover:shadow-md hover:border-primary/50 transition-all text-left"
             >
               <div className="flex flex-col space-y-4">
@@ -206,9 +199,14 @@ const AboutTab = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Issue Report Dialog */}
+      <IssueReportDialog 
+        isOpen={isIssueDialogOpen} 
+        onClose={() => setIsIssueDialogOpen(false)} 
+      />
     </div>
   );
 };
 
 export default AboutTab;
-

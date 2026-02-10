@@ -1,9 +1,8 @@
 import { motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { CreditCard, Truck } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/common/components/shared";
-import type { TabItem } from "@/common/components/shared/TabSwitcher";
 import { useCollegeFeesManagement, useCollegeTuitionFeeBalancesDashboard } from "@/features/college/hooks";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
@@ -19,8 +18,6 @@ export const FeesManagement = () => {
   // State for collect fee search
   const [searchResults, setSearchResults] = useState<StudentFeeDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  // Dashboard stats hooks
-  const { data: tuitionDashboardStats, isLoading: tuitionDashboardLoading } = useCollegeTuitionFeeBalancesDashboard();
   
   const {
     activeTab,
@@ -28,6 +25,14 @@ export const FeesManagement = () => {
     tuitionBalances,
   } = useCollegeFeesManagement();
 
+  // Dashboard stats hooks
+  const { data: tuitionDashboardStats, isLoading: tuitionDashboardLoading } = useCollegeTuitionFeeBalancesDashboard();
+
+  // ✅ RESET: Reset search state when branch changes or tab changes
+  useEffect(() => {
+    setSearchResults([]);
+    setSearchQuery("");
+  }, [currentBranch?.branch_id, activeTab]);
 
   // Build rows for "Collect Fees" from tuition balances
   const filteredStudentBalances = useMemo(() => {
@@ -55,11 +60,6 @@ export const FeesManagement = () => {
       };
     });
   }, [tuitionBalances]);
-
-  const exportBalancesCSV = () => {
-    // Placeholder export; integrate real export as needed
-    void filteredStudentBalances;
-  };
 
   return (
     <div className="space-y-6 p-6">
@@ -123,9 +123,8 @@ export const FeesManagement = () => {
           },
         ]}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => setActiveTab(tab, { clearOtherParams: true })}
       />
-
     </div>
   );
 };

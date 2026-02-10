@@ -326,6 +326,7 @@ export const PromotionDropoutTab = () => {
         searchPlaceholder="Search by admission no or student name..."
         showSearch={false}
         selectable={true}
+        getRowId={(row) => row.enrollment_id}
         onSelectionChange={handleSelectionChange}
         className="border shadow-sm rounded-xl overflow-hidden"
         toolbarLeftContent={

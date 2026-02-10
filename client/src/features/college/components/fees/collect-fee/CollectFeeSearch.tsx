@@ -27,7 +27,7 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [suggestions, setSuggestions] = useState<Array<{ admission_no: string; student_name: string; enrollment_id: number }>>([]);
+  const [suggestions, setSuggestions] = useState<Array<{ enrollment: any }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -164,6 +164,11 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
     }
   }, [handleSearch]);
 
+  const matchesAdmission = useCallback((query: string) => {
+    const q = query.toLowerCase();
+    return /[0-9]/.test(q) || q.startsWith('nzn');
+  }, []);
+
   // Fetch suggestions as user types
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -177,7 +182,7 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
       try {
         const query = debouncedSearchQuery.trim();
 
-        // If class_id is selected, use list endpoint with search filter
+        // If class and group are selected, use list endpoint with search filter
         if (selectedClassId && selectedGroupId && query.length >= 2) {
             const response = await CollegeEnrollmentsService.list({
               class_id: selectedClassId,
@@ -190,11 +195,6 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
             if (response?.enrollments && response.enrollments.length > 0) {
               const list = response.enrollments;
               const allSuggestions = (Array.isArray(list) ? list : [])
-                .filter((e: any) => {
-                  const matchesAdmission = e.admission_no?.toLowerCase().includes(query.toLowerCase());
-                  const matchesName = e.student_name?.toLowerCase().includes(query.toLowerCase());
-                  return matchesAdmission || matchesName;
-                })
                 .slice(0, 5)
                 .map((e: any) => ({
                   admission_no: e.admission_no,
@@ -203,19 +203,9 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
                 }));
               setSuggestions(allSuggestions);
               setShowSuggestions(true);
-              return;
+            } else {
+              setSuggestions([]);
             }
-        }
-
-        // Try exact match by admission number (works for any length >= 3)
-        if (query.length >= 3) {
-            const enrollment = await CollegeEnrollmentsService.getByAdmission(query);
-            setSuggestions([{
-              admission_no: enrollment.admission_no,
-              student_name: enrollment.student_name,
-              enrollment_id: enrollment.enrollment_id,
-            }]);
-            setShowSuggestions(true);
         } else {
           setSuggestions([]);
         }
@@ -249,11 +239,52 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
   }, []);
 
   // Handle suggestion selection
-  const handleSuggestionSelect = useCallback((suggestion: { admission_no: string; student_name: string; enrollment_id: number }) => {
-    setSearchQuery(suggestion.admission_no);
+  const handleSuggestionSelect = useCallback(async (suggestion: { enrollment: any }) => {
+    const e = suggestion.enrollment;
+    
+    // Set query based on what was typed
+    const isAdmission = matchesAdmission(searchQuery);
+    setSearchQuery(isAdmission ? e.admission_no : e.student_name);
     setShowSuggestions(false);
-    void handleSearch(suggestion.admission_no);
-  }, [setSearchQuery, handleSearch]);
+    
+    setIsSearching(true);
+    try {
+      const [
+        tuitionBalance,
+        transportSummary,
+        transportExpectedPayments,
+      ] = await Promise.all([
+        CollegeTuitionBalancesService.getById(
+          e.enrollment_id,
+        ).catch(() => null),
+        CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(
+          e.enrollment_id,
+        ).catch(() => null),
+        CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(
+          e.enrollment_id,
+        ).catch(() => undefined),
+      ]);
+
+      const details: StudentFeeDetails = {
+        enrollment: e,
+        tuitionBalance,
+        transportSummary,
+        transportExpectedPayments,
+        transportBalance: transportSummary ?? null,
+      };
+
+      setSearchResults([details]);
+    } catch (error) {
+      console.error("Balance fetch error:", error);
+      toast({
+        title: "Error",
+        description: "Could not fetch fee details.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  }, [searchQuery, matchesAdmission, setSearchQuery, setSearchResults, toast]);
 
   const getTotalOutstanding = useCallback(
     (studentDetails: StudentFeeDetails) => {
@@ -334,21 +365,29 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
                 />
                  {showSuggestions && suggestions.length > 0 && (
                      <div ref={suggestionsRef} className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden ring-1 ring-black/5">
-                        {suggestions.map((s, i) => (
-                           <button
-                              key={i}
-                              onClick={() => handleSuggestionSelect(s)}
-                              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors border-b last:border-0 border-gray-50"
-                           >
-                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
-                                  <User className="h-4 w-4" />
-                              </div>
-                              <div>
-                                  <div className="font-medium text-gray-900">{s.student_name}</div>
-                                  <div className="text-xs text-muted-foreground font-mono">{s.admission_no}</div>
-                              </div>
-                           </button>
-                        ))}
+                        {suggestions.map((s, i) => {
+                           const e = s.enrollment;
+                           const isAdmission = matchesAdmission(searchQuery);
+                           return (
+                             <button
+                                key={i}
+                                onClick={() => void handleSuggestionSelect(s)}
+                                className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors border-b last:border-0 border-gray-50"
+                             >
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+                                    <User className="h-4 w-4" />
+                                </div>
+                                <div>
+                                    <div className="font-medium text-gray-900">
+                                      {isAdmission ? e.admission_no : e.student_name}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground font-mono">
+                                      {isAdmission ? e.student_name : e.admission_no}
+                                    </div>
+                                </div>
+                             </button>
+                           );
+                        })}
                      </div>
                  )}
                  <div className="mt-4 flex justify-end">
@@ -363,20 +402,25 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
         {/* Result Card */}
         {searchResults.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-             {searchResults.map((details, i) => {
-                 const total = getTotalOutstanding(details);
-                 return (
-                     <div key={i} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow">
-                          <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
-                              <div className="flex items-center gap-4">
-                                  <div className="h-16 w-16 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-2xl border-4 border-white shadow-sm">
-                                      {details.enrollment.student_name.charAt(0)}
-                                  </div>
-                                  <div className="text-center sm:text-left">
-                                      <h3 className="text-xl font-bold text-gray-900">{details.enrollment.student_name}</h3>
-                                      <p className="text-sm text-gray-500">{details.enrollment.admission_no} • {details.enrollment.class_name}</p>
-                                  </div>
-                              </div>
+              {searchResults.map((details, i) => {
+                  const total = getTotalOutstanding(details);
+                  const isAdmissionHighlight = matchesAdmission(searchQuery);
+                  return (
+                      <div key={i} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow">
+                           <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+                               <div className="flex items-center gap-4">
+                                   <div className="h-16 w-16 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-2xl border-4 border-white shadow-sm">
+                                       {details.enrollment.student_name.charAt(0)}
+                                   </div>
+                                   <div className="text-center sm:text-left">
+                                       <h3 className="text-xl font-bold text-gray-900">
+                                         {isAdmissionHighlight ? details.enrollment.admission_no : details.enrollment.student_name}
+                                       </h3>
+                                       <p className="text-sm text-gray-500">
+                                         {isAdmissionHighlight ? details.enrollment.student_name : details.enrollment.admission_no} • {details.enrollment.class_name}
+                                       </p>
+                                   </div>
+                               </div>
                               
                               <div className="flex items-center gap-6">
                                   <div className="text-center sm:text-right">
