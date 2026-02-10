@@ -15,8 +15,8 @@ interface AddClassDialogProps {
   onClose: () => void;
   onSubmit: () => void;
   isLoading: boolean;
-  classData: { class_name: string };
-  setClassData: (data: { class_name: string }) => void;
+  classData: { class_name: string; class_order: number };
+  setClassData: (data: { class_name: string; class_order: number }) => void;
 }
 
 export const AddClassDialog = ({

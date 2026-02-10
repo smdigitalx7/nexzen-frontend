@@ -1,6 +1,7 @@
 import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { User, Wallet, Eye } from "lucide-react";
+import { User, Wallet, Eye, Search } from "lucide-react";
+import { Input } from "@/common/components/ui/input";
 import { Badge } from "@/common/components/ui/badge";
 import { formatCurrency } from "@/common/utils";
 import { ColumnDef } from "@tanstack/react-table";
@@ -39,6 +40,15 @@ interface StudentFeeBalancesTableProps {
   showHeader?: boolean;
   loading?: boolean;
   readOnly?: boolean; // If true, hides edit and delete actions
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  // Pagination props (if needed for college tables using server-side pagination)
+  pagination?: "client" | "server" | "none";
+  totalCount?: number;
+  currentPage?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }
 
 const getStatusColor = (status: string) => {
@@ -61,6 +71,14 @@ export const StudentFeeBalancesTable = ({
   onBulkCreate,
   title = "Student Fee Balances",
   loading = false,
+  searchValue,
+  onSearchChange,
+  pagination = "client",
+  totalCount,
+  currentPage,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
 }: StudentFeeBalancesTableProps) => {
   const [selectedStudent, setSelectedStudent] = useState<StudentFeeBalance | null>(null);
   const [concessionModalOpen, setConcessionModalOpen] = useState(false);
@@ -195,6 +213,26 @@ export const StudentFeeBalancesTable = ({
         onAdd={onBulkCreate}
         addButtonText="Bulk Create"
         export={{ enabled: true, filename: 'fee_balances' }}
+        pagination={pagination}
+        totalCount={totalCount}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+        showSearch={!onSearchChange}
+        toolbarLeftContent={
+          onSearchChange && (
+            <div className="w-full sm:flex-1 min-w-[200px] max-w-sm">
+              <Input
+                placeholder="Search by student name or admission no..."
+                value={searchValue || ""}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="h-9 w-full"
+                leftIcon={<Search className="h-4 w-4 text-muted-foreground" />}
+              />
+            </div>
+          )
+        }
       />
 
       <ConcessionUpdateModal

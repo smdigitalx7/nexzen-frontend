@@ -8,12 +8,12 @@ import { batchInvalidateQueries } from "@/common/hooks/useGlobalRefetch";
 import { SCHOOL_INVALIDATION_MAPS, resolveInvalidationKeys } from "@/common/hooks/invalidation-maps";
 
 // Tuition
-export function useSchoolTuitionBalancesList(params?: { page?: number; page_size?: number; class_id?: number; section_id?: number }) {
+export function useSchoolTuitionBalancesList(params?: { page?: number; page_size?: number; class_id?: number; section_id?: number; search?: string }) {
   return useQuery({
     queryKey: schoolKeys.tuition.list(params as Record<string, unknown> | undefined),
     queryFn: () =>
       SchoolTuitionFeeBalancesService.list(
-        params as { class_id: number; page?: number; page_size?: number; section_id?: number }
+        params as { class_id: number; page?: number; page_size?: number; section_id?: number; search?: string }
       ),
     enabled: !!params?.class_id && params.class_id > 0,
   });
@@ -171,12 +171,12 @@ export function useUpdateSchoolTuitionConcession(enrollmentId: number) {
 }
 
 // Transport
-export function useSchoolTransportBalancesList(params?: { page?: number; page_size?: number; class_id?: number; section_id?: number }) {
+export function useSchoolTransportBalancesList(params?: { page?: number; page_size?: number; class_id?: number; section_id?: number; search?: string }) {
   return useQuery({
     queryKey: schoolKeys.transport.list(params as Record<string, unknown> | undefined),
     queryFn: () =>
       SchoolTransportFeeBalancesService.list(
-        params as { class_id: number; page?: number; page_size?: number; section_id?: number }
+        params as { class_id: number; page?: number; page_size?: number; section_id?: number; search?: string }
       ),
     enabled: !!params?.class_id && params.class_id > 0,
   });

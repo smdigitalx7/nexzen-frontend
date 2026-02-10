@@ -3,8 +3,9 @@ import { motion } from "framer-motion";
 import { Label } from "@/common/components/ui/label";
 import { useSchoolClasses, useSchoolTransportBalancesList, useSchoolTransportBalance, useUpdateSchoolTransportConcession } from "@/features/school/hooks";
 import { ConcessionUpdateModal } from "@/common/components/shared/ConcessionUpdateModal";
-import { Wallet, User, FileText, Calendar } from "lucide-react";
+import { Wallet, User, FileText, Calendar, Search } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
+import { Input } from "@/common/components/ui/input";
 import { SchoolClassDropdown, SchoolSectionDropdown } from "@/common/components/shared/Dropdowns";
 import type { SchoolTransportFeeBalanceListRead, SchoolTransportFeeBalanceFullRead } from "@/features/school/types";
 import {
@@ -34,6 +35,15 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
   const [balanceSection, setBalanceSection] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput || undefined);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     if (!balanceClass && classes.length > 0) {
@@ -60,13 +70,14 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
     page, 
     page_size: pageSize,
     section_id: balanceSection ?? undefined,
+    search: searchQuery,
   });
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
 
-  // Reset to first page when class or section changes
+  // Reset to first page when class, section or search changes
   useEffect(() => {
     setPage(1);
-  }, [classIdNum, balanceSection]);
+  }, [classIdNum, balanceSection, searchQuery]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const { data: selectedBalance } = useSchoolTransportBalance(selectedBalanceId);
   
@@ -101,6 +112,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
         transport_paid: paidTotal > 0,
         last_payment_date: new Date().toISOString(),
         status: outstanding <= 0 ? 'PAID' : paidTotal > 0 ? 'PARTIAL' : 'OUTSTANDING',
+        concession_amount: 0,
       };
     });
   }, [transportResp]);
@@ -171,6 +183,8 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
             setPageSize(size);
             setPage(1);
           }}
+          searchValue={searchInput}
+          onSearchChange={setSearchInput}
         />
       )}
 

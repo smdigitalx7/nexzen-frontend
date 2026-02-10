@@ -1,7 +1,8 @@
 import { useMemo, memo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Eye, Download, User, Edit, Trash2 } from "lucide-react";
+import { Eye, Download, User, Edit, Trash2, Search } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
+import { Input } from "@/common/components/ui/input";
 import { Badge } from "@/common/components/ui/badge";
 import { formatCurrency } from "@/common/utils";
 import { ColumnDef } from "@tanstack/react-table";
@@ -55,6 +56,8 @@ interface StudentFeeBalancesTableProps {
   pageSize?: number;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
 }
 
 // Status color mapping - moved outside component for better performance
@@ -126,6 +129,8 @@ export const StudentFeeBalancesTable = ({
   pageSize,
   onPageChange,
   onPageSizeChange,
+  searchValue,
+  onSearchChange,
 }: StudentFeeBalancesTableProps) => {
   const [selectedStudent, setSelectedStudent] = useState<StudentFeeBalance | null>(null);
   const [concessionModalOpen, setConcessionModalOpen] = useState(false);
@@ -230,6 +235,20 @@ export const StudentFeeBalancesTable = ({
         pageSize={pageSize}
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
+        showSearch={!onSearchChange}
+        toolbarLeftContent={
+          onSearchChange && (
+            <div className="w-full sm:flex-1 min-w-[200px] max-w-sm">
+              <Input
+                placeholder="Search by student name or admission no..."
+                value={searchValue || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
+                className="h-9 w-full"
+                leftIcon={<Search className="h-4 w-4 text-muted-foreground" />}
+              />
+            </div>
+          )
+        }
       />
 
       {/* Summary Cards */}

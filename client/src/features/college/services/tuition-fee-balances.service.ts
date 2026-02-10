@@ -8,6 +8,7 @@ export interface CollegeTuitionBalancesListParams {
   pageSize?: number;
   admission_no?: string;
   course_id?: number;
+  search?: string;
 }
 
 export const CollegeTuitionBalancesService = {

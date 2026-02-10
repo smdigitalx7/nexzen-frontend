@@ -155,6 +155,7 @@ const initialClassForm = {
   class_name: "",
   book_fee: 0,
   tuition_fee: 0,
+  class_order: 1,
 };
 
 export const ClassesTab = memo(
@@ -233,6 +234,15 @@ export const ClassesTab = memo(
           return false;
         }
 
+        if (!form.class_order || form.class_order < 1 || !Number.isInteger(form.class_order)) {
+          toast({
+            title: "Error",
+            description: "Class order must be an integer greater than or equal to 1",
+            variant: "destructive",
+          });
+          return false;
+        }
+
         return true;
       },
       [toast]
@@ -247,6 +257,7 @@ export const ClassesTab = memo(
           class_name: newClass.class_name.trim(),
           book_fee: newClass.book_fee,
           tuition_fee: newClass.tuition_fee,
+          class_order: newClass.class_order,
         });
 
         setNewClass(initialClassForm);
@@ -264,6 +275,7 @@ export const ClassesTab = memo(
           class_name: editClass.class_name.trim(),
           book_fee: editClass.book_fee,
           tuition_fee: editClass.tuition_fee,
+          class_order: editClass.class_order,
         });
 
         setEditClass(initialClassForm);
@@ -296,6 +308,7 @@ export const ClassesTab = memo(
         class_name: classItem.class_name,
         book_fee: classItem.book_fee,
         tuition_fee: classItem.tuition_fee,
+        class_order: classItem.class_order,
       });
       setIsEditClassOpen(true);
     }, []);
@@ -402,6 +415,13 @@ export const ClassesTab = memo(
             const subjects = row.original.subjects;
             return <ClassSubjectsCell subjects={subjects} />;
           },
+        },
+        {
+          id: "class_order",
+          header: "Order",
+          cell: ({ row }: { row: { original: SchoolClassRead } }) => (
+            <span className="font-medium">{row.original.class_order}</span>
+          ),
         },
       ],
       []
@@ -572,6 +592,23 @@ export const ClassesTab = memo(
                 placeholder="Enter tuition fee"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="class_order">Class Order</Label>
+              <Input
+                id="class_order"
+                type="number"
+                min="1"
+                step="1"
+                value={newClass.class_order}
+                onChange={(e) =>
+                  setNewClass((prev) => ({
+                    ...prev,
+                    class_order: parseInt(e.target.value) || 0,
+                  }))
+                }
+                placeholder="Enter class order (e.g., 1, 2, 3)"
+              />
+            </div>
           </div>
         </FormDialog>
 
@@ -634,6 +671,23 @@ export const ClassesTab = memo(
                   }))
                 }
                 placeholder="Enter tuition fee"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit_class_order">Class Order</Label>
+              <Input
+                id="edit_class_order"
+                type="number"
+                min="1"
+                step="1"
+                value={editClass.class_order}
+                onChange={(e) =>
+                  setEditClass((prev) => ({
+                    ...prev,
+                    class_order: parseInt(e.target.value) || 0,
+                  }))
+                }
+                placeholder="Enter class order"
               />
             </div>
           </div>

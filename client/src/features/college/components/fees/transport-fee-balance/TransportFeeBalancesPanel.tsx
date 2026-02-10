@@ -10,7 +10,8 @@ import {
 } from "@/common/components/ui/sheet";
 import { Separator } from "@/common/components/ui/separator";
 import { Badge } from "@/common/components/ui/badge";
-import { User, Wallet, Calendar } from "lucide-react";
+import { User, Wallet, Calendar, Search } from "lucide-react";
+import { Input } from "@/common/components/ui/input";
 import { useCollegeStudentTransportPaymentSummary, useCollegeStudentTransportPaymentSummaryByEnrollmentId } from "@/features/college/hooks";
 import { useCollegeClasses, useCollegeGroups } from "@/features/college/hooks/use-college-dropdowns";
 import type { 
@@ -84,6 +85,15 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
   const groups = groupsData?.items || [];
   
   const [paymentStatus, setPaymentStatus] = useState<"all" | PaymentStatus>("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput || undefined);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     if (balanceClass) {
@@ -112,8 +122,11 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
     if (paymentStatus !== "all") {
       params.payment_status = paymentStatus;
     }
+    if (searchQuery) {
+      params.search = searchQuery;
+    }
     return params;
-  }, [paymentStatus, balanceClass, balanceGroup]);
+  }, [paymentStatus, balanceClass, balanceGroup, searchQuery]);
 
   const { data: transportSummaryData, isLoading } = useCollegeStudentTransportPaymentSummary(summaryParams);
 
@@ -339,10 +352,21 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
         columns={columns}
         actions={actions}
         title="Transport Fee Balances"
-        searchKey="student_name"
         searchPlaceholder="Search students..."
         loading={isLoading}
         export={{ enabled: true, filename: 'transport_fee_balances' }}
+        showSearch={false}
+        toolbarLeftContent={
+          <div className="w-full sm:flex-1 min-w-[200px] max-w-sm">
+            <Input
+              placeholder="Search by student name or admission no..."
+              value={searchInput}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
+              className="h-9 w-full"
+              leftIcon={<Search className="h-4 w-4 text-muted-foreground" />}
+            />
+          </div>
+        }
       />
 
       {/* Details: right-side sheet (same as school) */}

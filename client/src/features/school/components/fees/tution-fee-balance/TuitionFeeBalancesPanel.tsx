@@ -21,8 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/common/components/ui/table";
-import { User, BookOpen, Wallet, Calendar, FileText } from "lucide-react";
+import { User, BookOpen, Wallet, Calendar, FileText, Search } from "lucide-react";
 import { formatCurrency } from "@/common/utils";
+import { Input } from "@/common/components/ui/input";
 
 type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentBalances"][number];
 
@@ -223,6 +224,15 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput || undefined);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Hooks
   const { data: classes = [] } = useSchoolClasses();
@@ -239,6 +249,7 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
     page, 
     page_size: pageSize,
     section_id: balanceSection ?? undefined,
+    search: searchQuery,
   });
   const { data: selectedBalance } = useSchoolTuitionBalance(selectedBalanceId);
 
@@ -258,10 +269,10 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
     setBalanceSection(null);
   }, [classIdNum]);
 
-  // Reset to first page when class or section changes
+  // Reset to first page when class, section or search changes
   useEffect(() => {
     setPage(1);
-  }, [classIdNum, balanceSection]);
+  }, [classIdNum, balanceSection, searchQuery]);
 
   // Memoized handlers
   const handleViewStudent = useCallback((student: StudentRow) => {
@@ -366,6 +377,8 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
             setPageSize(size);
             setPage(1);
           }}
+          searchValue={searchInput}
+          onSearchChange={setSearchInput}
         />
       )}
 

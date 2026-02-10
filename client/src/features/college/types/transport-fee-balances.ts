@@ -184,6 +184,7 @@ export interface CollegeStudentTransportPaymentSummaryParams {
   group_id?: number;
   course_id?: number;
   bus_route_id?: number;
+  search?: string;
 }
 
 // Expected Transport Payments Types

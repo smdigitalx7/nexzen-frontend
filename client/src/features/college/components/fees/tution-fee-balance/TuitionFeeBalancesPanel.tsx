@@ -17,9 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/common/components/ui/table";
-import { User, BookOpen, Wallet, Calendar, FileText } from "lucide-react";
+import { User, BookOpen, Wallet, Calendar, FileText, Search } from "lucide-react";
 import { useCollegeTuitionBalancesList, useCollegeTuitionBalanceByAdmission } from "@/features/college/hooks";
 import { useCollegeClasses, useCollegeGroups } from "@/features/college/hooks/use-college-dropdowns";
+import { Input } from "@/common/components/ui/input";
 import type { CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceFullRead } from "@/features/college/types";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
 
@@ -229,6 +230,16 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
   // Optional: when a row is clicked, fetch full details
   const [selectedAdmissionNo, setSelectedAdmissionNo] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput || undefined);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const { data: selectedBalance } = useCollegeTuitionBalanceByAdmission(selectedAdmissionNo);
 
   // Reset group when class changes
@@ -239,13 +250,14 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
   }, [balanceClass]);
 
   const groupIdNum = balanceGroup ? parseInt(balanceGroup) : undefined;
-  // Only fetch data when both class and group are selected
+  // Fetch data when class, group, or search query changes
   const { data: tuitionResp, refetch } = useCollegeTuitionBalancesList(
     classIdNum && groupIdNum ? { 
       class_id: classIdNum, 
       group_id: groupIdNum,
       page: 1, 
-      pageSize: 50 
+      pageSize: 50,
+      search: searchQuery,
     } : undefined
   );
 
@@ -352,6 +364,8 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
           onExportCSV={onExportCSV}
           showHeader={false}
           loading={!tuitionResp}
+          searchValue={searchInput}
+          onSearchChange={setSearchInput}
         />
       )}
 

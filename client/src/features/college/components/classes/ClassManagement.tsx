@@ -43,11 +43,13 @@ type UIClassRow = {
   subjects: string[];
   timetable_set: boolean;
   status: string;
+  class_order: number;
   created_at: string;
 };
 
 const classFormSchema = z.object({
   class_name: z.string().min(1, "Class name is required"),
+  class_order: z.coerce.number().int().min(1, "Class order must be at least 1"),
 });
 
 const ClassesManagement = () => {
@@ -79,6 +81,7 @@ const ClassesManagement = () => {
         subjects: [],
         timetable_set: false,
         status: 'active',
+        class_order: c.class_order,
         created_at: new Date().toISOString().slice(0,10),
       };
     });
@@ -94,6 +97,7 @@ const ClassesManagement = () => {
     resolver: zodResolver(classFormSchema),
     defaultValues: {
       class_name: '',
+      class_order: 1,
     },
   });
 
@@ -142,6 +146,12 @@ const ClassesManagement = () => {
       header: "Status",
       variant: "outline"
     }),
+    {
+      id: "class_order",
+      header: "Order",
+      accessorKey: "class_order",
+      cell: ({ row }: any) => <span>{row.original.class_order}</span>
+    }
   ], [setEditingClass, form, setShowAddDialog, handleDeleteClass]);
 
   // Actions for DataTable V2 (Edit, Delete)
@@ -153,7 +163,10 @@ const ClassesManagement = () => {
       variant: 'outline',
       onClick: (row) => {
         setEditingClass(row);
-        form.reset({ class_name: row.class_name });
+        form.reset({ 
+          class_name: row.class_name,
+          class_order: row.class_order,
+        });
         setShowAddDialog(true);
       },
     },
@@ -168,14 +181,18 @@ const ClassesManagement = () => {
 
   const handleSubmit = (values: any) => {
     if (editingClass) {
-      // Backend only supports updating class_name
-      updateClassMutation.mutate({ class_name: values.class_name }, {
+      // Backend only supports updating class_name and class_order
+      updateClassMutation.mutate({ 
+        class_name: values.class_name,
+        class_order: values.class_order,
+      }, {
         onSuccess: () => {
           toast({ title: "Class Updated", description: `${values.class_name} has been updated successfully.`, variant: "success" });
           // Optimistic local update for UI-only fields
           setClasses(classes.map(c => c.class_id === editingClass.class_id ? {
             ...c,
             class_name: values.class_name,
+            class_order: values.class_order,
           } : c));
           form.reset();
           setEditingClass(null);
@@ -191,8 +208,11 @@ const ClassesManagement = () => {
         }
       });
     } else {
-      // Create on backend (only class_name required)
-      createClassMutation.mutate({ class_name: values.class_name }, {
+      // Create on backend
+      createClassMutation.mutate({ 
+        class_name: values.class_name,
+        class_order: values.class_order,
+      }, {
         onSuccess: () => {
           toast({ title: "Class Added", description: `${values.class_name} has been added successfully.`, variant: "success" });
           // Append optimistic UI row until refetch updates from backend
@@ -201,6 +221,7 @@ const ClassesManagement = () => {
             {
               class_id: Date.now(),
               class_name: values.class_name,
+              class_order: values.class_order,
               section: '-',
               grade: '-',
               academic_year: academicYears?.find((ay: any) => ay.is_active)?.year_name || academicYears?.[0]?.year_name || '2024-25',
@@ -304,7 +325,20 @@ const ClassesManagement = () => {
                           </FormItem>
                         )}
                       />
-                      {/* Simplified form per backend: only Class Name is required */}
+                      <FormField
+                        control={form.control}
+                        name="class_order"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Class Order</FormLabel>
+                            <FormControl>
+                              <Input type="number" min="1" placeholder="e.g., 10" {...field} data-testid="input-class-order" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {/* Simplified form per backend: Class Name and Class Order are required */}
                       <div className="flex justify-end space-x-2">
                         <Button 
                           type="button" 

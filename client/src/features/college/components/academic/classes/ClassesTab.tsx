@@ -32,8 +32,8 @@ export const ClassesTab = memo(({
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
   const [isEditClassOpen, setIsEditClassOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<import("@/features/college/types").CollegeClassResponse | null>(null);
-  const [newClass, setNewClass] = useState({ class_name: "" });
-  const [editClass, setEditClass] = useState({ class_name: "" });
+  const [newClass, setNewClass] = useState({ class_name: "", class_order: 1 });
+  const [editClass, setEditClass] = useState({ class_name: "", class_order: 1 });
 
   const { toast } = useToast();
   const createClassMutation = useCreateCollegeClass();
@@ -52,9 +52,10 @@ export const ClassesTab = memo(({
     try {
       await createClassMutation.mutateAsync({
         class_name: newClass.class_name.trim(),
+        class_order: newClass.class_order,
       });
       
-      setNewClass({ class_name: "" });
+      setNewClass({ class_name: "", class_order: 1 });
       setIsAddClassOpen(false);
       // Toast handled by mutation hook
     } catch (error) {
@@ -73,9 +74,12 @@ export const ClassesTab = memo(({
     }
 
     try {
-      await updateClassMutation.mutateAsync({ class_name: editClass.class_name.trim() });
+      await updateClassMutation.mutateAsync({ 
+        class_name: editClass.class_name.trim(),
+        class_order: editClass.class_order,
+      });
       
-      setEditClass({ class_name: "" });
+      setEditClass({ class_name: "", class_order: 1 });
       setSelectedClass(null);
       setIsEditClassOpen(false);
       // Toast handled by mutation hook
@@ -86,13 +90,21 @@ export const ClassesTab = memo(({
 
   const handleEditClick = useCallback((classItem: import("@/features/college/types").CollegeClassResponse) => {
     setSelectedClass(classItem);
-    setEditClass({ class_name: classItem.class_name });
+    setEditClass({ 
+      class_name: classItem.class_name,
+      class_order: classItem.class_order,
+    });
     setIsEditClassOpen(true);
   }, []);
 
   // Define columns for the data table
   const columns: ColumnDef<any>[] = useMemo(() => [
-    createIconTextColumn<any>("class_name", { header: "Class Name", icon: BookOpen })
+    createIconTextColumn<any>("class_name", { header: "Class Name", icon: BookOpen }),
+    {
+      id: "class_order",
+      header: "Order",
+      cell: ({ row }: any) => <span>{row.original.class_order}</span>
+    }
   ], []);
 
   // Only edit action – backend does not support delete for college classes
@@ -144,7 +156,7 @@ export const ClassesTab = memo(({
         onSave={handleCreateClass}
         onCancel={() => {
           setIsAddClassOpen(false);
-          setNewClass({ class_name: "" });
+          setNewClass({ class_name: "", class_order: 1 });
         }}
         saveText="Create Class"
         cancelText="Cancel"
@@ -156,8 +168,19 @@ export const ClassesTab = memo(({
             <Input
               id="class_name"
               value={newClass.class_name}
-              onChange={(e) => setNewClass({ class_name: e.target.value })}
+              onChange={(e) => setNewClass({ ...newClass, class_name: e.target.value })}
               placeholder="Enter class name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="class_order">Class Order</Label>
+            <Input
+              id="class_order"
+              type="number"
+              min="1"
+              value={newClass.class_order}
+              onChange={(e) => setNewClass({ ...newClass, class_order: parseInt(e.target.value) || 0 })}
+              placeholder="Enter class order"
             />
           </div>
         </div>
@@ -172,7 +195,7 @@ export const ClassesTab = memo(({
         onSave={handleUpdateClass}
         onCancel={() => {
           setIsEditClassOpen(false);
-          setEditClass({ class_name: "" });
+          setEditClass({ class_name: "", class_order: 1 });
           setSelectedClass(null);
         }}
         saveText="Update Class"
@@ -185,8 +208,19 @@ export const ClassesTab = memo(({
             <Input
               id="edit_class_name"
               value={editClass.class_name}
-              onChange={(e) => setEditClass({ class_name: e.target.value })}
+              onChange={(e) => setEditClass({ ...editClass, class_name: e.target.value })}
               placeholder="Enter class name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit_class_order">Class Order</Label>
+            <Input
+              id="edit_class_order"
+              type="number"
+              min="1"
+              value={editClass.class_order}
+              onChange={(e) => setEditClass({ ...editClass, class_order: parseInt(e.target.value) || 0 })}
+              placeholder="Enter class order"
             />
           </div>
         </div>
