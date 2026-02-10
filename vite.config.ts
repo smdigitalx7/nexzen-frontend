@@ -97,54 +97,56 @@ export default defineConfig(({ mode }) => {
           },
           manualChunks: (id) => {
             if (id.includes("node_modules")) {
-              // 1. Framework Bundle (Stability Critical)
-              // Consolidating React + Radix + Framer fixes 'forwardRef' undefined errors
+              // 1. Omni-Framework (Stability Critical — SINGLE RUNTIME)
+              // Consolidating all libraries that rely on React internal state/hooks
               if (
                 id.includes("node_modules/react/") ||
                 id.includes("node_modules/react-dom/") ||
                 id.includes("node_modules/scheduler/") ||
                 id.includes("node_modules/@radix-ui/") ||
                 id.includes("node_modules/framer-motion/") ||
-                id.includes("node_modules/lucide-react/")
-              ) {
-                return "vendor-framework";
-              }
-
-              // 2. Data & State
-              if (id.includes("node_modules/@tanstack/react-query/")) {
-                return "vendor-query";
-              }
-              if (id.includes("node_modules/zustand/")) {
-                return "vendor-state";
-              }
-
-              // 3. Navigation
-              if (
+                id.includes("node_modules/lucide-react/") ||
+                id.includes("node_modules/@tanstack/react-query/") ||
+                id.includes("node_modules/zustand/") ||
                 id.includes("node_modules/react-router/") ||
                 id.includes("node_modules/react-router-dom/") ||
                 id.includes("node_modules/@remix-run/router/")
               ) {
-                return "vendor-router";
+                return "vendor-framework";
               }
 
-              // 4. Heavy Utils
+              // 2. UI Behavior Primitives (Hook-dependent but non-core)
+              if (
+                id.includes("node_modules/@tanstack/react-table/") ||
+                id.includes("node_modules/@tanstack/react-virtual/") ||
+                id.includes("node_modules/react-hook-form/") ||
+                id.includes("node_modules/cmdk/") ||
+                id.includes("node_modules/vaul/") ||
+                id.includes("node_modules/embla-carousel-react/")
+              ) {
+                return "vendor-ui-primitives";
+              }
+
+              // 3. Heavy Utils (Lazy-loaded)
               if (
                 id.includes("node_modules/exceljs/") ||
                 id.includes("node_modules/jspdf/") ||
                 id.includes("node_modules/date-fns/") ||
                 id.includes("node_modules/clsx/") ||
                 id.includes("node_modules/tailwind-merge/") ||
-                id.includes("node_modules/axios/")
+                id.includes("node_modules/axios/") ||
+                id.includes("node_modules/dompurify/") ||
+                id.includes("node_modules/immer/")
               ) {
                 return "vendor-utils";
               }
 
-              // 6. Charts
+              // 4. Charts (Lazy-loaded)
               if (id.includes("node_modules/recharts/")) {
                 return "vendor-charts";
               }
 
-              // Default for smaller libs
+              // Default for other libraries
               return "vendor-libs";
             }
           },
