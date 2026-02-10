@@ -97,46 +97,28 @@ export default defineConfig(({ mode }) => {
           },
           manualChunks: (id) => {
             if (id.includes("node_modules")) {
-              // 1. React Core (Must be a single instance)
+              // 1. Framework Bundle (Stability Critical)
+              // Consolidating React + Radix + Framer fixes 'forwardRef' undefined errors
               if (
                 id.includes("node_modules/react/") ||
                 id.includes("node_modules/react-dom/") ||
-                id.includes("node_modules/scheduler/")
+                id.includes("node_modules/scheduler/") ||
+                id.includes("node_modules/@radix-ui/") ||
+                id.includes("node_modules/framer-motion/") ||
+                id.includes("node_modules/lucide-react/")
               ) {
-                return "vendor-react-core";
+                return "vendor-framework";
               }
 
-              // 2. State Management
+              // 2. Data & State
+              if (id.includes("node_modules/@tanstack/react-query/")) {
+                return "vendor-query";
+              }
               if (id.includes("node_modules/zustand/")) {
                 return "vendor-state";
               }
 
-              // 3. Data Fetching
-              if (id.includes("node_modules/@tanstack/react-query/")) {
-                return "vendor-query";
-              }
-
-              // 4. UI Framework & Animations (Heavy UI deps)
-              if (
-                id.includes("node_modules/@radix-ui/") ||
-                id.includes("node_modules/framer-motion/") ||
-                id.includes("node_modules/lucide-react/") ||
-                id.includes("node_modules/clsx/") ||
-                id.includes("node_modules/tailwind-merge/")
-              ) {
-                return "vendor-ui";
-              }
-
-              // 5. Heavy Utilities (Separated to avoid blocking main content)
-              if (
-                id.includes("node_modules/exceljs/") ||
-                id.includes("node_modules/jspdf/") ||
-                id.includes("node_modules/date-fns/")
-              ) {
-                return "vendor-utils";
-              }
-
-              // 6. Navigation
+              // 3. Navigation
               if (
                 id.includes("node_modules/react-router/") ||
                 id.includes("node_modules/react-router-dom/") ||
@@ -145,12 +127,24 @@ export default defineConfig(({ mode }) => {
                 return "vendor-router";
               }
 
-              // 7. Charts (Loaded only on pages that need them)
+              // 4. Heavy Utils
+              if (
+                id.includes("node_modules/exceljs/") ||
+                id.includes("node_modules/jspdf/") ||
+                id.includes("node_modules/date-fns/") ||
+                id.includes("node_modules/clsx/") ||
+                id.includes("node_modules/tailwind-merge/") ||
+                id.includes("node_modules/axios/")
+              ) {
+                return "vendor-utils";
+              }
+
+              // 6. Charts
               if (id.includes("node_modules/recharts/")) {
                 return "vendor-charts";
               }
 
-              // Default for other smaller libs
+              // Default for smaller libs
               return "vendor-libs";
             }
           },
