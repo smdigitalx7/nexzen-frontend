@@ -8,15 +8,15 @@ export function useCollegeTestMarksList(params?: CollegeTestMarksListParams) {
   return useQuery({
     queryKey: collegeKeys.testMarks.list(params),
     queryFn: () => CollegeTestMarksService.list(params),
-    enabled: 
-      !!params && 
-      typeof params.class_id === "number" && 
+    enabled:
+      !!params &&
+      typeof params.class_id === "number" &&
       params.class_id > 0 &&
-      typeof params.group_id === "number" && 
+      typeof params.group_id === "number" &&
       params.group_id > 0 &&
-      typeof params.test_id === "number" && 
+      typeof params.test_id === "number" &&
       params.test_id > 0 &&
-      typeof params.subject_id === "number" && 
+      typeof params.subject_id === "number" &&
       params.subject_id > 0,
   });
 }
@@ -30,10 +30,10 @@ export function useCollegeTestMark(markId: number | null | undefined) {
       } catch (error: unknown) {
         // Extract error message - Api class attaches status and data to Error
         let errorMessage = "Failed to load test mark details";
-        
+
         if (error instanceof Error) {
           const apiError = error as Error & { status?: number; data?: { detail?: string; message?: string } };
-          
+
           if (apiError.status === 422) {
             errorMessage = apiError.data?.detail || apiError.data?.message || apiError.message || "Invalid test mark data. The backend response may be missing required fields (admission_no, class_name).";
           } else if (apiError.status === 404) {
@@ -44,7 +44,7 @@ export function useCollegeTestMark(markId: number | null | undefined) {
         } else if (error && typeof error === 'object' && 'message' in error) {
           errorMessage = String(error.message);
         }
-        
+
         throw new Error(errorMessage);
       }
     },
@@ -64,12 +64,12 @@ export function useCreateCollegeTestMark() {
   }, "Test mark created successfully");
 }
 
-export function useUpdateCollegeTestMark(markId: number) {
+export function useUpdateCollegeTestMark() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeTestMarkUpdate) => CollegeTestMarksService.update(markId, payload),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.testMarks.detail(markId) });
+    mutationFn: ({ markId, payload }: { markId: number, payload: CollegeTestMarkUpdate }) => CollegeTestMarksService.update(markId, payload),
+    onSuccess: (_, variables) => {
+      void qc.invalidateQueries({ queryKey: collegeKeys.testMarks.detail(variables.markId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.testMarks.root() });
       void qc.refetchQueries({ queryKey: collegeKeys.testMarks.root(), type: 'active' });
     },

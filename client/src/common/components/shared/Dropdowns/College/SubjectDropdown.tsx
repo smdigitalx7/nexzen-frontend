@@ -43,7 +43,10 @@ export function CollegeSubjectDropdown({
   const { data, isLoading, error, refetch } = useCollegeSubjects(groupId, { enabled: shouldFetch && groupId > 0 });
 
   const options = React.useMemo(() => {
-    return data?.items || [];
+    const items = data?.items || [];
+    // Deduplicate items by subject_id
+    const uniqueItems = Array.from(new Map(items.map(item => [item.subject_id, item])).values());
+    return uniqueItems;
   }, [data]);
 
   // Auto-clear value when groupId changes

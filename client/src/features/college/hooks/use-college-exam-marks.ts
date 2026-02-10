@@ -8,15 +8,15 @@ export function useCollegeExamMarksList(params?: CollegeExamMarksListParams) {
   return useQuery({
     queryKey: collegeKeys.examMarks.list(params),
     queryFn: () => CollegeExamMarksService.list(params),
-    enabled: 
-      !!params && 
-      typeof params.class_id === "number" && 
+    enabled:
+      !!params &&
+      typeof params.class_id === "number" &&
       params.class_id > 0 &&
-      typeof params.group_id === "number" && 
+      typeof params.group_id === "number" &&
       params.group_id > 0 &&
-      typeof params.exam_id === "number" && 
+      typeof params.exam_id === "number" &&
       params.exam_id > 0 &&
-      typeof params.subject_id === "number" && 
+      typeof params.subject_id === "number" &&
       params.subject_id > 0,
   });
 }
@@ -40,12 +40,12 @@ export function useCreateCollegeExamMark() {
   }, "Exam mark created successfully");
 }
 
-export function useUpdateCollegeExamMark(markId: number) {
+export function useUpdateCollegeExamMark() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeExamMarkUpdate) => CollegeExamMarksService.update(markId, payload),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.detail(markId) });
+    mutationFn: ({ markId, payload }: { markId: number, payload: CollegeExamMarkUpdate }) => CollegeExamMarksService.update(markId, payload),
+    onSuccess: (_, variables) => {
+      void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.detail(variables.markId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
       void qc.refetchQueries({ queryKey: collegeKeys.examMarks.root(), type: 'active' });
     },

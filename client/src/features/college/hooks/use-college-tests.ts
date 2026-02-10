@@ -13,11 +13,11 @@ export function useCollegeTests(options?: { enabled?: boolean }) {
       } catch (error: unknown) {
         // Handle 404 errors by returning empty array
         const errorObj = error as { message?: string; status?: number };
-        if (errorObj?.message?.includes('404') || 
-            errorObj?.message?.includes('Tests not found') ||
-            errorObj?.message?.includes('Not Found') ||
-            errorObj?.status === 404 ||
-            errorObj?.message === 'Tests not found') {
+        if (errorObj?.message?.includes('404') ||
+          errorObj?.message?.includes('Tests not found') ||
+          errorObj?.message?.includes('Not Found') ||
+          errorObj?.status === 404 ||
+          errorObj?.message === 'Tests not found') {
           return [];
         }
         throw error;
@@ -50,12 +50,13 @@ export function useCreateCollegeTest() {
   }, "Test created successfully");
 }
 
-export function useUpdateCollegeTest(testId: number) {
+export function useUpdateCollegeTest() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeTestUpdate) => CollegeTestsService.update(testId, payload),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.tests.detail(testId) });
+    mutationFn: ({ testId, payload }: { testId: number; payload: CollegeTestUpdate }) =>
+      CollegeTestsService.update(testId, payload),
+    onSuccess: (_, variables) => {
+      void qc.invalidateQueries({ queryKey: collegeKeys.tests.detail(variables.testId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
       void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.academicTotal() });
       void qc.refetchQueries({ queryKey: collegeKeys.tests.root(), type: 'active' });

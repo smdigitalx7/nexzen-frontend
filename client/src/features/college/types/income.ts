@@ -33,6 +33,7 @@ export interface CollegeIncomeRead {
   admission_no?: string | null;
   roll_number?: string | null;
   student_name?: string | null;
+  purpose?: string | null;
   total_amount: number;
   receipt_no?: string | null;
   remarks?: string | null;
