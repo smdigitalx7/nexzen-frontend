@@ -29,7 +29,11 @@ export interface SchoolPromotionEligibility {
 
 export interface SchoolPromotionEligibilityResponse {
   eligibility: SchoolPromotionEligibility[];
+  items?: SchoolPromotionEligibility[];
   total_count: number;
+  current_page: number;
+  page_size: number;
+  total_pages: number;
 }
 
 export interface PromotionRequest {

@@ -66,17 +66,61 @@ const SupportTab = () => {
             <CardDescription>Self-help and documentation</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full justify-between"
-              onClick={() => window.open('https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS', '_blank')}
-            >
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                User Guides
-              </div>
-              <ExternalLink className="h-3.5 w-3.5 opacity-50" />
-            </Button>
+            {import.meta.env.VITE_ADMIN_GUIDE_URL ? (
+              <Button
+                variant="outline"
+                className="w-full justify-between"
+                onClick={() => window.open(import.meta.env.VITE_ADMIN_GUIDE_URL, '_blank')}
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Admin Guide
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 opacity-50" />
+              </Button>
+            ) : null}
+
+            {import.meta.env.VITE_ACADEMIC_GUIDE_URL ? (
+              <Button
+                variant="outline"
+                className="w-full justify-between"
+                onClick={() => window.open(import.meta.env.VITE_ACADEMIC_GUIDE_URL, '_blank')}
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Academic Guide
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 opacity-50" />
+              </Button>
+            ) : null}
+
+            {import.meta.env.VITE_ACCOUNTANT_GUIDE_URL ? (
+              <Button
+                variant="outline"
+                className="w-full justify-between"
+                onClick={() => window.open(import.meta.env.VITE_ACCOUNTANT_GUIDE_URL, '_blank')}
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Accountant Guide
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 opacity-50" />
+              </Button>
+            ) : null}
+
+            {!import.meta.env.VITE_ADMIN_GUIDE_URL && !import.meta.env.VITE_ACADEMIC_GUIDE_URL && !import.meta.env.VITE_ACCOUNTANT_GUIDE_URL ? (
+              <Button
+                variant="outline"
+                className="w-full justify-between"
+                onClick={() => window.open('https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS', '_blank')}
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  User Guides
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 opacity-50" />
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               className="w-full justify-between"

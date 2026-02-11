@@ -50,7 +50,7 @@ const formatDate = (dateString: string | null | undefined) => {
 
 function SchoolPromotedStudentsList() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(50);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   useEffect(() => {
@@ -91,14 +91,14 @@ function SchoolPromotedStudentsList() {
       pageSize={data?.page_size ?? pageSize}
       onPageChange={setPage}
       onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-      pageSizeOptions={[25, 50, 100]}
+      pageSizeOptions={[10, 25, 50, 100]}
     />
   );
 }
 
 function SchoolDroppedOutStudentsList() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(50);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   useEffect(() => {
@@ -139,24 +139,33 @@ function SchoolDroppedOutStudentsList() {
       pageSize={data?.page_size ?? pageSize}
       onPageChange={setPage}
       onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-      pageSizeOptions={[25, 50, 100]}
+      pageSizeOptions={[10, 25, 50, 100]}
     />
   );
 }
 
 export const PromotionDropoutTab = () => {
   const [subTab, setSubTab] = useState<"eligibility" | "promoted" | "dropped-out">("eligibility");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const trimmed = searchInput.trim();
-    const t = setTimeout(() => setSearchQuery(trimmed === "" ? undefined : trimmed), 500);
+    const t = setTimeout(() => {
+      setSearchQuery(trimmed === "" ? undefined : trimmed);
+      setPage(1); // Reset to first page on search
+    }, 500);
     return () => clearTimeout(t);
   }, [searchInput]);
 
   const { data: eligibilityData, isLoading, refetch } = useSchoolPromotionEligibility(
-    { search: searchQuery ?? undefined },
+    { 
+      search: searchQuery ?? undefined,
+      page,
+      page_size: pageSize
+    },
     true
   );
   const { data: classesData } = useSchoolClasses();
@@ -165,7 +174,6 @@ export const PromotionDropoutTab = () => {
   const promoteMutation = usePromoteSchoolStudents();
   const dropoutMutation = useDropoutSchoolStudent();
 
-  const [selectedEnrollments, setSelectedEnrollments] = useState<number[]>([]);
   const [dropoutModalOpen, setDropoutModalOpen] = useState(false);
   const [selectedStudentForDropout, setSelectedStudentForDropout] = useState<SchoolPromotionEligibility | null>(null);
   const [dropoutReason, setDropoutReason] = useState("");
@@ -184,6 +192,7 @@ export const PromotionDropoutTab = () => {
     
     const possibleArrays = [
       data.eligibility,
+      data.items,
       data.students,
       data.data?.eligibility,
       data.data?.students,
@@ -200,20 +209,20 @@ export const PromotionDropoutTab = () => {
   }, [eligibilityData]);
 
   const handlePromote = async () => {
-    if (selectedEnrollments.length === 0) return;
+    const eligibleStudents = students.filter(s => s.is_promotable);
+    if (eligibleStudents.length === 0) return;
 
     const payload = {
       next_academic_year_id: Number(nextAcademicYearId),
       require_fees_paid: requireFeesPaid,
-      transfer_requests: selectedEnrollments.map(id => ({
-        enrollment_id: id,
+      transfer_requests: eligibleStudents.map(s => ({
+        enrollment_id: s.enrollment_id,
         transfer_type: "PROMOTION" as const
       }))
     };
 
-    try {
+  try {
       await promoteMutation.mutateAsync(payload);
-      setSelectedEnrollments([]);
       setPromotionConfirmOpen(false);
       refetch();
     } catch (error) {
@@ -290,10 +299,6 @@ export const PromotionDropoutTab = () => {
     }
   ], []);
 
-  // Update selected enrollments when table selection changes
-  const onSelectionChange = useCallback((selectedRows: SchoolPromotionEligibility[]) => {
-    setSelectedEnrollments(selectedRows.map(r => r.enrollment_id));
-  }, []);
 
   const eligibilityContent = (
     <div className="space-y-6">
@@ -315,12 +320,11 @@ export const PromotionDropoutTab = () => {
         </div>
 
         <Button
-          disabled={selectedEnrollments.length === 0}
           onClick={() => setPromotionConfirmOpen(true)}
           className="gap-2"
         >
           <ArrowUpCircle className="h-4 w-4" />
-          Promote Selected ({selectedEnrollments.length})
+          Promote Students
         </Button>
       </div>
 
@@ -328,9 +332,8 @@ export const PromotionDropoutTab = () => {
         data={students}
         columns={columns}
         loading={isLoading}
-        selectable={true}
+        selectable={false}
         getRowId={(row) => row.enrollment_id}
-        onSelectionChange={onSelectionChange}
         searchKey="student_name"
         searchPlaceholder="Search by admission no or student name..."
         showSearch={false}
@@ -347,6 +350,16 @@ export const PromotionDropoutTab = () => {
         }
         actions={actions}
         actionsHeader="Actions"
+        pagination="server"
+        totalCount={eligibilityData?.total_count ?? 0}
+        currentPage={eligibilityData?.current_page ?? page}
+        pageSize={eligibilityData?.page_size ?? pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          setPage(1);
+        }}
+        pageSizeOptions={[10, 25, 50, 100]}
       />
 
       {/* Promotion Confirmation Dialog */}
@@ -355,11 +368,11 @@ export const PromotionDropoutTab = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileCheck2 className="h-5 w-5 text-primary" />
-              Confirm Batch Promotion
+              Promote All Eligible Students?
             </DialogTitle>
             <DialogDescription>
-              You are about to promote {selectedEnrollments.length} students to their next respective classes. 
-              This action will update their enrollment status for the upcoming academic session.
+              Are you sure you want to promote all eligible students to their next classes? 
+              This will update their records for the new academic year.
             </DialogDescription>
           </DialogHeader>
           
@@ -417,11 +430,11 @@ export const PromotionDropoutTab = () => {
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
               <UserMinus className="h-5 w-5" />
-              Student Dropout
+              Are you sure you want to dropout this student?
             </DialogTitle>
             <DialogDescription>
               Marking <strong>{selectedStudentForDropout?.student_name}</strong> as dropped out. 
-              This will deactivate their current enrollment.
+              This will end their current enrollment.
             </DialogDescription>
           </DialogHeader>
 

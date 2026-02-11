@@ -48,29 +48,10 @@ const DetailsSheet = memo(({
   selectedBalance: SchoolTuitionFeeBalanceFullRead | undefined;
 }) => {
   const { toast } = useToast();
-  const [isEditingBookFee, setIsEditingBookFee] = useState(false);
-  const [newBookFee, setNewBookFee] = useState("");
-  const updateBalance = useUpdateSchoolTuitionBalance(selectedBalanceId || 0);
 
-  const handleStartEdit = () => {
-    setNewBookFee(selectedBalance?.book_fee?.toString() || "0");
-    setIsEditingBookFee(true);
-  };
-
-  const handleSaveBookFee = async () => {
-    const val = parseFloat(newBookFee);
-    if (isNaN(val) || val < 0) return;
-    try {
-      await updateBalance.mutateAsync({ book_fee: val });
-      setIsEditingBookFee(false);
-      toast({ title: "Updated", description: "Book fee updated successfully" });
-    } catch (err) {
-      toast({ title: "Error", description: "Failed to update book fee", variant: "destructive" });
-    }
-  };
 
   return (
-  <Sheet open={isOpen} onOpenChange={(open) => { if (!open) { onClose(); setIsEditingBookFee(false); } }}>
+  <Sheet open={isOpen} onOpenChange={(open) => { if (!open) { onClose(); } }}>
     <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-0 flex flex-col">
       <SheetHeader className="px-6 pt-6 pb-4 border-b bg-muted/30 shrink-0">
         <SheetTitle>Tuition Fee Balance</SheetTitle>
@@ -153,37 +134,11 @@ const DetailsSheet = memo(({
                   <BookOpen className="h-4 w-4" />
                   Book Fee
                 </div>
-                {!isEditingBookFee && (
-                  <Button variant="ghost" size="sm" className="h-7 px-2" onClick={handleStartEdit}>
-                    <Pencil className="h-3 w-3 mr-1.5" />
-                    Edit
-                  </Button>
-                )}
               </div>
               <div className="rounded-lg border bg-card p-4 space-y-3">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Book Fee</span>
-                  {isEditingBookFee ? (
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <span className="text-muted-foreground">₹</span>
-                        <Input 
-                          type="number" 
-                          value={newBookFee} 
-                          onChange={(e) => setNewBookFee(e.target.value)}
-                          className="h-8 w-24 text-right pr-1"
-                        />
-                      </div>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={handleSaveBookFee} disabled={updateBalance.isPending}>
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => setIsEditingBookFee(false)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <span className="font-medium">{formatCurrency(selectedBalance.book_fee)}</span>
-                  )}
+                  <span className="font-medium">{formatCurrency(selectedBalance.book_fee)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Paid</span>

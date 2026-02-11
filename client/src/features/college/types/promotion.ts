@@ -32,7 +32,11 @@ export interface CollegePromotionEligibility {
 
 export interface CollegePromotionEligibilityResponse {
   eligibility: CollegePromotionEligibility[];
+  items?: CollegePromotionEligibility[];
   total_count: number;
+  current_page: number;
+  page_size: number;
+  total_pages: number;
 }
 
 // Reuse PromotionRequest, PromotionResult, PromotionResponse, DropoutRequest, DropoutResponse

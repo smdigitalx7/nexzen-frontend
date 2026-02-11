@@ -68,8 +68,10 @@ export const EnrollmentsService = {
   },
 
   // GET /api/v1/school/enrollments/promotion-eligibility
-  getPromotionEligibility(params?: { search?: string | null }): Promise<import("../types/promotion").SchoolPromotionEligibilityResponse> {
+  getPromotionEligibility(params?: { search?: string | null; page?: number; page_size?: number }): Promise<import("../types/promotion").SchoolPromotionEligibilityResponse> {
     const qs = new URLSearchParams();
+    if (params?.page != null) qs.append("page", String(params.page));
+    if (params?.page_size != null) qs.append("page_size", String(params.page_size));
     if (params?.search != null && params.search.trim() !== "") qs.append("search", params.search.trim());
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return Api.get<import("../types/promotion").SchoolPromotionEligibilityResponse>(`/school/enrollments/promotion-eligibility${suffix}`);

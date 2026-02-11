@@ -8,7 +8,7 @@ import type {
   DropoutRequest 
 } from "@/features/school/types";
 
-export function useSchoolPromotionEligibility(params?: { search?: string | null }, enabled = true) {
+export function useSchoolPromotionEligibility(params?: { search?: string | null; page?: number; page_size?: number }, enabled = true) {
   return useQuery({
     queryKey: schoolKeys.promotion.eligibility(params),
     queryFn: () => EnrollmentsService.getPromotionEligibility(params),
@@ -30,7 +30,7 @@ export function usePromoteSchoolStudents() {
         toast({
           title: data.summary.promoted > 0 ? "Partial Success" : "Promotion Failed",
           description: data.summary.message || firstErrorMessage || `Promotion completed with ${data.summary.errors} error(s).`,
-          variant: data.summary.promoted > 0 ? "warning" : "destructive",
+          variant: data.summary.promoted > 0 ? "destructive" : "destructive",
         });
       } else {
         toast({

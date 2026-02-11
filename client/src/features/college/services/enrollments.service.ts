@@ -47,8 +47,10 @@ export const CollegeEnrollmentsService = {
   },
 
   // GET /api/v1/college/student-enrollments/promotion-eligibility
-  getPromotionEligibility(params?: { search?: string | null }): Promise<import("../types/promotion").CollegePromotionEligibilityResponse> {
+  getPromotionEligibility(params?: { search?: string | null; page?: number; pageSize?: number }): Promise<import("../types/promotion").CollegePromotionEligibilityResponse> {
     const qs = new URLSearchParams();
+    if (params?.page != null) qs.append("page", String(params.page));
+    if (params?.pageSize != null) qs.append("pageSize", String(params.pageSize));
     if (params?.search != null && params.search.trim() !== "") qs.append("search", params.search.trim());
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return Api.get<import("../types/promotion").CollegePromotionEligibilityResponse>(`/college/student-enrollments/promotion-eligibility${suffix}`);

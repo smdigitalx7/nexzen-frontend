@@ -55,7 +55,7 @@ const formatDate = (dateString: string | null | undefined) => {
 
 function CollegePromotedStudentsList() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(50);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   useEffect(() => {
@@ -96,14 +96,14 @@ function CollegePromotedStudentsList() {
       pageSize={data?.page_size ?? pageSize}
       onPageChange={setPage}
       onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-      pageSizeOptions={[25, 50, 100]}
+      pageSizeOptions={[10, 25, 50, 100]}
     />
   );
 }
 
 function CollegeDroppedOutStudentsList() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(50);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   useEffect(() => {
@@ -144,24 +144,33 @@ function CollegeDroppedOutStudentsList() {
       pageSize={data?.page_size ?? pageSize}
       onPageChange={setPage}
       onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-      pageSizeOptions={[25, 50, 100]}
+      pageSizeOptions={[10, 25, 50, 100]}
     />
   );
 }
 
 export const PromotionDropoutTab = () => {
   const [subTab, setSubTab] = useState<"eligibility" | "promoted" | "dropped-out">("eligibility");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const trimmed = searchInput.trim();
-    const t = setTimeout(() => setSearchQuery(trimmed === "" ? undefined : trimmed), 500);
+    const t = setTimeout(() => {
+      setSearchQuery(trimmed === "" ? undefined : trimmed);
+      setPage(1); // Reset to first page on search
+    }, 500);
     return () => clearTimeout(t);
   }, [searchInput]);
 
   const { data: eligibilityData, isLoading, refetch } = useCollegePromotionEligibility(
-    { search: searchQuery ?? undefined },
+    { 
+      search: searchQuery ?? undefined,
+      page,
+      pageSize: pageSize
+    },
     true
   );
   const { data: yearsData } = useAcademicYears();
@@ -169,7 +178,6 @@ export const PromotionDropoutTab = () => {
   const promoteMutation = usePromoteCollegeStudents();
   const dropoutMutation = useDropoutCollegeStudent();
 
-  const [selectedEnrollments, setSelectedEnrollments] = useState<number[]>([]);
   const [dropoutModalOpen, setDropoutModalOpen] = useState(false);
   const [selectedStudentForDropout, setSelectedStudentForDropout] = useState<CollegePromotionEligibility | null>(null);
   const [dropoutReason, setDropoutReason] = useState("");
@@ -184,6 +192,7 @@ export const PromotionDropoutTab = () => {
     const data = eligibilityData as any;
     const possibleArrays = [
       data.eligibility,
+      data.items,
       data.students,
       data.data?.eligibility,
       data.data?.students,
@@ -198,20 +207,20 @@ export const PromotionDropoutTab = () => {
   }, [eligibilityData]);
 
   const handlePromote = async () => {
-    if (selectedEnrollments.length === 0) return;
+    const eligibleStudents = students.filter(s => s.is_promotable);
+    if (eligibleStudents.length === 0) return;
 
     const payload = {
       next_academic_year_id: Number(nextAcademicYearId),
       require_fees_paid: requireFeesPaid,
-      transfer_requests: selectedEnrollments.map(id => ({
-        enrollment_id: id,
+      transfer_requests: eligibleStudents.map(s => ({
+        enrollment_id: s.enrollment_id,
         transfer_type: "PROMOTION" as const
       }))
     };
 
     try {
       await promoteMutation.mutateAsync(payload);
-      setSelectedEnrollments([]);
       setPromotionConfirmOpen(false);
       refetch();
     } catch (error) {
@@ -301,9 +310,6 @@ export const PromotionDropoutTab = () => {
     }
   ], []);
 
-  const handleSelectionChange = useCallback((rows: CollegePromotionEligibility[]) => {
-    setSelectedEnrollments(rows.map(r => r.enrollment_id));
-  }, []);
 
   const eligibilityContent = (
     <div className="space-y-6">
@@ -325,10 +331,8 @@ export const PromotionDropoutTab = () => {
         searchKey="student_name"
         searchPlaceholder="Search by admission no or student name..."
         showSearch={false}
-        selectable={true}
+        selectable={false}
         getRowId={(row) => row.enrollment_id}
-        onSelectionChange={handleSelectionChange}
-        className="border shadow-sm rounded-xl overflow-hidden"
         toolbarLeftContent={
           <div className="w-full sm:flex-1 min-w-0">
             <Input
@@ -342,84 +346,89 @@ export const PromotionDropoutTab = () => {
         }
         toolbarRightContent={
           <Button
-            disabled={selectedEnrollments.length === 0}
             onClick={() => setPromotionConfirmOpen(true)}
             size="sm"
-            className="gap-2 shadow-sm font-semibold transition-all hover:scale-105"
+            className="gap-2"
           >
             <ArrowUpCircle className="h-4 w-4" />
-            Promote ({selectedEnrollments.length})
+            Promote Students
           </Button>
         }
+        pagination="server"
+        totalCount={eligibilityData?.total_count ?? 0}
+        currentPage={eligibilityData?.current_page ?? page}
+        pageSize={eligibilityData?.page_size ?? pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          setPage(1);
+        }}
+        pageSizeOptions={[10, 25, 50, 100]}
       />
 
       {/* Promotion Confirmation Dialog */}
       <Dialog open={promotionConfirmOpen} onOpenChange={setPromotionConfirmOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl font-bold text-slate-900 tracking-tight">
-              <FileCheck2 className="h-6 w-6 text-blue-600" />
-              Confirm Batch Promotion
+            <DialogTitle className="flex items-center gap-2">
+              <FileCheck2 className="h-5 w-5 text-primary" />
+              Promote All Eligible Students?
             </DialogTitle>
-            <DialogDescription className="text-slate-500 text-base">
-              You are about to promote <span className="font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded">{selectedEnrollments.length}</span> college students to the next level.
+            <DialogDescription>
+              Are you sure you want to promote all eligible college students to the next level?
+              This will update their records for the new academic year.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-5 py-4">
+          <div className="space-y-4 py-4">
              <div className="space-y-2">
-               <Label htmlFor="next-year-college" className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                 Target Academic Year
-                 <span className="text-destructive">*</span>
-               </Label>
+               <Label htmlFor="next-year-college">Target Academic Year</Label>
                <Select 
                  value={String(nextAcademicYearId)} 
                  onValueChange={(val) => setNextAcademicYearId(Number(val))}
                >
-                 <SelectTrigger id="next-year-college" className="h-12 text-base transition-all focus:ring-2 focus:ring-blue-100 rounded-xl">
+                 <SelectTrigger id="next-year-college">
                    <SelectValue placeholder="Select target academic year..." />
                  </SelectTrigger>
-                 <SelectContent className="rounded-xl shadow-xl border-slate-100">
+                 <SelectContent>
                    {yearsData?.map((year) => (
-                     <SelectItem key={year.academic_year_id} value={String(year.academic_year_id)} className="py-2.5">
+                     <SelectItem key={year.academic_year_id} value={String(year.academic_year_id)}>
                        {year.year_name}
                      </SelectItem>
                    ))}
                  </SelectContent>
                </Select>
              </div>
-
-             <div className="flex items-center space-x-3 p-4 bg-slate-50 rounded-xl border border-slate-100 group transition-all hover:bg-slate-100/50">
+ 
+             <div className="flex items-center space-x-2">
                <Checkbox 
                  id="require_fees" 
                  checked={requireFeesPaid} 
                  onCheckedChange={(checked) => setRequireFeesPaid(!!checked)} 
-                 className="h-5 w-5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 rounded-md"
                />
-               <Label htmlFor="require_fees" className="text-sm font-medium cursor-pointer text-slate-600 select-none">
+               <Label htmlFor="require_fees" className="text-sm cursor-pointer">
                  Require all pending fees to be paid for promotion
                </Label>
              </div>
-
-             <Alert variant="destructive" className="bg-amber-50 border-amber-200 border-l-4 rounded-xl">
+ 
+             <Alert variant="destructive" className="bg-amber-50 border-amber-200">
                <AlertTriangle className="h-4 w-4 text-amber-600" />
-               <AlertDescription className="text-amber-800 font-semibold">
-                 Important: This action is irreversible once processed. Ensure all student selections are correct.
+               <AlertDescription className="text-amber-800">
+                 This action cannot be easily undone. Please verify the selection before proceeding.
                </AlertDescription>
              </Alert>
           </div>
-
-          <DialogFooter className="gap-3 sm:gap-0 mt-2">
-            <Button variant="outline" onClick={() => setPromotionConfirmOpen(false)} className="flex-1 sm:flex-none h-12 rounded-xl text-base font-semibold">
+ 
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromotionConfirmOpen(false)}>
               Cancel
             </Button>
             <Button 
               onClick={handlePromote} 
               loading={promoteMutation.isPending}
               disabled={!nextAcademicYearId}
-              className="flex-1 sm:flex-none h-12 rounded-xl text-base font-bold shadow-lg shadow-blue-200 transition-all hover:shadow-xl active:scale-95"
             >
-              Confirm Promotion
+              Proceed with Promotion
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -427,39 +436,40 @@ export const PromotionDropoutTab = () => {
 
       {/* Dropout Modal */}
       <Dialog open={dropoutModalOpen} onOpenChange={setDropoutModalOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-destructive flex items-center gap-2 text-2xl font-bold tracking-tight">
-              <UserMinus className="h-6 w-6" />
-              Student Dropout
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <UserMinus className="h-5 w-5" />
+              Are you sure you want to dropout this student?
             </DialogTitle>
-            <DialogDescription className="text-slate-500 text-base">
-              Marking <span className="font-bold text-slate-900 bg-red-50 text-red-700 px-1.5 py-0.5 rounded">{selectedStudentForDropout?.student_name}</span> as dropped out from the institution.
+            <DialogDescription>
+              Marking <strong>{selectedStudentForDropout?.student_name}</strong> as dropped out. 
+              This will end their current enrollment.
             </DialogDescription>
           </DialogHeader>
-
+ 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Dropout Date</Label>
+              <Label htmlFor="dropout-date-college">Dropout Date</Label>
               <DatePicker 
+                id="dropout-date-college"
                 value={dropoutDate} 
                 onChange={setDropoutDate} 
-                className="h-12 rounded-xl"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Reason for Dropout</Label>
+              <Label htmlFor="dropout-reason-college">Reason for Dropout</Label>
               <Textarea 
+                id="dropout-reason-college"
                 placeholder="Enter detailed reason for dropout..." 
                 value={dropoutReason}
                 onChange={(e) => setDropoutReason(e.target.value)}
-                className="min-h-[120px] rounded-xl text-base p-4 focus:ring-2 focus:ring-red-100"
               />
             </div>
           </div>
-
-          <DialogFooter className="gap-3 sm:gap-0 mt-2">
-            <Button variant="outline" onClick={() => setDropoutModalOpen(false)} className="flex-1 sm:flex-none h-12 rounded-xl text-base font-semibold transition-all">
+ 
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDropoutModalOpen(false)}>
               Cancel
             </Button>
             <Button 
@@ -467,7 +477,6 @@ export const PromotionDropoutTab = () => {
               onClick={handleDropout}
               loading={dropoutMutation.isPending}
               disabled={!dropoutReason.trim()}
-              className="flex-1 sm:flex-none h-12 rounded-xl text-base font-bold shadow-lg shadow-red-200 transition-all hover:shadow-xl active:scale-95"
             >
               Confirm Dropout
             </Button>

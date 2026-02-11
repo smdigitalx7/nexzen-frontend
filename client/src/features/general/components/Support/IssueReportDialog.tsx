@@ -111,7 +111,8 @@ const IssueReportDialog: React.FC<IssueReportDialogProps> = ({ isOpen, onClose }
       };
 
       // The URL provided by the user in their manual edit
-      const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMsDBw6lenLu1dNzTa8eQVXo0KZr0CjFh7NrZHcBt6ETVC4NHHl-eGkd81Y1GZhy4/exec';
+      // The URL provided by the user in their manual edit
+      const SCRIPT_URL = import.meta.env.VITE_ISSUE_REPORT_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzMsDBw6lenLu1dNzTa8eQVXo0KZr0CjFh7NrZHcBt6ETVC4NHHl-eGkd81Y1GZhy4/exec';
 
       // We use 'no-cors' for Google Apps Script if we don't need to read the response.
       // If we need the JSON response, the backend script must handle OPTIONS and CORS correctly.
