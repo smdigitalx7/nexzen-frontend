@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
+import { useAuthStore } from "@/store";
 import { motion } from "framer-motion";
 import { User, Wallet, Eye, Search } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
@@ -160,20 +161,29 @@ export const StudentFeeBalancesTable = ({
     },
   ], []);
 
-  const actions: ActionConfig<StudentFeeBalance>[] = useMemo(() => [
-    {
-      id: 'view',
-      label: 'View',
-      icon: Eye,
-      onClick: (row) => onViewStudent(row)
-    },
-    {
-      id: 'concession',
-      label: 'Concession',
-      icon: Wallet,
-      onClick: (row) => handleOpenConcession(row)
+  const isAdmin = useAuthStore((state) => state.isAdmin());
+
+  const actions: ActionConfig<StudentFeeBalance>[] = useMemo(() => {
+    const baseActions: ActionConfig<StudentFeeBalance>[] = [
+      {
+        id: 'view',
+        label: 'View',
+        icon: Eye,
+        onClick: (row) => onViewStudent(row)
+      }
+    ];
+
+    if (isAdmin) {
+      baseActions.push({
+        id: 'concession',
+        label: 'Concession',
+        icon: Wallet,
+        onClick: (row) => handleOpenConcession(row)
+      });
     }
-  ], [onViewStudent, handleOpenConcession]);
+
+    return baseActions;
+  }, [onViewStudent, handleOpenConcession, isAdmin]);
 
   const filters: FilterConfig[] = [
     {

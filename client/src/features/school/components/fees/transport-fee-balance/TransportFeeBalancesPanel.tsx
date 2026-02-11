@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAuthStore } from "@/store";
 import { motion } from "framer-motion";
 import { Label } from "@/common/components/ui/label";
 import { useSchoolClasses, useSchoolTransportBalancesList, useSchoolTransportBalance, useUpdateSchoolTransportConcession } from "@/features/school/hooks";
@@ -30,6 +31,7 @@ import StudentFeeBalancesTable from "../tution-fee-balance/StudentFeeBalancesTab
 type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentBalances"][number];
 
 export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onViewStudent: (s: StudentRow) => void; onExportCSV: () => void; }) {
+  const isAdmin = useAuthStore((state) => state.isAdmin());
   const { data: classes = [] } = useSchoolClasses();
   const [balanceClass, setBalanceClass] = useState<string>("");
   const [balanceSection, setBalanceSection] = useState<number | null>(null);
@@ -54,7 +56,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
     }
   }, [classes, balanceClass]);
 
-  const classIdNum = useMemo(() => 
+  const classIdNum = useMemo(() =>
     balanceClass ? parseInt(balanceClass) : undefined,
     [balanceClass]
   );
@@ -65,9 +67,9 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
   }, [classIdNum]);
 
   // Returns full API response: { data, total_pages, current_page, page_size, total_count }
-  const { data: transportResp, isLoading } = useSchoolTransportBalancesList({ 
-    class_id: classIdNum, 
-    page, 
+  const { data: transportResp, isLoading } = useSchoolTransportBalancesList({
+    class_id: classIdNum,
+    page,
     page_size: pageSize,
     section_id: balanceSection ?? undefined,
     search: searchQuery,
@@ -80,7 +82,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
   }, [classIdNum, balanceSection, searchQuery]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const { data: selectedBalance } = useSchoolTransportBalance(selectedBalanceId);
-  
+
   const [concessionModalOpen, setConcessionModalOpen] = useState(false);
   const updateConcessionMutation = useUpdateSchoolTransportConcession(selectedBalanceId || 0);
 
@@ -261,17 +263,20 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
                       <span>Overall Balance</span>
                       <span>{formatCurrency(selectedBalance.overall_balance_fee)}</span>
                     </div>
-                    <div className="pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2"
-                        onClick={() => setConcessionModalOpen(true)}
-                      >
-                        <Wallet className="h-4 w-4" />
-                        Update Concession
-                      </Button>
-                    </div>
+                    {/* Only admin can update concession */}
+                    {isAdmin && (
+                      <div className="pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2"
+                          onClick={() => setConcessionModalOpen(true)}
+                        >
+                          <Wallet className="h-4 w-4" />
+                          Update Concession
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </section>
 

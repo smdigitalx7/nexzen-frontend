@@ -1,4 +1,5 @@
 import { useMemo, memo, useState, useCallback } from "react";
+import { useAuthStore } from "@/store";
 import { motion } from "framer-motion";
 import { Eye, Download, User, Edit, Trash2, Search } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
@@ -171,28 +172,37 @@ export const StudentFeeBalancesTable = ({
       header: 'Status',
       cell: ({ row }) => <StatusCell status={row.original.status} />,
     },
-    createDateColumn<StudentFeeBalance>("last_payment_date", { 
+    createDateColumn<StudentFeeBalance>("last_payment_date", {
       header: "Last Payment",
       className: "text-sm text-muted-foreground"
     }),
   ], []);
 
   // Memoized action configurations
-  const actions: ActionConfig<StudentFeeBalance>[] = useMemo(() => [
-    {
-      id: 'view',
-      label: 'View',
-      icon: Eye,
-      onClick: onViewStudent
-    },
-    {
-      id: 'concession',
-      label: 'Concession',
-      icon: Wallet,
-      variant: 'outline',
-      onClick: handleOpenConcession
+  const isAdmin = useAuthStore((state) => state.isAdmin());
+
+  const actions: ActionConfig<StudentFeeBalance>[] = useMemo(() => {
+    const baseActions: ActionConfig<StudentFeeBalance>[] = [
+      {
+        id: 'view',
+        label: 'View',
+        icon: Eye,
+        onClick: onViewStudent
+      }
+    ];
+
+    if (isAdmin) {
+      baseActions.push({
+        id: 'concession',
+        label: 'Concession',
+        icon: Wallet,
+        variant: 'outline',
+        onClick: handleOpenConcession
+      });
     }
-  ], [onViewStudent, handleOpenConcession]);
+
+    return baseActions;
+  }, [onViewStudent, handleOpenConcession, isAdmin]);
 
   // Memoized summary statistics
   const summaryStats = useMemo(() => {
