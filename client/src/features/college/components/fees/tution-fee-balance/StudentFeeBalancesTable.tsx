@@ -115,7 +115,7 @@ export const StudentFeeBalancesTable = ({
     },
     {
       accessorKey: "class_name",
-      header: "Class",
+      header: "Course",
       cell: ({ row }) => <Badge variant="outline" className="bg-slate-50">{row.getValue("class_name")}</Badge>
     },
     {

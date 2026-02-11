@@ -14,15 +14,25 @@ import { User, Wallet, Calendar, Search } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { useCollegeStudentTransportPaymentSummary, useCollegeStudentTransportPaymentSummaryByEnrollmentId } from "@/features/college/hooks";
 import { useCollegeClasses, useCollegeGroups } from "@/features/college/hooks/use-college-dropdowns";
-import type { 
+import type {
   CollegeStudentTransportPaymentSummaryItem,
   CollegeStudentTransportMonthlyPayment,
-  CollegeStudentTransportExpectedPayment 
+  CollegeStudentTransportExpectedPayment
 } from "@/features/college/types";
 import { ColumnDef } from "@tanstack/react-table";
 import { formatCurrency } from "@/common/utils";
 import { ActionConfig } from '@/common/components/shared/DataTable/types';
 import { DataTable } from '@/common/components/shared/DataTable';
+
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return "-";
+  if (dateString.includes("T")) {
+    const parts = dateString.split("T");
+    const time = parts[1].split(".")[0]; // Remove milliseconds
+    return `${parts[0]} ${time}`;
+  }
+  return dateString;
+};
 
 type PaymentStatus = 'FULLY_PAID' | 'PARTIALLY_PAID' | 'PENDING';
 
@@ -83,7 +93,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
   const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
   const { data: groupsData } = useCollegeGroups(classIdNum || 0, { enabled: !!classIdNum });
   const groups = groupsData?.items || [];
-  
+
   const [paymentStatus, setPaymentStatus] = useState<"all" | PaymentStatus>("all");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
@@ -117,7 +127,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
     if (!balanceClass && !balanceGroup && paymentStatus === "all") {
       return undefined;
     }
-    
+
     const params: any = {};
     if (paymentStatus !== "all") {
       params.payment_status = paymentStatus;
@@ -138,20 +148,20 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
     if (!transportSummaryData?.items) {
       return [];
     }
-    
+
     let mappedRows = transportSummaryData.items.map((item: CollegeStudentTransportPaymentSummaryItem): TransportFeeBalanceRow => {
-      const totalFee = typeof item.total_fee === 'string' 
-        ? parseFloat(item.total_fee) || 0 
+      const totalFee = typeof item.total_fee === 'string'
+        ? parseFloat(item.total_fee) || 0
         : (item.total_fee || 0);
-      
-      const paidAmount = typeof item.paid_amount === 'string' 
-        ? parseFloat(item.paid_amount) || 0 
+
+      const paidAmount = typeof item.paid_amount === 'string'
+        ? parseFloat(item.paid_amount) || 0
         : (item.paid_amount || 0);
-      
-      const outstandingAmount = typeof item.outstanding === 'string' 
-        ? parseFloat(item.outstanding) || 0 
+
+      const outstandingAmount = typeof item.outstanding === 'string'
+        ? parseFloat(item.outstanding) || 0
         : (item.outstanding || 0);
-      
+
       return {
         id: item.enrollment_id,
         enrollment_id: item.enrollment_id,
@@ -173,11 +183,11 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
     if (selectedClassName) {
       mappedRows = mappedRows.filter(row => row.class_name === selectedClassName);
     }
-    
+
     if (selectedGroupName) {
       mappedRows = mappedRows.filter(row => row.group_name === selectedGroupName);
     }
-    
+
     return mappedRows;
   }, [transportSummaryData, selectedClassName, selectedGroupName]);
 
@@ -263,8 +273,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
       header: "Last Payment",
       cell: ({ row }) => {
         const date = row.original.last_payment_date;
-        if (!date) return '-';
-        return <span className="text-sm text-slate-500">{date}</span>;
+        return <span className="text-sm text-slate-500">{formatDate(date)}</span>;
       }
     },
   ], []);
@@ -288,8 +297,8 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
       <div className="flex gap-4 items-end bg-white p-4 rounded-lg border shadow-sm">
         <div className="flex-1">
           <label htmlFor="transport-balance-class" className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Class</label>
-          <Select 
-            value={balanceClass} 
+          <Select
+            value={balanceClass}
             onValueChange={(value) => {
               setBalanceClass(value);
               setBalanceGroup("");
@@ -309,8 +318,8 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
         </div>
         <div className="flex-1">
           <label htmlFor="transport-balance-group" className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Group</label>
-          <Select 
-            value={balanceGroup} 
+          <Select
+            value={balanceGroup}
             onValueChange={setBalanceGroup}
             disabled={!balanceClass}
           >
@@ -328,8 +337,8 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
         </div>
         <div className="flex-1">
           <label htmlFor="transport-balance-status" className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Payment Status</label>
-          <Select 
-            value={paymentStatus} 
+          <Select
+            value={paymentStatus}
             onValueChange={(value: string) => {
               setPaymentStatus(value === "all" ? "all" : value as PaymentStatus);
             }}
