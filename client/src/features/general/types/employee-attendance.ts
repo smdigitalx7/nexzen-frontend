@@ -68,8 +68,11 @@ export interface EmployeeAttendanceMonthlyGrouped {
 }
 
 export interface AttendanceListResponse {
-  data: EmployeeAttendanceMonthlyGrouped[];
+  data: EmployeeAttendanceRead[];
   total: number;
+  total_pages: number;
+  current_page: number;
+  page_size: number;
 }
 
 export interface AttendanceDashboardStats {

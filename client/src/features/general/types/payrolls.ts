@@ -6,7 +6,8 @@ export enum PayrollStatusEnum {
 
 export enum PaymentMethodEnum {
   CASH = "CASH",
-  ONLINE = "ONLINE",
+  UPI = "UPI",
+  CARD = "CARD",
 }
 
 export interface PayrollRead {
@@ -58,20 +59,21 @@ export interface PayrollStatusUpdate {
 }
 
 export interface PayrollQuery {
-  limit?: number;
-  pageSize?: number;
-  offset?: number;
   month?: number;
   year?: number;
   status?: string;
+  page?: number;
+  page_size?: number;
+  limit?: number;
+  offset?: number;
 }
 
 export interface PayrollListResponse {
   data: PayrollRead[];
-  total: number;
-  pages: number;
+  total_count: number;
+  total_pages: number;
   current_page: number;
-  pageSize?: number;
+  page_size: number;
 }
 
 export interface PayrollDashboardStats {

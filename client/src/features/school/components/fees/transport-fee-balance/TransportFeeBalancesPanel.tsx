@@ -34,7 +34,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
   const [balanceClass, setBalanceClass] = useState<string>("");
   const [balanceSection, setBalanceSection] = useState<number | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(25);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
 

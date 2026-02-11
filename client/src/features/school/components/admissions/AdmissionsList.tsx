@@ -59,25 +59,14 @@ const AdmissionsListComponent = () => {
   // 3. Object with 'data' property: {data: [...], total_pages: ...}
   const admissions = useMemo(() => {
     if (!admissionsResp) return [];
-    // Check if response is a direct array
-    if (Array.isArray(admissionsResp)) {
-      return admissionsResp;
-    }
-    // Check for 'admissions' property (API might return this)
-    if ('admissions' in admissionsResp && Array.isArray(admissionsResp.admissions)) {
-      return admissionsResp.admissions;
-    }
-    // Check for 'data' property
-    if ('data' in admissionsResp && Array.isArray(admissionsResp.data)) {
-      return admissionsResp.data;
-    }
-    return [];
+    if (Array.isArray(admissionsResp)) return admissionsResp;
+    return admissionsResp.data || admissionsResp.admissions || [];
   }, [admissionsResp]);
   
   // ✅ FIX: Extract pagination metadata - handle both direct array and paginated object
   const paginationMeta = useMemo(() => {
     if (!admissionsResp) return { total_pages: 1, total_count: 0, current_page: 1, page_size: pageSize };
-    // If response is a direct array, calculate pagination from array length
+    
     if (Array.isArray(admissionsResp)) {
       return {
         total_pages: Math.ceil(admissionsResp.length / pageSize) || 1,
@@ -86,7 +75,7 @@ const AdmissionsListComponent = () => {
         page_size: pageSize,
       };
     }
-    // If response is an object with pagination metadata
+
     return {
       total_pages: admissionsResp.total_pages ?? 1,
       total_count: admissionsResp.total_count ?? admissions.length,

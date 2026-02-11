@@ -7,7 +7,8 @@ import type {
   TeacherByBranch,
   EmployeeDashboardStats,
   RecentEmployee,
-  EmployeeMinimal
+  EmployeeMinimal,
+  EmployeePaginatedResponse
 } from "@/features/general/types/employees";
 
 export const EmployeesService = {
@@ -39,8 +40,8 @@ export const EmployeesService = {
   /**
    * Get all employees by institute (requires INSTITUTE_ADMIN, ADMIN, ACADEMIC, ACCOUNTANT role)
    */
-  listByInstitute(): Promise<EmployeeRead[]> {
-    return Api.get<EmployeeRead[]>("/employees");
+  listByInstitute(params?: { page?: number; page_size?: number }): Promise<EmployeePaginatedResponse> {
+    return Api.get<EmployeePaginatedResponse>("/employees", params as any);
   },
 
   /**
@@ -53,8 +54,8 @@ export const EmployeesService = {
   /**
    * Get all employees by branch (requires INSTITUTE_ADMIN, ADMIN, ACADEMIC, or ACCOUNTANT role)
    */
-  listByBranch(): Promise<EmployeeRead[]> {
-    return Api.get<EmployeeRead[]>("/employees/branch");
+  listByBranch(params?: { page?: number; page_size?: number }): Promise<EmployeePaginatedResponse> {
+    return Api.get<EmployeePaginatedResponse>("/employees/branch", params as any);
   },
 
   /**

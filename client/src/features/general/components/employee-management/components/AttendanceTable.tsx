@@ -31,6 +31,11 @@ interface AttendanceTableProps {
   showSearch?: boolean;
   toolbarMiddleContent?: React.ReactNode;
   headerContent?: React.ReactNode;
+  currentPage?: number;
+  totalCount?: number;
+  onPageChange?: (page: number) => void;
+  pageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 export const AttendanceTable = ({
@@ -44,6 +49,11 @@ export const AttendanceTable = ({
   showSearch = true,
   toolbarMiddleContent,
   headerContent,
+  currentPage,
+  totalCount,
+  onPageChange,
+  pageSize,
+  onPageSizeChange,
 }: AttendanceTableProps) => {
   // Define columns for the data table using column factories
   const columns: ColumnDef<EmployeeAttendanceRead>[] = useMemo(() => [
@@ -139,6 +149,13 @@ export const AttendanceTable = ({
           </Button>
         )
       }
+      pagination="server"
+      currentPage={currentPage}
+      totalCount={totalCount}
+      onPageChange={onPageChange}
+      pageSize={pageSize}
+      onPageSizeChange={onPageSizeChange}
+      pageSizeOptions={[10, 25, 50, 100]}
     />
   );
 };

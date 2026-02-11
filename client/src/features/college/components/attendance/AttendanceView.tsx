@@ -15,7 +15,7 @@ import { collegeKeys } from '@/features/college/hooks/query-keys';
 import { useQuery } from '@tanstack/react-query';
 import { invalidateAndRefetch } from '@/common/hooks/useGlobalRefetch';
 import { Info, Eye, Pencil } from 'lucide-react';
-import type { CollegeStudentAttendanceRead } from '@/features/college/types/attendance';
+import type { CollegeStudentAttendanceRead, CollegeStudentAttendanceWithClassGroup } from '@/features/college/types/attendance';
 import { useTabEnabled } from '@/common/hooks/use-tab-navigation';
 import type { ActionConfig } from '@/common/components/shared/DataTable/types';
 
@@ -35,6 +35,10 @@ export default function AttendanceView() {
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  
   // ✅ OPTIMIZATION: Build query params - only when tab is active AND required params are provided
   const attendanceParams = useMemo(() => {
     if (!isTabActive || !selectedClassId || !selectedGroupId) return null;
@@ -43,8 +47,10 @@ export default function AttendanceView() {
       group_id: selectedGroupId,
       month: selectedMonth,
       year: selectedYear,
+      page,
+      pageSize,
     };
-  }, [selectedClassId, selectedGroupId, selectedMonth, selectedYear, isTabActive]);
+  }, [selectedClassId, selectedGroupId, selectedMonth, selectedYear, page, pageSize, isTabActive]);
   
   // ✅ OPTIMIZATION: Stabilize query key
   const attendanceQueryKey = useMemo(
@@ -60,8 +66,35 @@ export default function AttendanceView() {
     refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
     refetchOnMount: true, // Only refetch on mount if data is stale
   });
-  const groupedData = (studentsQuery.data as any[]) || [];
-  const allStudents = (groupedData?.[0]?.attendance?.[0]?.students as any[]) || [];
+
+  // Extract total count and students from paginated response
+  const totalCount = useMemo(() => {
+    const raw = studentsQuery.data as any;
+    if (!raw) return 0;
+    if (raw.total_count !== undefined) return raw.total_count;
+    if (Array.isArray(raw)) return raw.length; // Fallback
+    return 0;
+  }, [studentsQuery.data]);
+
+  const allStudents = useMemo(() => {
+    const rawData = studentsQuery.data as any;
+    if (!rawData) return [];
+    
+    // Check for paginated response first
+    if (rawData && typeof rawData === 'object' && 'students' in rawData) {
+      const paginatedData = rawData as { students?: CollegeStudentAttendanceWithClassGroup[] | null };
+      const studentsInGroup = paginatedData.students?.[0]?.attendance?.[0]?.students;
+      return Array.isArray(studentsInGroup) ? studentsInGroup : [];
+    }
+
+    // Fallback if it's directly the grouped array
+    if (Array.isArray(rawData)) {
+      const studentsInGroup = rawData?.[0]?.attendance?.[0]?.students;
+      return Array.isArray(studentsInGroup) ? studentsInGroup : [];
+    }
+
+    return [];
+  }, [studentsQuery.data]);
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<CollegeStudentAttendanceRead | null>(null);
@@ -125,6 +158,7 @@ export default function AttendanceView() {
               onChange={(value: number | null) => {
                 setSelectedClassId(value);
                 setSelectedGroupId(null); // Reset group when class changes
+                setPage(1);
               }}
               placeholder="Select class"
               className="w-40 bg-background"
@@ -138,8 +172,8 @@ export default function AttendanceView() {
             <CollegeGroupDropdown
               id="college-attendance-group"
               classId={selectedClassId || 0}
-              value={selectedGroupId}
-              onChange={(value: number | null) => setSelectedGroupId(value)}
+               value={selectedGroupId}
+               onChange={(value: number | null) => { setSelectedGroupId(value); setPage(1); }}
               disabled={!selectedClassId}
               placeholder={selectedClassId ? "Select group" : "Select class first"}
               className="w-40 bg-background"
@@ -153,8 +187,8 @@ export default function AttendanceView() {
             <MonthYearFilter
               month={selectedMonth}
               year={selectedYear}
-              onMonthChange={setSelectedMonth}
-              onYearChange={setSelectedYear}
+               onMonthChange={(m) => { setSelectedMonth(m); setPage(1); }}
+               onYearChange={(y) => { setSelectedYear(y); setPage(1); }}
               monthId="college-attendance-month"
               yearId="college-attendance-year"
               showLabels={false}
@@ -200,18 +234,28 @@ export default function AttendanceView() {
             {errorMessage || 'Failed to load data. Please try again.'}
           </div>
         ) : (
-              <DataTable 
-                data={allStudents} 
-                columns={columns}
-                title="Attendance List"
-                loading={isLoading}
-                searchKey="student_name"
-                searchPlaceholder="Search by name..."
-                actions={actions}
-                actionsHeader="Actions"
-                emptyMessage="No attendance records found for this selection."
-                export={{ enabled: true, filename: "college_attendance_report" }}
-              />
+               <DataTable 
+                 data={allStudents} 
+                 columns={columns}
+                 title="Attendance List"
+                 loading={isLoading}
+                 searchKey="student_name"
+                 searchPlaceholder="Search by name..."
+                 actions={actions}
+                 actionsHeader="Actions"
+                 emptyMessage="No attendance records found for this selection."
+                 export={{ enabled: true, filename: "college_attendance_report" }}
+                 pagination="server"
+                 totalCount={totalCount}
+                 currentPage={page}
+                 pageSize={pageSize}
+                 pageSizeOptions={[10, 25, 50, 100]}
+                 onPageChange={setPage}
+                 onPageSizeChange={(newSize) => {
+                   setPageSize(newSize);
+                   setPage(1);
+                 }}
+               />
         )}
       </CardContent>
     <Dialog open={viewOpen} onOpenChange={setViewOpen}>

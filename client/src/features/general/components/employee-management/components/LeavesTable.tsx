@@ -21,6 +21,11 @@ interface LeavesTableProps {
   showSearch?: boolean;
   toolbarMiddleContent?: React.ReactNode;
   headerContent?: React.ReactNode;
+  currentPage?: number;
+  totalCount?: number;
+  onPageChange?: (page: number) => void;
+  pageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 export const LeavesTable = ({
@@ -35,6 +40,11 @@ export const LeavesTable = ({
   showSearch = true,
   toolbarMiddleContent,
   headerContent,
+  currentPage,
+  totalCount,
+  onPageChange,
+  pageSize,
+  onPageSizeChange,
 }: LeavesTableProps) => {
 
   // Define columns for the data table using column factories
@@ -115,6 +125,13 @@ export const LeavesTable = ({
       actions={actions}
       toolbarMiddleContent={toolbarMiddleContent}
       headerContent={headerContent}
+      pagination="server"
+      currentPage={currentPage}
+      totalCount={totalCount}
+      onPageChange={onPageChange}
+      pageSize={pageSize}
+      onPageSizeChange={onPageSizeChange}
+      pageSizeOptions={[10, 25, 50, 100]}
     />
   );
 };

@@ -29,6 +29,7 @@ export type ReservationFormState = {
   application_fee: string;
   application_fee_paid: boolean;
   class_name: string;
+  preferred_class_id: string;
   tuition_fee: string;
   book_fee: string;
   transport_required: boolean;
@@ -39,7 +40,7 @@ export type ReservationFormState = {
   status: string;
   request_type: string;
   referred_by: string;
-  referred_by_name: string;
+  other_referee_name: string;
   remarks: string;
   reservation_date: string;
 };
@@ -65,6 +66,7 @@ export const initialFormState: ReservationFormState = {
   application_fee: "0",
   application_fee_paid: false,
   class_name: "",
+  preferred_class_id: "0",
   tuition_fee: "0",
   book_fee: "0",
   transport_required: false,
@@ -75,7 +77,7 @@ export const initialFormState: ReservationFormState = {
   status: "PENDING",
   request_type: "WALK_IN",
   referred_by: "",
-  referred_by_name: "",
+  other_referee_name: "",
   remarks: "",
   reservation_date: "",
 };

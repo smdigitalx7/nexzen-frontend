@@ -139,6 +139,10 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('single');
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   // API hooks
   const { data: groupsData } = useCollegeGroups(selectedClass || undefined);
   const { data: subjectsData } = useCollegeSubjects(selectedGroup || 0);
@@ -185,7 +189,8 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
     setSelectedGroup(null);
     setSelectedSubject(null);
     setSelectedExam(null);
-  }, [selectedClass]);
+    setPage(1);
+  }, [selectedClass, setSelectedGroup, setSelectedSubject, setSelectedExam]);
 
   // Single exam mark view data (enabled only when an id is set)
   const viewQuery = useCollegeExamMark(viewingExamMarkId || 0);
@@ -205,10 +210,12 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
       group_id: selectedGroup,
       exam_id: selectedExam,
       subject_id: selectedSubject,
+      page,
+      pageSize,
     };
 
     return query;
-  }, [selectedClass, selectedGroup, selectedExam, selectedSubject]);
+  }, [selectedClass, selectedGroup, selectedExam, selectedSubject, page, pageSize]);
 
   const { data: examMarksData, isLoading: examMarksLoading, error: examMarksError } = useCollegeExamMarksList(examMarksQuery);
   const createExamMarkMutation = useCreateCollegeExamMark();
@@ -512,6 +519,12 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
     }
 
     return [] as ExamMarkRow[];
+  }, [examMarksData]);
+
+  const totalCount = useMemo(() => {
+    const raw = examMarksData as { data?: unknown[]; total_count?: number } | any[] | undefined;
+    if (Array.isArray(raw)) return raw.length;
+    return raw?.total_count ?? 0;
   }, [examMarksData]);
 
   const examMarks = flattenedMarks;
@@ -1265,6 +1278,16 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                 actions={examMarkActions}
                 actionsHeader="Actions"
                 emptyMessage="No exam marks found"
+                pagination="server"
+                totalCount={totalCount}
+                currentPage={page}
+                pageSize={pageSize}
+                pageSizeOptions={[10, 25, 50, 100]}
+                onPageChange={setPage}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setPage(1);
+                }}
               />
             </div>
 

@@ -69,6 +69,17 @@ export function DataTableProvider<TData>({
   // Selection state
   const [selectedRows, setSelectedRowsState] = useState<TData[]>([]);
 
+  // ✅ SYNC: Keep internal paginationState in sync with props for server-side mode
+  React.useEffect(() => {
+    if (pagination === "server") {
+      setPaginationState(prev => ({
+        ...prev,
+        pageIndex: (serverCurrentPage ?? 1) - 1,
+        pageSize: initialPageSize
+      }));
+    }
+  }, [pagination, serverCurrentPage, initialPageSize]);
+
   // Set individual filter
   const setFilter = useCallback((key: string, value: string | null) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -135,7 +146,7 @@ export function DataTableProvider<TData>({
     if (pagination === "server") {
       const totalCount = serverTotalCount ?? 0;
       const currentPage = serverCurrentPage ?? 1;
-      const pageSize = paginationState.pageSize;
+      const pageSize = initialPageSize; // Use prop directly for server mode
       const totalPages = Math.ceil(totalCount / pageSize);
       const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
       const endIndex = Math.min(currentPage * pageSize, totalCount);
@@ -165,7 +176,7 @@ export function DataTableProvider<TData>({
       startIndex,
       endIndex,
     };
-  }, [pagination, serverTotalCount, serverCurrentPage, paginationState, filteredData.length]);
+  }, [pagination, serverTotalCount, serverCurrentPage, paginationState, filteredData.length, initialPageSize]);
 
   // Paginate data (client-side only)
   const paginatedData = useMemo(() => {
@@ -203,14 +214,18 @@ export function DataTableProvider<TData>({
 
   const setPagination = useCallback((state: PaginationState) => {
     if (pagination === "server") {
-      if (onPageChange) onPageChange(state.pageIndex + 1);
+      // For server mode, call callbacks AND update internal state to keep UI snappy
+      if (onPageChange && state.pageIndex !== paginationState.pageIndex) {
+        onPageChange(state.pageIndex + 1);
+      }
       if (onPageSizeChange && state.pageSize !== paginationState.pageSize) {
         onPageSizeChange(state.pageSize);
       }
+      setPaginationState(state);
     } else {
       setPaginationState(state);
     }
-  }, [pagination, onPageChange, onPageSizeChange, paginationState.pageSize]);
+  }, [pagination, onPageChange, onPageSizeChange, paginationState.pageSize, paginationState.pageIndex]);
 
   // Selection with callback
   const setSelectedRows = useCallback((rows: TData[]) => {

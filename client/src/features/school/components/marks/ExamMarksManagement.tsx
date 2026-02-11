@@ -50,6 +50,7 @@ import { useGrades } from "@/features/general/hooks/useGrades";
 import { schoolKeys } from "@/features/school/hooks/query-keys";
 import type {
   ExamMarkWithDetails,
+  ExamGroupAndSubjectResponse,
 } from "@/features/school/types/exam-marks";
 import {
   createStudentColumn,
@@ -127,6 +128,10 @@ const ExamMarksManagementComponent = ({
   const [viewingExamMarkId, setViewingExamMarkId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   // Memoized class ID for API calls
   const classId = useMemo(() => selectedClass || 0, [selectedClass]);
 
@@ -142,6 +147,7 @@ const ExamMarksManagementComponent = ({
     setSelectedSection(null);
     setSelectedSubject(null);
     setSelectedExam(null);
+    setPage(1);
   }, [selectedClass, setSelectedSection, setSelectedSubject, setSelectedExam]);
 
   // Single exam mark view data
@@ -160,8 +166,10 @@ const ExamMarksManagementComponent = ({
       exam_id: selectedExam,
       subject_id: selectedSubject,
       ...(selectedSection && { section_id: selectedSection }),
+      page,
+      page_size: pageSize,
     };
-  }, [selectedClass, selectedSection, selectedExam, selectedSubject]);
+  }, [selectedClass, selectedSection, selectedExam, selectedSubject, page, pageSize]);
 
   const hasRequiredFilters = Boolean(
     selectedClass && selectedClass > 0 &&
@@ -297,11 +305,14 @@ const ExamMarksManagementComponent = ({
 
   // Data processing
   const flattenedMarks = useMemo(() => {
-    if (!examMarksData || !Array.isArray(examMarksData)) return [] as ExamMarkWithDetails[];
+    const raw = examMarksData as { data?: ExamGroupAndSubjectResponse[]; total_count?: number } | ExamGroupAndSubjectResponse[] | undefined;
+    const groups = Array.isArray(raw) ? raw : (raw?.data ?? []);
+    
+    if (!groups || !Array.isArray(groups)) return [] as ExamMarkWithDetails[];
     const items: ExamMarkWithDetails[] = [];
-    examMarksData.forEach((group) => {
+    groups.forEach((group) => {
       if (group?.students && Array.isArray(group.students)) {
-        group.students.forEach((student) => {
+        group.students.forEach((student: any) => {
           items.push({
             ...student,
             exam_name: group.exam_name,
@@ -314,6 +325,12 @@ const ExamMarksManagementComponent = ({
       }
     });
     return items;
+  }, [examMarksData]);
+
+  const totalCount = useMemo(() => {
+    const raw = examMarksData as { data?: unknown[]; total_count?: number } | ExamGroupAndSubjectResponse[] | undefined;
+    if (Array.isArray(raw)) return raw.length;
+    return raw?.total_count ?? 0;
   }, [examMarksData]);
 
   // Client-side filtering
@@ -507,18 +524,28 @@ const ExamMarksManagementComponent = ({
 
         {/* Data Table */}
         {hasRequiredFilters && (
-          <DataTable
-            data={filteredMarks}
-            columns={columns}
-            title="Exam Marks"
-            loading={examMarksLoading}
-            actions={actions}
-            actionsHeader="Actions"
-            showSearch={true}
-            searchPlaceholder="Search by student name..."
-            searchKey="student_name"
-            className=""
-          />
+            <DataTable
+              data={filteredMarks}
+              columns={columns}
+              title="Exam Marks"
+              loading={examMarksLoading}
+              actions={actions}
+              actionsHeader="Actions"
+              showSearch={true}
+              searchPlaceholder="Search by student name..."
+              searchKey="student_name"
+              pagination="server"
+              totalCount={totalCount}
+              currentPage={page}
+              pageSize={pageSize}
+              pageSizeOptions={[10, 25, 50, 100]}
+              onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              className=""
+            />
         )}
 
         {/* Dialogs */}

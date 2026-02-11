@@ -4,7 +4,7 @@ import type { CollegeExpenditureCreate, CollegeExpenditureRead, CollegeExpenditu
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
 
-export function useCollegeExpenditureList(params?: { start_date?: string; end_date?: string }, options?: { enabled?: boolean }) {
+export function useCollegeExpenditureList(params?: { start_date?: string; end_date?: string; page?: number; page_size?: number; search?: string | null }, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: collegeKeys.expenditure.list(params),
     queryFn: () => CollegeExpenditureService.list(params),

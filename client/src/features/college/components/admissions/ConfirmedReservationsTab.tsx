@@ -812,6 +812,10 @@ const ConfirmedReservationsTabComponent = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // ✅ Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   // Edit form state
   const [editForm, setEditForm] = useState<Reservation | null>(null);
 
@@ -821,8 +825,8 @@ const ConfirmedReservationsTabComponent = () => {
     isLoading,
     refetch,
   } = useCollegeReservationsList({
-    page: 1,
-    page_size: 100,
+    page: currentPage,
+    page_size: pageSize,
     status: statusFilter,
   });
 
@@ -1349,6 +1353,13 @@ const ConfirmedReservationsTabComponent = () => {
         searchPlaceholder="Search by name, reservation number..."
         loading={isLoading}
         showSearch={true}
+        pagination="server"
+        totalCount={reservationsData?.total_count || 0}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+        pageSizeOptions={[10, 25, 50, 100]}
         className="w-full"
       />
 

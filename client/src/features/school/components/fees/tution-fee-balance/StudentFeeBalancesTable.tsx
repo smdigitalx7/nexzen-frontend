@@ -233,6 +233,7 @@ export const StudentFeeBalancesTable = ({
         totalCount={totalCount}
         currentPage={currentPage}
         pageSize={pageSize}
+        pageSizeOptions={[10, 25, 50, 100]}
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
         showSearch={!onSearchChange}

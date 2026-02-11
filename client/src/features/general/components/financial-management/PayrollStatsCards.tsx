@@ -1,13 +1,10 @@
 ﻿import React from "react";
 import {
-  Clock,
-  CheckCircle,
-  AlertTriangle,
   CreditCard,
   TrendingUp,
-  Users,
   Wallet,
   Calculator,
+  AlertTriangle,
 } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 import { StatsCard } from "@/common/components/shared/dashboard/StatsCard";
@@ -28,48 +25,12 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
 }) => {
   const statsCards = [
     {
-      title: "Total Records",
-      value: stats.total_payroll_records,
-      icon: Users,
-      color: "blue" as const,
-      description: "All payroll records",
-      variant: "elevated" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Pending Payrolls",
-      value: stats.pending_payrolls,
-      icon: Clock,
-      color: "yellow" as const,
-      description: "Awaiting processing",
-      variant: "bordered" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Paid Payrolls",
-      value: stats.paid_payrolls,
-      icon: CheckCircle,
-      color: "green" as const,
-      description: "Successfully paid",
-      variant: "gradient" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Hold Payrolls",
-      value: stats.hold_payrolls,
-      icon: AlertTriangle,
-      color: "red" as const,
-      description: "On hold",
-      variant: "default" as const,
-      size: "sm" as const,
-    },
-    {
       title: "Total Gross Pay",
       value: formatCurrency(stats.total_gross_pay),
       icon: IndianRupeeIcon,
       color: "indigo" as const,
       description: "Before deductions",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -78,7 +39,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       icon: Wallet,
       color: "emerald" as const,
       description: "After deductions",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -87,7 +48,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       icon: TrendingUp,
       color: "orange" as const,
       description: "All deductions",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -114,13 +75,13 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       icon: Calculator,
       color: "cyan" as const,
       description: "Per employee",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
   ];
 
   return (
-    <DashboardGrid columns={5} gap="md" className={className}>
+    <DashboardGrid columns={3} gap="md" className={className}>
       {statsCards.map((stat, index) => (
         <StatsCard key={stat.title} {...stat} loading={loading} />
       ))}

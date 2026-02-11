@@ -153,7 +153,8 @@ export const useEmployeeManagement = (
   );
   const [leaveMonth, setLeaveMonth] = useState<number>(now.getMonth() + 1);
   const [leaveYear, setLeaveYear] = useState<number>(now.getFullYear());
-  const pageSize = 20;
+  const [employeesPage, setEmployeesPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   // Data hooks - API calls are made per tab, not based on sidebar navigation
   // Only fetch data when the respective tab is active to prevent unnecessary requests and UI freezes
@@ -162,24 +163,38 @@ export const useEmployeeManagement = (
     data: employeesData,
     isLoading,
     error,
-  } = useEmployeesByBranch(employeesEnabled);
+  } = useEmployeesByBranch(employeesEnabled, employeesPage, pageSize);
 
   // ✅ FIX: Handle both direct array and wrapped response formats
   const employees = useMemo(() => {
     if (!employeesData) return [];
-    const raw: unknown = employeesData;
+    const raw: any = employeesData;
     // Handle case where API returns direct array
     if (Array.isArray(raw)) return raw;
-    // Handle case where API returns { data: [...] }
-    if (raw && typeof raw === "object" && Array.isArray((raw as any).data)) {
-      return (raw as any).data as EmployeeRead[];
+    // Handle case where API returns { data: [...], total_count: ... }
+    if (raw && typeof raw === "object" && Array.isArray(raw.data)) {
+      return raw.data as EmployeeRead[];
     }
     return [];
   }, [employeesData]);
 
+  const totalEmployeesCount = useMemo(() => {
+    if (!employeesData) return 0;
+    const raw: any = employeesData;
+    if (Array.isArray(raw)) return raw.length;
+    return raw.total_count || 0;
+  }, [employeesData]);
+
+  const totalEmployeesPages = useMemo(() => {
+    if (!employeesData) return 0;
+    const raw: any = employeesData;
+    if (Array.isArray(raw)) return 1;
+    return raw.total_pages || Math.ceil((raw.total_count || 0) / pageSize);
+  }, [employeesData]);
+
   // Only fetch attendance when attendance tab is active
   const { data: attendanceData, isLoading: attendanceLoading } =
-    useAttendanceByBranch(attendanceMonth, attendanceYear, attendanceEnabled);
+    useAttendanceByBranch(attendanceMonth, attendanceYear, pageSize, attendancePage, attendanceEnabled);
 
   // Only fetch leaves when leaves tab is active
   const {
@@ -203,7 +218,7 @@ export const useEmployeeManagement = (
   const { data: advancesData, isLoading: advancesLoading } =
     useAdvancesByBranch(
       pageSize,
-      1, // advancesPage - pagination can be added when needed
+      advancesPage, // advancesPage - pagination from state
       undefined, // month
       undefined, // year
       undefined, // status
@@ -328,6 +343,12 @@ export const useEmployeeManagement = (
   // Flatten and enrich attendance data with employee names
   const flattenedAttendance = useMemo(() => {
     const attendanceArray = Array.isArray(attendance) ? attendance : [];
+    
+    // Check if it's already flat (new API format)
+    if (attendanceArray.length > 0 && !('attendances' in attendanceArray[0])) {
+         return attendanceArray;
+    }
+
     return attendanceArray.flatMap(
       (monthGroup: any) => (Array.isArray(monthGroup?.attendances) ? monthGroup.attendances : [])
     );
@@ -356,45 +377,42 @@ export const useEmployeeManagement = (
   // ✅ FIX: Memoize computed values
 
   // Computed values
-  const totalEmployees = useMemo(() => employeesArray.length, [employeesArray]);
+  const totalEmployees = useMemo(() => totalEmployeesCount, [totalEmployeesCount]);
   const activeEmployees = useMemo(() => {
     return employeesArray.filter((emp) => emp.status === "ACTIVE").length;
   }, [employeesArray]);
-  const totalAttendance = useMemo(
-    () => flattenedAttendance.length,
-    [flattenedAttendance]
-  );
+  
+  // Use API returned totals for server-side pagination
+  const totalAttendance = attendanceData?.total || 0;
+  // Use API returned total_pages directly
+  const totalAttendancePages = (attendanceData as any)?.total_pages || Math.ceil(totalAttendance / pageSize) || 1;
+
   const presentToday = 0; // Not applicable with monthly aggregates
+  
   const pendingLeaves = useMemo(() => {
+    // This calculation is only accurate for the currently fetched page
+    // Ideally backend should provide this count separately
     const leavesArray = Array.isArray(leaves) ? leaves : [];
     return leavesArray.filter((leave: any) => leave.leave_status === "PENDING")
       .length;
   }, [leaves]);
-  const totalAdvances = useMemo(() => {
-    return Array.isArray(advances) ? advances.length : 0;
-  }, [advances]);
+
+  const totalLeaves = leavesData?.total || 0;
+  const totalLeavesPages = leavesData?.pages || Math.ceil(totalLeaves / pageSize) || 1;
+
+  const totalAdvances = advancesData?.total || 0;
+  const totalAdvancesPages = advancesData?.pages || Math.ceil(totalAdvances / pageSize) || 1;
+
   const pendingAdvances = useMemo(() => {
+    // Only accurate for current page
     const advancesArray = Array.isArray(advances) ? advances : [];
     return advancesArray.filter((adv: any) => adv.status === "REQUESTED").length;
   }, [advances]);
 
-  // Pagination
-  const paginatedAttendance = useMemo(() => {
-    const start = (attendancePage - 1) * pageSize;
-    return enrichedAttendance.slice(start, start + pageSize);
-  }, [enrichedAttendance, attendancePage, pageSize]);
-
-  const paginatedLeaves = useMemo(() => {
-    const start = (leavesPage - 1) * pageSize;
-    return leaves.slice(start, start + pageSize);
-  }, [leaves, leavesPage, pageSize]);
-
-  const paginatedAdvances = useMemo(() => {
-    const start = (advancesPage - 1) * pageSize;
-    return Array.isArray(advances)
-      ? advances.slice(start, start + pageSize)
-      : [];
-  }, [advances, advancesPage, pageSize]);
+  // Pagination - Data is already paginated by API
+  const paginatedAttendance = enrichedAttendance;
+  const paginatedLeaves = leaves;
+  const paginatedAdvances = advances;
 
   // Business logic functions
   // ✅ CRITICAL: Support manual refetching with delay
@@ -882,18 +900,27 @@ export const useEmployeeManagement = (
     totalAttendance,
     presentToday,
     pendingLeaves,
+    totalLeaves, // Added
     totalAdvances,
     pendingAdvances,
 
     // UI State
     activeTab,
     setActiveTab,
+    employeesPage,
+    setEmployeesPage,
+    totalEmployeesPages,
     attendancePage,
-    setAttendancePage,
     leavesPage,
-    setLeavesPage,
     advancesPage,
+    setAttendancePage,
+    setLeavesPage,
     setAdvancesPage,
+    totalAttendancePages, // Added
+    totalLeavesPages, // Added
+    totalAdvancesPages, // Added
+    pageSize,
+    setPageSize,
     attendanceMonth,
     setAttendanceMonth,
     attendanceYear,
@@ -902,7 +929,6 @@ export const useEmployeeManagement = (
     setLeaveMonth,
     leaveYear,
     setLeaveYear,
-    pageSize,
 
     // Employee state
     showEmployeeForm,

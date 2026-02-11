@@ -56,7 +56,6 @@ export function useSchoolStudentsList(params?: {
     refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
     refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
     refetchOnMount: true, // Only refetch on mount if data is stale
-    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 

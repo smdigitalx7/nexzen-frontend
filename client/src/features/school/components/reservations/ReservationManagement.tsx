@@ -179,7 +179,7 @@ const ReservationManagementComponent = () => {
   // ✅ Server-side pagination state - CRITICAL: Prevents fetching ALL reservations at once
   // This fixes UI freeze by limiting data fetched per request
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50); // Fetch 50 reservations at a time (prevents loading 1000+ at once)
+  const [pageSize, setPageSize] = useState(25); // Fetch 25 reservations at a time (requested default)
 
   // ✅ OPTIMIZATION: Stabilize query params to prevent unnecessary refetches
   const reservationParams = useMemo(
@@ -569,7 +569,7 @@ const ReservationManagementComponent = () => {
           | "WALK_IN"
           | "REFERRAL",
         referred_by: form.referred_by ? Number(form.referred_by) : 0,
-        referred_by_name: form.referred_by_name || "",
+        other_referee_name: form.other_referee_name || "",
         remarks: form.remarks || "",
         reservation_date: form.reservation_date || "",
       };
@@ -674,6 +674,7 @@ const ReservationManagementComponent = () => {
       r.application_fee != null ? String(r.application_fee) : "0",
     application_fee_paid: r.application_fee_paid || false,
     class_name: r.class_name || "",
+    preferred_class_id: r.preferred_class_id != null ? String(r.preferred_class_id) : "0",
     tuition_fee: r.tuition_fee != null ? String(r.tuition_fee) : "0",
     book_fee: r.book_fee != null ? String(r.book_fee) : "0",
     transport_required:
@@ -694,7 +695,7 @@ const ReservationManagementComponent = () => {
     status: r.status || "PENDING",
     request_type: (r).request_type || "WALK_IN",
     referred_by: r.referred_by != null ? String(r.referred_by) : "",
-    referred_by_name: (r).referred_by_name || "",
+    other_referee_name: (r).other_referee_name || "",
     remarks: r.remarks || "",
     reservation_date: r.reservation_date || "",
   });
@@ -853,9 +854,20 @@ const ReservationManagementComponent = () => {
             isLoading={isLoadingReservations}
             isError={reservationsError}
             error={reservationsErrObj}
-            totalCount={reservationsData?.total_count}
             onRefetch={() => {
               refetchReservations().catch(console.error);
+            }}
+            // ✅ Server-side pagination props
+            currentPage={currentPage}
+            totalCount={reservationsData?.total_count || 0}
+            pageSize={pageSize}
+            onPageChange={(page: number) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onPageSizeChange={(newPageSize: number) => {
+              setPageSize(newPageSize);
+              setCurrentPage(1);
             }}
           />
         ),
@@ -937,7 +949,7 @@ const ReservationManagementComponent = () => {
           | "WALK_IN"
           | "REFERRAL",
         referred_by: editForm.referred_by ? Number(editForm.referred_by) : 0,
-        referred_by_name: editForm.referred_by_name || "",
+        other_referee_name: editForm.other_referee_name || "",
         remarks: editForm.remarks || "",
         reservation_date: editForm.reservation_date || "",
       };
@@ -1080,7 +1092,7 @@ const ReservationManagementComponent = () => {
       >
         {viewReservation && (
           <SchoolReservationViewContent
-            viewReservation={viewReservation}
+            viewReservation={viewReservation as any}
             routeNames={routeNames}
             distanceSlabs={distanceSlabs}
             classes={classes}

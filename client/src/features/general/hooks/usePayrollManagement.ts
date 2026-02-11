@@ -100,6 +100,8 @@ export const usePayrollManagement = () => {
   );
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>();
+  const [payrollPage, setPayrollPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [showPayslipDialog, setShowPayslipDialog] = useState(false);
@@ -118,6 +120,8 @@ export const usePayrollManagement = () => {
     month: selectedMonth,
     year: selectedYear,
     status: selectedStatus,
+    page: payrollPage,
+    page_size: pageSize,
   });
 
   // Employees are needed for payroll management, but with caching to prevent excessive refetches
@@ -125,7 +129,7 @@ export const usePayrollManagement = () => {
     useEmployeesByBranch(true);
 
   // ✅ FIX: Ensure employees is always an array to prevent "find is not a function" errors
-  const employees = Array.isArray(employeesData) ? employeesData : [];
+  const employees: any[] = Array.isArray(employeesData) ? employeesData : [];
 
   // Additional API hooks for enhanced features
   const { data: dashboardStats } = useQuery({
@@ -147,62 +151,52 @@ export const usePayrollManagement = () => {
     [key: string]: unknown;
   }
 
-  // Computed values - Flatten nested payroll data structure and enrich with employee names
+  const totalCount = payrollsResp?.total_count || 0;
+  const totalPages = payrollsResp?.total_pages || 0;
+
   const currentPayrolls = useMemo(() => {
-    // Flatten the nested structure: data -> monthGroups -> payrolls
-    // Both listAll and listByBranch return the same structure: PayrollListResponse with data as PayrollMonthGroup[]
-    // ✅ FIX: Preserve all fields from API response including employee_name, employee_type, etc.
-    const flattenedPayrolls = Array.isArray(payrollsResp?.data)
-      ? (payrollsResp.data as unknown as PayrollMonthGroup[]).flatMap(
-          (monthGroup: PayrollMonthGroup) => {
-            // ✅ FIX: Preserve ALL fields from API response - don't filter anything
-            return monthGroup.payrolls || [];
-          }
+    const rawData: any = payrollsResp?.data;
+    if (!rawData) return [];
+
+    const rawEmployees: any[] = employees;
+
+    // If data is directly an array, use it
+    if (Array.isArray(rawData) && rawData.length > 0 && typeof (rawData[0]) === 'object' && rawData[0] !== null && 'payroll_id' in rawData[0]) {
+      return (rawData as any[]).map((payrollRecord: any) => {
+        const employee = rawEmployees.find((emp: any) => emp && emp.employee_id === payrollRecord.employee_id);
+        const apiEmployeeName = payrollRecord.employee_name;
+        const employeeName = (apiEmployeeName && apiEmployeeName.trim() !== "" && apiEmployeeName !== "Unknown Employee")
+          ? apiEmployeeName
+          : (employee?.employee_name || `Employee #${payrollRecord.employee_id}`);
+        
+        return {
+          ...payrollRecord,
+          employee_name: employeeName,
+          employee_type: payrollRecord.employee_type || employee?.employee_type || "Unknown",
+        };
+      });
+    }
+
+    // Otherwise handle nested structure
+    const flattenedPayrolls = Array.isArray(rawData)
+      ? (rawData as unknown as any[]).flatMap(
+          (monthGroup: any) => monthGroup.payrolls || []
         )
       : [];
 
-    // Enrich payroll data with employee names
-    // ✅ FIX: API response already includes employee_name, so we should preserve it
-    const enrichedPayrolls = flattenedPayrolls.map(
-      (
-        payrollRecord: PayrollRead & {
-          employee_name?: string;
-          employee_type?: string;
-          payroll_month?: number | string;
-          payroll_year?: number;
-        }
-      ) => {
-        // ✅ FIX: The API response already includes employee_name, use it directly
-        // Cast to include employee_name which comes from API but isn't in PayrollRead type
-        const apiEmployeeName = payrollRecord.employee_name;
-        const apiEmployeeType = payrollRecord.employee_type;
-
-        const employee = employees.find(
-          (emp) => emp.employee_id === payrollRecord.employee_id
-        );
-
-        // ✅ FIX: Use employee_name from API response first, then fall back to employees array
-        const employeeName =
-          apiEmployeeName &&
-          apiEmployeeName.trim() !== "" &&
-          apiEmployeeName !== "Unknown Employee"
-            ? apiEmployeeName
-            : employee?.employee_name ||
-              `Employee #${payrollRecord.employee_id}`;
-
-        const employeeType =
-          apiEmployeeType || employee?.employee_type || "Unknown";
-
-        // ✅ FIX: Preserve ALL fields from the API response, explicitly set employee_name
-        return {
-          ...payrollRecord, // This includes all fields from API
-          employee_name: employeeName, // Explicitly set to ensure it's always present
-          employee_type: employeeType,
-        };
-      }
-    );
-
-    return enrichedPayrolls;
+    return (flattenedPayrolls as any[]).map((payrollRecord: any) => {
+      const employee = rawEmployees.find((emp: any) => emp && emp.employee_id === payrollRecord.employee_id);
+      const apiEmployeeName = payrollRecord.employee_name;
+      const employeeName = (apiEmployeeName && apiEmployeeName.trim() !== "" && apiEmployeeName !== "Unknown Employee")
+        ? apiEmployeeName
+        : (employee?.employee_name || `Employee #${payrollRecord.employee_id}`);
+      
+      return {
+        ...payrollRecord,
+        employee_name: employeeName,
+        employee_type: payrollRecord.employee_type || employee?.employee_type || "Unknown",
+      };
+    });
   }, [payrollsResp, employees]);
 
   const currentEmployees = useMemo(() => {
@@ -303,12 +297,11 @@ export const usePayrollManagement = () => {
     selectedStatus,
   ]);
 
-  // Transform payrolls to include employee information
-  // ✅ FIX: Preserve employee_name from API response, don't override it
   const payrollsWithEmployee = useMemo(() => {
-    return filteredPayrolls.map((payroll: PayrollWithEmployee) => {
-      const employee = currentEmployees.find(
-        (emp) => emp.employee_id === payroll.employee_id
+    const rawEmployees: any[] = currentEmployees;
+    return filteredPayrolls.map((payroll: any) => {
+      const employee = rawEmployees.find(
+        (emp: any) => emp.employee_id === payroll.employee_id
       );
       const date = payroll.payroll_month
         ? new Date(payroll.payroll_month)
@@ -580,6 +573,12 @@ export const usePayrollManagement = () => {
     detailedPayrollLoading,
     activeTab,
     setActiveTab,
+    payrollPage,
+    setPayrollPage,
+    totalCount,
+    totalPages,
+    pageSize,
+    setPageSize,
 
     // Loading states
     isLoading,

@@ -339,8 +339,8 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
           currentPage={currentPage}
           totalCount={totalCount}
           pageSize={pageSize}
-          onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
+          pageSizeOptions={[10, 25, 50, 100]}
           // Export configuration
           export={{ enabled: true, filename: "all_college_reservations" }}
         />

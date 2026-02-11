@@ -31,15 +31,15 @@ export const useAttendanceAll = (month?: number, year?: number) => {
   });
 };
 
-export const useAttendanceByBranch = (month?: number, year?: number, enabled: boolean = true) => {
+export const useAttendanceByBranch = (month?: number, year?: number, pageSize: number = 10, page: number = 1, enabled: boolean = true) => {
   // Default to current month/year if not provided (mandatory parameters)
   const now = new Date();
   const currentMonth = month ?? now.getMonth() + 1;
   const currentYear = year ?? now.getFullYear();
   
   return useQuery({
-    queryKey: employeeAttendanceKeys.byBranch({ month: currentMonth, year: currentYear }),
-    queryFn: () => EmployeeAttendanceService.listByBranch(currentMonth, currentYear),
+    queryKey: employeeAttendanceKeys.byBranch({ month: currentMonth, year: currentYear, pageSize, page }),
+    queryFn: () => EmployeeAttendanceService.listByBranch(currentMonth, currentYear, page, pageSize),
     enabled, // Allow conditional query execution to prevent unnecessary fetches
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes

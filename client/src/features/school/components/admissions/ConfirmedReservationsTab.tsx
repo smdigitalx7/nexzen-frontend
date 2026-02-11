@@ -1,4 +1,4 @@
- import { useState, useMemo, useCallback, memo, useEffect } from "react";
+﻿ import { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
@@ -782,13 +782,17 @@ const ConfirmedReservationsTabComponent = () => {
   const [editForm, setEditForm] = useState<Reservation | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
+  // ✅ Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   const {
     data: reservationsData,
     isLoading,
     refetch,
   } = useSchoolReservationsList({
-    page: 1,
-    page_size: 100,
+    page: currentPage,
+    page_size: pageSize,
     status: statusFilter,
   });
 
@@ -1293,6 +1297,13 @@ const ConfirmedReservationsTabComponent = () => {
         searchKey="student_name"
         searchPlaceholder="Search by name, reservation number..."
         loading={isLoading}
+        pagination="server"
+        totalCount={reservationsData?.total_count || 0}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+        pageSizeOptions={[10, 25, 50, 100]}
         export={{ enabled: true, filename: "confirmed_reservations" }}
         className="w-full"
       />

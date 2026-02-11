@@ -44,7 +44,7 @@ export const PayrollsService = {
     status?: string,
     page?: number,
     page_size?: number
-  ): Promise<any> {
+  ): Promise<PayrollListResponse> {
     const params = new URLSearchParams();
     if (month) params.append("month", month.toString());
     if (year) params.append("year", year.toString());
@@ -53,7 +53,7 @@ export const PayrollsService = {
     if (page_size) params.append("page_size", page_size.toString());
 
     const url = `/payrolls?${params.toString()}`;
-    return Api.get<any>(url);
+    return Api.get<PayrollListResponse>(url);
   },
 
   /**
@@ -204,5 +204,26 @@ export const PayrollsService = {
     payload: PayrollStatusUpdate
   ): Promise<PayrollRead> {
     return Api.patch<PayrollRead>(`/payrolls/${id}/status`, payload);
+  },
+
+  /**
+   * Download payslip PDF
+   * @param id - Payroll ID
+   * @returns Promise<Blob> - PDF blob
+   */
+  async downloadPayslip(id: number): Promise<Blob> {
+    // Start with base API URL handling similar to Api.get/post
+    // In this project, Api.get/post handles baseURL, but since we need blob responseType,
+    // we should use the underlying axios instance or fetch directly if possible.
+    // However, since Api helper doesn't expose getBlob efficiently, let's use Api.get with responseType if supported
+    // or axios directly. Let's assume we can use the axios instance from @/core/api.
+    
+    // Importing apiClient dynamically to avoid circular dependencies if any, or just assume it is exported.
+    // Actually, let's import apiClient at top level.
+    const { apiClient } = await import("@/core/api");
+    const response = await apiClient.get<Blob>(`/payrolls/${id}/payslip`, {
+      responseType: "blob",
+    });
+    return response.data;
   },
 };

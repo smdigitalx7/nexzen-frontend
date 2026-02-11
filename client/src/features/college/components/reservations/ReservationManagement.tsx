@@ -213,7 +213,7 @@ function ReservationManagementComponent() {
 
   // ✅ Server-side pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(25);
 
   // ✅ Server-side search: input value and debounced value for API (500ms)
   const [searchInput, setSearchInput] = useState("");
@@ -589,7 +589,7 @@ function ReservationManagementComponent() {
         status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
         request_type: (form.requestType || "WALK_IN") as "WALK_IN" | "REFERRAL",
         referred_by: form.referredBy ? Number(form.referredBy) : null, // Use null instead of 0
-        referred_by_name: form.referredByName || null,
+        other_referee_name: form.other_referee_name || null,
         remarks: form.remarks || null,
       };
 
@@ -728,7 +728,7 @@ function ReservationManagementComponent() {
       status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
       request_type: (f.requestType || "WALK_IN") as "WALK_IN" | "REFERRAL",
       referred_by: f.referredBy ? Number(f.referredBy) : null, // Use null instead of 0
-      referred_by_name: f.referredByName || null,
+      other_referee_name: f.other_referee_name || null,
       remarks: f.remarks || null,
     };
   };
@@ -866,9 +866,9 @@ function ReservationManagementComponent() {
         : (r as CollegeReservationRead).referred_by != null
           ? String((r as CollegeReservationRead).referred_by)
           : "",
-      referredByName: isView
+      other_referee_name: isView
         ? ""
-        : (r as CollegeReservationRead).referred_by_name || "",
+        : (r as CollegeReservationRead).other_referee_name || "",
       reservationDate: isView
         ? (r as CollegeReservationView).reservation_date || ""
         : (() => {
@@ -1224,7 +1224,7 @@ function ReservationManagementComponent() {
                       | "WALK_IN"
                       | "REFERRAL",
                     referred_by: Number(form.referredBy || 0),
-                    referred_by_name: form.referredByName || "",
+                    other_referee_name: form.other_referee_name,
                     remarks: form.remarks,
                     reservation_date:
                       form.reservationDate ||
@@ -1264,7 +1264,7 @@ function ReservationManagementComponent() {
                       referredBy: next.referred_by
                         ? next.referred_by.toString()
                         : "",
-                      referredByName: next.referred_by_name || "",
+                      other_referee_name: next.other_referee_name || "",
                       remarks: next.remarks,
                       reservationDate: next.reservation_date,
                       bookFeeRequired: next.book_fee_required,
@@ -1378,7 +1378,18 @@ function ReservationManagementComponent() {
                 isError={reservationsError}
                 error={reservationsErrObj}
                 onRefetch={refetchReservations}
-                totalCount={reservationsData?.total_count}
+                // ✅ Server-side pagination props
+                totalCount={reservationsData?.total_count || 0}
+                currentPage={currentPage}
+                pageSize={pageSize}
+                onPageChange={(page: number) => {
+                  setCurrentPage(page);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                onPageSizeChange={(newPageSize: number) => {
+                  setPageSize(newPageSize);
+                  setCurrentPage(1);
+                }}
               />
             ),
           },
@@ -1496,7 +1507,7 @@ function ReservationManagementComponent() {
               </div>
               <div>
                 <strong>Referred By:</strong>{" "}
-                {viewReservation.referred_by_name || "-"}
+                {viewReservation.other_referee_name || "-"}
               </div>
               <div>
                 <strong>Created At:</strong>{" "}
@@ -1768,7 +1779,7 @@ function ReservationManagementComponent() {
                   | "WALK_IN"
                   | "REFERRAL",
                 referred_by: Number(editForm.referredBy || 0),
-                referred_by_name: editForm.referredByName || "",
+                other_referee_name: editForm.other_referee_name || "",
                 remarks: editForm.remarks,
                 reservation_date:
                   editForm.reservationDate ||
@@ -1808,7 +1819,7 @@ function ReservationManagementComponent() {
                   referredBy: next.referred_by
                     ? next.referred_by.toString()
                     : "",
-                  referredByName: next.referred_by_name || "",
+                  other_referee_name: next.other_referee_name || "",
                   remarks: next.remarks,
                   reservationDate: next.reservation_date,
                   bookFeeRequired: next.book_fee_required,

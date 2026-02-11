@@ -40,11 +40,8 @@ export const CollegeReportsTemplate = () => {
   const EMPTY_ARRAY = useMemo(() => [], []);
 
   // ✅ OPTIMIZATION: Only fetch expenditure data when Expenditure tab is active
-  const {
-    data: expenditureData = EMPTY_ARRAY,
-    isLoading: expenditureLoading,
-    error: expenditureError,
-  } = useCollegeExpenditureList(undefined, { enabled: expenditureTabEnabled });
+  // ✅ Expenditure is now fetched inside ExpenditureTable
+  // const { data: expenditureData = EMPTY_ARRAY, isLoading: expenditureLoading, error: expenditureError } = useCollegeExpenditureList(undefined, { enabled: expenditureTabEnabled });
 
   // ✅ OPTIMIZATION: Only fetch dashboard data when respective tabs are active
   const {
@@ -113,21 +110,11 @@ export const CollegeReportsTemplate = () => {
       value: "expenditure",
       label: "Expenditure",
       icon: TrendingUp,
-      content: expenditureLoading ? (
-        <div className="flex items-center justify-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      ) : expenditureError ? (
-        <div className="text-center py-8">
-          <p className="text-red-600">
-            Error loading expenditure data: {expenditureError.message}
-          </p>
-        </div>
-      ) : (
+      content: (
         <ExpenditureTable
-          expenditureData={expenditureData as any[]}
           onExportCSV={() => {}}
           onAddExpenditure={handleAddExpenditure}
+          enabled={expenditureTabEnabled}
         />
       ),
     },
@@ -146,9 +133,7 @@ export const CollegeReportsTemplate = () => {
   ], [
     handleViewIncome,
     incomeTabEnabled,
-    expenditureLoading,
-    expenditureError,
-    expenditureData,
+    expenditureTabEnabled,
     handleAddExpenditure,
     incomeDashboard,
     expenditureDashboard,

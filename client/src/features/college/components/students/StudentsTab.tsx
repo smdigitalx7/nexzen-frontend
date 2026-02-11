@@ -62,7 +62,11 @@ export const StudentsTab = () => {
     search: debouncedSearch || undefined,
   });
   
-  const students: CollegeStudentRead[] = studentsResp?.data ?? [];
+  const students: CollegeStudentRead[] = useMemo(() => {
+    if (!studentsResp) return [];
+    if (Array.isArray(studentsResp)) return studentsResp;
+    return studentsResp.data ?? [];
+  }, [studentsResp]);
   const deleteStudentMutation = useDeleteCollegeStudent();
   const [selectedStudent, setSelectedStudent] = useState<CollegeStudentFullDetails | null>(null);
   const updateStudentMutation = useUpdateCollegeStudent(selectedStudent?.student_id || 0);
@@ -160,7 +164,7 @@ export const StudentsTab = () => {
       accessorKey: 'student_name',
       header: 'Student Details',
       cell: ({ row }) => {
-        const name = row.getValue('student_name');
+        const name = row.getValue('student_name') as string;
         const gender = row.original.gender;
         return (
           <div className="flex items-center gap-3">
@@ -180,22 +184,25 @@ export const StudentsTab = () => {
     {
       accessorKey: 'father_or_guardian_mobile',
       header: 'Mobile',
-      cell: ({ row }) => <span>{row.getValue('father_or_guardian_mobile') || 'N/A'}</span>
+      cell: ({ row }) => <span>{(row.getValue('father_or_guardian_mobile') as string) || 'N/A'}</span>
     },
     {
       accessorKey: 'present_address',
       header: 'Address',
-      cell: ({ row }) => (
-        <div className="max-w-[200px] truncate text-muted-foreground" title={row.getValue('present_address')}>
-          {row.getValue('present_address') || 'N/A'}
-        </div>
-      )
+      cell: ({ row }) => {
+        const address = row.getValue('present_address') as string;
+        return (
+          <div className="max-w-[200px] truncate text-muted-foreground" title={address}>
+            {address || 'N/A'}
+          </div>
+        );
+      }
     },
     {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => {
-        const status = row.getValue('status');
+        const status = row.getValue('status') as string;
         const variant = status === 'ACTIVE' ? 'secondary' : status === 'INACTIVE' ? 'destructive' : 'outline';
         return (
           <Badge variant={variant} className={status === 'ACTIVE' ? 'bg-green-100 text-green-700 border-green-200' : ''}>
@@ -233,7 +240,11 @@ export const StudentsTab = () => {
         title="Students List"
         loading={isLoading}
         pagination="server"
-        totalCount={studentsResp?.total_count || 0}
+        totalCount={
+          Array.isArray(studentsResp)
+            ? studentsResp.length
+            : studentsResp?.total_count || 0
+        }
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={setCurrentPage}

@@ -77,7 +77,7 @@ export const SchoolReservationViewContent = memo(
           </div>
           <div>
             <strong>Referred By:</strong>{" "}
-            {(viewReservation.referred_by_name as string) ||
+            {(viewReservation.other_referee_name as string) ||
               (viewReservation.referred_by as string) ||
               "-"}
           </div>

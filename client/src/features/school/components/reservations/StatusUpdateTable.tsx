@@ -32,6 +32,10 @@ export type StatusUpdateTableProps = {
   error?: any;
   onRefetch?: () => void | Promise<void>; // Optional - cache invalidation handled by hooks
   totalCount?: number;
+  currentPage?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 };
 
 // Status badge component
@@ -212,6 +216,10 @@ const StatusUpdateTableComponent = ({
   error,
   onRefetch,
   totalCount,
+  currentPage,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
 }: StatusUpdateTableProps) => {
   const [statusChanges, setStatusChanges] = useState<
     Record<string, "PENDING" | "CONFIRMED" | "CANCELLED">
@@ -320,7 +328,7 @@ const StatusUpdateTableComponent = ({
         accessorKey: "status",
         header: "Current Status",
         cell: ({ row }) => {
-          const status = row.getValue("status");
+          const status = row.getValue("status") as string;
           return <StatusBadge status={status} />;
         },
       },
@@ -387,6 +395,12 @@ const StatusUpdateTableComponent = ({
         searchKey="studentName"
         export={{ enabled: false }}
         loading={isLoading}
+        pagination="server"
+        totalCount={totalCount}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
         className="w-full"
       />
     </div>

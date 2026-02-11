@@ -120,7 +120,7 @@ export function useCreateSchoolIncomeByReservation() {
   }, "Income record created successfully");
 }
 
-export function useSchoolExpenditureList(params?: { start_date?: string; end_date?: string }, options?: { enabled?: boolean }) {
+export function useSchoolExpenditureList(params?: { start_date?: string; end_date?: string; page?: number; page_size?: number; search?: string | null }, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: schoolKeys.expenditure.list(params as Record<string, unknown> | undefined),
     queryFn: () => SchoolExpenditureService.list(params),

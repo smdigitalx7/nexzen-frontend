@@ -313,10 +313,13 @@ const StudentsTabComponent = () => {
   const { data: viewStudentData, isLoading: isViewLoading } = useSchoolStudent(viewStudentId);
   const updateStudentMutation = useUpdateSchoolStudent(selectedStudent?.student_id || 0);
 
-  // ✅ FIX: Remove memoization or add dataUpdatedAt to detect changes
   // Use dataUpdatedAt to ensure we detect when React Query refetches
-  const students = useMemo(() => studentsResp?.data ?? [], [
-    studentsResp?.data,
+  const students = useMemo(() => {
+    if (!studentsResp) return [];
+    if (Array.isArray(studentsResp)) return studentsResp;
+    return studentsResp.data ?? [];
+  }, [
+    studentsResp,
     dataUpdatedAt, // ✅ Add timestamp to detect refetches
   ]);
 
@@ -408,7 +411,11 @@ const StudentsTabComponent = () => {
             title="Students"
             loading={isLoading}
             pagination="server"
-            totalCount={studentsResp?.total_count || 0}
+            totalCount={
+              Array.isArray(studentsResp) 
+                ? studentsResp.length 
+                : studentsResp?.total_count || 0
+            }
             currentPage={currentPage}
             pageSize={pageSize}
             onPageChange={(page) => {

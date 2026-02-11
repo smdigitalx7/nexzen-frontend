@@ -76,7 +76,7 @@ export function useDeleteSchoolAttendance() {
 /**
  * ✅ OPTIMIZATION: Query key stabilized, supports enabled flag for tab gating
  */
-export function useSchoolAttendanceAllStudents(params: { class_id: number; month: number; year: number; section_id?: number | null; } | null) {
+export function useSchoolAttendanceAllStudents(params: { class_id: number; month: number; year: number; section_id?: number | null; page?: number; page_size?: number; } | null) {
   // ✅ OPTIMIZATION: Stabilize query key
   const queryKey = useMemo(
     () => params ? [...schoolKeys.attendance.root(), "all-students", params] : [...schoolKeys.attendance.root(), "all-students", "nil"],

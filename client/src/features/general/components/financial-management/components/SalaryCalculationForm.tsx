@@ -58,6 +58,7 @@ interface SalaryCalculationFormProps {
   onClose: () => void;
   onSubmit: (data: PayrollCreate) => Promise<void> | void;
   employees: Array<{ employee_id: number; employee_name: string }>;
+  initialEmployeeId?: number | null;
 }
 
 export const SalaryCalculationForm = ({
@@ -65,6 +66,7 @@ export const SalaryCalculationForm = ({
   onClose,
   onSubmit,
   employees,
+  initialEmployeeId,
 }: SalaryCalculationFormProps) => {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [previewData, setPreviewData] = useState<PayrollPreview | null>(null);
@@ -78,8 +80,8 @@ export const SalaryCalculationForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initial form data
-  const initialFormData = {
-    employee_id: "",
+  const initialFormData = useMemo(() => ({
+    employee_id: initialEmployeeId ? initialEmployeeId.toString() : "",
     payroll_month: new Date().getMonth() + 1,
     payroll_year: new Date().getFullYear(),
     previous_balance: 0,
@@ -91,7 +93,7 @@ export const SalaryCalculationForm = ({
     payment_method: PaymentMethodEnum.CASH,
     payment_notes: "",
     status: PayrollStatusEnum.PENDING,
-  };
+  }), [initialEmployeeId]);
 
   // Using shared form state management
   const { formData, updateField, resetForm } = useFormState({
@@ -151,6 +153,72 @@ export const SalaryCalculationForm = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calculatedNet, paymentOption]);
+
+  // Auto-fetch preview when dialog opens with an employee ID
+  useEffect(() => {
+    if (isOpen && initialEmployeeId) {
+      // Call preview directly with initialEmployeeId
+      const fetchPreview = async () => {
+        setIsLoadingPreview(true);
+        setPreviewData(null);
+        setPreviewError(null);
+        
+        try {
+          const currentMonth = new Date().getMonth() + 1;
+          const currentYear = new Date().getFullYear();
+          
+          const preview = await PayrollsService.getPreview({
+            employee_id: Number(initialEmployeeId),
+            month: currentMonth,
+            year: currentYear,
+          });
+
+          setPreviewData(preview);
+          setPreviewError(null);
+
+          // Auto-populate form with preview data
+          updateField("gross_pay", preview.gross_pay);
+          updateField("previous_balance", preview.previous_balance);
+          updateField("lop", preview.lop);
+          updateField("advance_deduction", preview.advance_deduction);
+          updateField("other_deductions", preview.other_deductions);
+        } catch (error: unknown) {
+          // Extract error message
+          let errorMessage = "Failed to load payroll preview.";
+
+          if (error && typeof error === "object") {
+            const errorObj = error as Record<string, unknown>;
+            const errorData =
+              errorObj.data || (errorObj.response as Record<string, unknown>)?.data;
+            const errorDetail = (errorData as Record<string, unknown>)?.detail;
+
+            if (
+              errorDetail &&
+              typeof errorDetail === "object" &&
+              "message" in errorDetail
+            ) {
+              errorMessage = String(errorDetail.message);
+            } else if (typeof errorDetail === "string") {
+              errorMessage = errorDetail;
+            } else if (
+              errorData &&
+              typeof errorData === "object" &&
+              "message" in errorData
+            ) {
+              errorMessage = String(errorData.message);
+            }
+          }
+
+          setPreviewError(errorMessage);
+        } finally {
+          setIsLoadingPreview(false);
+        }
+      };
+
+      fetchPreview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialEmployeeId]);
 
   const handlePreview = async () => {
     if (
@@ -320,24 +388,31 @@ export const SalaryCalculationForm = ({
         onClose();
       }, 100);
     } catch (error: unknown) {
-      // Error handling is done by the mutation hook (shows toast)
-      // Show additional error message if mutation hook didn't handle it
+      // Extract backend error message
       let errorMessage = "Failed to create payroll. Please try again.";
 
       if (error && typeof error === "object") {
         const errorObj = error as Record<string, unknown>;
-        const response = errorObj.response as
-          | Record<string, unknown>
-          | undefined;
+        const response = errorObj.response as Record<string, unknown> | undefined;
         const data = response?.data as Record<string, unknown> | undefined;
-        const detail = data?.detail as Record<string, unknown> | undefined;
+        const detail = data?.detail;
 
-        if (detail?.message) {
-          errorMessage = String(detail.message);
-        } else if (data?.message) {
-          errorMessage = String(data.message);
-        } else if (errorObj.message) {
-          errorMessage = String(errorObj.message);
+        // Handle different backend error formats
+        if (typeof detail === "string") {
+          // FastAPI often returns detail as a string
+          errorMessage = detail;
+        } else if (detail && typeof detail === "object") {
+          // Check for detail.message
+          const detailObj = detail as Record<string, unknown>;
+          if (detailObj.message && typeof detailObj.message === "string") {
+            errorMessage = detailObj.message;
+          } else if (detailObj.user_message && typeof detailObj.user_message === "string") {
+            errorMessage = detailObj.user_message;
+          }
+        } else if (data?.message && typeof data.message === "string") {
+          errorMessage = data.message;
+        } else if (errorObj.message && typeof errorObj.message === "string") {
+          errorMessage = errorObj.message;
         }
       } else if (typeof error === "string") {
         errorMessage = error;
@@ -393,137 +468,173 @@ export const SalaryCalculationForm = ({
         }
       }}
     >
-      <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto scrollbar-hide p-0 sm:rounded-2xl">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 bg-gradient-to-r from-blue-50/50 to-indigo-50/30">
-          <DialogTitle className="flex items-center gap-3 text-2xl font-semibold text-gray-900">
-            <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-sm">
-              <Calculator className="h-6 w-6 text-white" />
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto scrollbar-hide p-0 sm:rounded-2xl">
+        <DialogHeader className="px-6 pt-5 pb-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+          {initialEmployeeId ? (
+            <div className="space-y-2">
+              <DialogTitle className="flex items-center gap-2.5 text-base font-medium text-gray-600">
+                <div className="p-1.5 bg-blue-100 rounded-lg text-blue-600">
+                  <Calculator size={16} />
+                </div>
+                Generate Payroll
+              </DialogTitle>
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Employee</p>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      {employees.find(e => e.employee_id === initialEmployeeId)?.employee_name || "Loading..."}
+                    </h3>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Period</p>
+                    <p className="text-lg font-bold text-blue-600">
+                      {new Date(0, (formData.payroll_month as number) - 1).toLocaleString("default", { month: "long" })} {formData.payroll_year}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            Preview Payroll
-          </DialogTitle>
-          <DialogDescription className="text-sm text-gray-600 mt-2 leading-relaxed">
-            Preview payroll calculations for an employee. Use the 'Get Preview'
-            button to load calculated values from attendance data.
-          </DialogDescription>
+          ) : (
+            <DialogTitle className="flex items-center gap-2.5 text-xl font-semibold text-gray-900">
+              <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <Calculator size={20} />
+              </div>
+              Preview Payroll
+            </DialogTitle>
+          )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
-          {/* Employee & Period Selection */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-5"
-          >
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="p-1.5 bg-blue-100 rounded-lg">
-                <User className="h-4 w-4 text-blue-600" />
-              </div>
-              <h3 className="text-base font-semibold text-gray-900">
-                Employee & Period Information
-              </h3>
-            </div>
+        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-6">
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {/* Employee Selection */}
-              <Card className="border border-gray-200 shadow-sm">
-                <CardContent className="p-5">
-                  <div className="space-y-3">
-                    <Label
-                      htmlFor="employee"
-                      className="text-sm font-semibold text-gray-700 flex items-center gap-2"
-                    >
-                      <User className="h-4 w-4 text-gray-500" />
-                      Select Employee <span className="text-red-500">*</span>
-                    </Label>
-                    <EmployeeSelect
-                      value={formData.employee_id?.toString() || ""}
-                      onValueChange={(value) => {
-                        handleInputChange("employee_id", value);
-                        setPreviewData(null);
-                        setPreviewError(null);
-                      }}
-                      placeholder="Search and select employee..."
-                      className="h-11"
-                    />
+          {/* Employee & Period Selection (If not initial) */}
+            {!initialEmployeeId && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-5"
+              >
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="p-1.5 bg-blue-100 rounded-lg">
+                    <User className="h-4 w-4 text-blue-600" />
                   </div>
-                </CardContent>
-              </Card>
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Employee & Period Information
+                  </h3>
+                </div>
 
-              {/* Pay Period */}
-              <Card className="border border-gray-200 shadow-sm">
-                <CardContent className="p-5">
-                  <div className="space-y-3">
-                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      Pay Period <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="flex gap-3">
-                      <div className="flex-1">
-                        <Select
-                          value={formData.payroll_month?.toString() || ""}
-                          onValueChange={(value) => {
-                            handleInputChange("payroll_month", value);
-                            setPreviewData(null);
-                            setPreviewError(null);
-                          }}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {/* Employee Selection */}
+                  <Card className="border border-gray-200 shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="space-y-3">
+                        <Label
+                          htmlFor="employee"
+                          className="text-sm font-semibold text-gray-700 flex items-center gap-2"
                         >
-                          <SelectTrigger className="h-11 border-gray-300">
-                            <SelectValue placeholder="Month" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 12 }, (_, i) => (
-                              <SelectItem
-                                key={i + 1}
-                                value={(i + 1).toString()}
-                              >
-                                {new Date(0, i).toLocaleString("default", {
-                                  month: "long",
-                                })}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="w-28">
-                        <Input
-                          type="number"
-                          value={formData.payroll_year}
-                          onChange={(e) => {
-                            handleInputChange("payroll_year", e.target.value);
+                          <User className="h-4 w-4 text-gray-500" />
+                          Select Employee <span className="text-red-500">*</span>
+                        </Label>
+                        <EmployeeSelect
+                          value={formData.employee_id?.toString() || ""}
+                          onValueChange={(value) => {
+                            handleInputChange("employee_id", value);
                             setPreviewData(null);
                             setPreviewError(null);
                           }}
-                          placeholder="Year"
-                          className="h-11 border-gray-300"
-                          min="2020"
-                          max="2030"
+                          placeholder="Search and select employee..."
+                          className="h-11"
                         />
                       </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <div className="flex justify-center">
-              <Button
-                type="button"
-                onClick={handlePreview}
-                disabled={!canPreview || isLoadingPreview}
-                className="w-[80%] mt-1 bg-blue-600 hover:bg-blue-700 text-white h-10 font-medium "
-              >
-                {isLoadingPreview ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Loading Preview...
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Get Preview
-                  </>
-                )}
-              </Button>
-            </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Pay Period */}
+                  <Card className="border border-gray-200 shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-gray-500" />
+                          Pay Period <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="flex gap-3">
+                          <div className="flex-1">
+                            <Select
+                              value={formData.payroll_month?.toString() || ""}
+                              onValueChange={(value) => {
+                                handleInputChange("payroll_month", value);
+                                setPreviewData(null);
+                                setPreviewError(null);
+                              }}
+                            >
+                              <SelectTrigger className="h-11 border-gray-300">
+                                <SelectValue placeholder="Month" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Array.from({ length: 12 }, (_, i) => (
+                                  <SelectItem
+                                    key={i + 1}
+                                    value={(i + 1).toString()}
+                                  >
+                                    {new Date(0, i).toLocaleString("default", {
+                                      month: "long",
+                                    })}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="w-28">
+                            <Input
+                              type="number"
+                              value={formData.payroll_year}
+                              onChange={(e) => {
+                                handleInputChange("payroll_year", e.target.value);
+                                setPreviewData(null);
+                                setPreviewError(null);
+                              }}
+                              placeholder="Year"
+                              className="h-11 border-gray-300"
+                              min="2020"
+                              max="2030"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    onClick={handlePreview}
+                    disabled={!canPreview || isLoadingPreview}
+                    className="w-[80%] mt-1 bg-blue-600 hover:bg-blue-700 text-white h-10 font-medium "
+                  >
+                    {isLoadingPreview ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Loading Preview...
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Get Preview
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            
+            {/* Loading State */}
+            {isLoadingPreview && (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
+                    <p className="text-gray-500 font-medium">Calculating payroll...</p>
+                </div>
+            )}
 
             {/* Error Message Display */}
             <AnimatePresence>
@@ -545,431 +656,169 @@ export const SalaryCalculationForm = ({
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
 
           {previewData && <Separator className="bg-gray-200" />}
 
           {/* Show full form only after preview is loaded */}
           {previewData ? (
             <>
-              {/* Salary Calculation Section */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="space-y-5"
-              >
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="p-1.5 bg-green-100 rounded-lg">
-                    <Calculator className="h-4 w-4 text-green-600" />
+            <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+            >
+              
+               {/* Net Salary Display - Highlighted */}
+               <div className="bg-slate-900 text-white p-5 rounded-xl shadow-lg relative overflow-hidden">
+                  <div className="relative z-10 flex justify-between items-end">
+                      <div>
+                          <p className="text-slate-400 text-xs uppercase tracking-wider font-semibold mb-1">Net Payable To</p>
+                          <p className="text-lg font-medium text-white">
+                              {employees.find(e => e.employee_id === Number(formData.employee_id))?.employee_name || "Employee"}
+                          </p>
+                      </div>
+                      <div className="text-right">
+                          <p className="text-slate-400 text-xs mb-1">Total Amount</p>
+                          <div className="text-3xl font-bold tracking-tight text-white">
+                              {formatCurrency(calculatedNet)}
+                          </div>
+                      </div>
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900">
-                    Salary Calculation
-                  </h3>
+                  {/* Decorative faint background circle */}
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-slate-800 rounded-full opacity-50 blur-2xl"></div>
+               </div>
+
+               {/* Breakdown Details */}
+               <div className="grid grid-cols-2 gap-8 px-1">
+                   {/* Earnings */}
+                   <div className="space-y-3">
+                       <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Earnings</h4>
+                       
+                       <div className="flex justify-between items-center text-sm">
+                           <span className="text-gray-600">Gross Salary</span>
+                           <span className="font-medium">{formatCurrency(Number(formData.gross_pay))}</span>
+                       </div>
+                       
+                       <div className="flex justify-between items-center text-sm">
+                           <span className="text-gray-600">Previous Balance</span>
+                           <span className="font-medium">{formatCurrency(Number(formData.previous_balance))}</span>
+                       </div>
+                       
+                       <div className="pt-2 border-t border-gray-100 flex justify-between items-center font-medium text-green-700">
+                           <span>Total Earnings</span>
+                           <span>{formatCurrency(Number(formData.gross_pay) + Number(formData.previous_balance))}</span>
+                       </div>
+                   </div>
+                   
+                   {/* Deductions */}
+                   <div className="space-y-3">
+                       <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Deductions</h4>
+                       
+                       <div className="flex justify-between items-center text-sm">
+                           <span className="text-gray-600">LOP</span>
+                           <span className="font-medium text-red-600">-{formatCurrency(Number(formData.lop))}</span>
+                       </div>
+                       
+                       <div className="space-y-1">
+                           <div className="flex justify-between items-center text-sm">
+                               <span className="text-gray-600">Advance</span>
+                               <input 
+                                  type="number" 
+                                  value={formData.advance_deduction}
+                                  onChange={(e) => handleInputChange("advance_deduction", Number(e.target.value))}
+                                  className="w-20 text-right text-sm border-b border-gray-300 focus:outline-none focus:border-blue-500 bg-transparent py-0.5"
+                               />
+                           </div>
+                           {Number(previewData?.advance_deduction) > 0 && 
+                               <p className="text-[10px] text-gray-400 text-right">Max: {previewData?.advance_deduction}</p>
+                           }
+                       </div>
+                       
+                       <div className="flex justify-between items-center text-sm">
+                           <span className="text-gray-600">Other</span>
+                            <input 
+                                  type="number" 
+                                  value={formData.other_deductions}
+                                  onChange={(e) => handleInputChange("other_deductions", Number(e.target.value))}
+                                  className="w-20 text-right text-sm border-b border-gray-300 focus:outline-none focus:border-blue-500 bg-transparent py-0.5"
+                               />
+                       </div>
+
+                        <div className="pt-2 border-t border-gray-100 flex justify-between items-center font-medium text-red-700">
+                           <span>Total Deductions</span>
+                           <span>-{formatCurrency(Number(formData.lop) + Number(formData.advance_deduction) + Number(formData.other_deductions))}</span>
+                       </div>
+                   </div>
+               </div>
+
+            </motion.div>
+
+            {/* Payment Information */}
+            <div className="space-y-4 pt-2 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-gray-800">Payment Details</h4>
+                    <div className="flex items-center gap-2">
+                         <RadioGroup
+                             value={formData.payment_method}
+                             onValueChange={(value) => handleInputChange("payment_method", value)}
+                             className="flex gap-2"
+                         >
+                            <label className={`cursor-pointer px-3 py-1.5 rounded-md text-sm border flex items-center gap-2 ${formData.payment_method === PaymentMethodEnum.CASH ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200'}`}>
+                                <RadioGroupItem value={PaymentMethodEnum.CASH} className="text-blue-600 w-3.5 h-3.5" /> Cash
+                            </label>
+                            <label className={`cursor-pointer px-3 py-1.5 rounded-md text-sm border flex items-center gap-2 ${formData.payment_method === PaymentMethodEnum.UPI ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200'}`}>
+                                <RadioGroupItem value={PaymentMethodEnum.UPI} className="text-blue-600 w-3.5 h-3.5" /> UPI
+                            </label>
+                            {/* <label className={`cursor-pointer px-3 py-1.5 rounded-md text-sm border flex items-center gap-2 ${formData.payment_method === PaymentMethodEnum.CARD ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200'}`}>
+                                <RadioGroupItem value={PaymentMethodEnum.CARD} className="text-blue-600 w-3.5 h-3.5" /> Card
+                            </label> */}
+                         </RadioGroup>
+                    </div>
                 </div>
 
-                <Card className="border border-gray-200 shadow-sm">
-                  <CardHeader className="pb-4 px-5 pt-5 border-b border-gray-200">
-                    <CardTitle className="flex items-center gap-2.5 text-lg font-semibold text-gray-900">
-                      <div className="p-1.5 bg-blue-100 rounded-lg">
-                        <Calculator className="h-5 w-5 text-blue-600" />
-                      </div>
-                      Salary Breakdown
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-5 p-5">
-                    {/* Gross Pay and Previous Balance */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Gross Pay */}
-                      <div className="space-y-2.5">
-                        <Label
-                          htmlFor="gross_pay"
-                          className="text-sm font-semibold text-gray-700"
-                        >
-                          Gross Salary
-                        </Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-gray-500">
-                            ₹
-                          </span>
-                          <Input
-                            type="number"
-                            id="gross_pay"
-                            value={formData.gross_pay}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "gross_pay",
-                                Number(e.target.value)
-                              )
-                            }
-                            placeholder="Enter gross salary amount"
-                            className="pl-10 h-11 text-base font-semibold border-gray-300 bg-gray-50"
-                            readOnly
-                            disabled
-                          />
-                        </div>
-                      </div>
-
-                      {/* Previous Balance */}
-                      <div className="space-y-2.5">
-                        <Label
-                          htmlFor="previous_balance"
-                          className="text-sm font-semibold text-gray-700"
-                        >
-                          Previous Balance
-                        </Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-gray-500">
-                            ₹
-                          </span>
-                          <Input
-                            type="number"
-                            id="previous_balance"
-                            value={formData.previous_balance}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "previous_balance",
-                                Number(e.target.value)
-                              )
-                            }
-                            placeholder="Previous balance amount"
-                            className="pl-10 h-11 border-gray-300 bg-gray-50"
-                            readOnly
-                            disabled
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Deductions Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2.5">
-                        <Label
-                          htmlFor="lop"
-                          className="text-sm font-semibold text-orange-700"
-                        >
-                          Loss of Pay (LOP)
+                {/* Paid Amount Input */}
+                 <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-1.5">
+                       <Label className="text-xs font-medium text-gray-500">Amount Paid</Label>
+                       <Input
+                          type="number"
+                          value={formData.paid_amount || ""}
+                          onChange={(e) => handlePaidAmountChange(Number(e.target.value))}
+                          className="h-9"
+                          placeholder="Amount"
+                       />
+                     </div>
+                     <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-gray-500">
+                          Notes <span className="text-red-500">*</span>
                         </Label>
                         <Input
-                          type="number"
-                          id="lop"
-                          value={formData.lop}
-                          onChange={(e) =>
-                            handleInputChange("lop", Number(e.target.value))
-                          }
-                          placeholder="0"
-                          className="h-11 border-gray-300 bg-gray-50"
-                          readOnly
-                          disabled
+                           value={formData.payment_notes}
+                           onChange={(e) => handleInputChange("payment_notes", e.target.value)}
+                           className="h-9"
+                           placeholder="Reference/Notes (Required)"
                         />
-                      </div>
-
-                      <div className="space-y-2.5">
-                        <Label
-                          htmlFor="advance_deduction"
-                          className="text-sm font-semibold text-blue-700"
-                        >
-                          Advance Deduction
-                        </Label>
-                        <Input
-                          type="number"
-                          id="advance_deduction"
-                          value={formData.advance_deduction}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "advance_deduction",
-                              Number(e.target.value)
-                            )
-                          }
-                          placeholder="0"
-                          className="h-11 border-gray-300"
-                          min="0"
-                        />
-                        {previewData && (
-                          <p className="text-xs text-gray-600 mt-1.5">
-                            Available Balance:{" "}
-                            <span className="font-semibold text-gray-900">
-                              ₹
-                              {previewData.advance_deduction?.toLocaleString(
-                                "en-IN",
-                                {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                }
-                              ) || "0.00"}
-                            </span>
+                        {!formData.payment_notes && (
+                          <p className="text-xs text-amber-600 flex items-center gap-1">
+                            <span className="inline-block w-1 h-1 bg-amber-600 rounded-full"></span>
+                            Payment notes are required for record keeping
                           </p>
                         )}
-                      </div>
-
-                      <div className="space-y-2.5">
-                        <Label
-                          htmlFor="other_deductions"
-                          className="text-sm font-semibold text-red-700"
-                        >
-                          Other Deductions
-                        </Label>
-                        <Input
-                          type="number"
-                          id="other_deductions"
-                          value={formData.other_deductions}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "other_deductions",
-                              Number(e.target.value)
-                            )
-                          }
-                          placeholder="0"
-                          className="h-11 border-gray-300"
-                          min="0"
-                          step="0.01"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Net Salary Display */}
-                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-green-100 rounded-lg">
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                          </div>
-                          <div>
-                            <span className="text-base font-semibold text-gray-900 block">
-                              Net Salary
-                            </span>
-                            <span className="text-xs text-gray-600">
-                              After all deductions
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-3xl font-bold text-green-700">
-                            {formatCurrency(calculatedNet)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <Separator className="bg-gray-200" />
-
-              {/* Payment Information */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="space-y-4"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="p-1 bg-purple-100 rounded-lg">
-                    <CreditCard className="h-3.5 w-3.5 text-purple-600" />
-                  </div>
-                  <h3 className="text-[15px] font-semibold text-gray-900">
-                    Payment Information
-                  </h3>
-                </div>
-
-                <Card className="border border-gray-200 shadow-sm">
-                  <CardContent className="p-4 space-y-4">
-                    {/* Payment Method - Radio Buttons */}
-                    <div className="space-y-2">
-                      <Label className="text-[14px] font-semibold text-gray-700">
-                        Payment Method <span className="text-red-500">*</span>
-                      </Label>
-                      <RadioGroup
-                        value={formData.payment_method}
-                        onValueChange={(value) =>
-                          handleInputChange("payment_method", value)
-                        }
-                        className="grid grid-cols-2 gap-3"
-                      >
-                        <label
-                          className={`flex items-center gap-2.5 p-3 border rounded-lg cursor-pointer transition-colors text-[14px] ${
-                            formData.payment_method === PaymentMethodEnum.CASH
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-gray-200 bg-white hover:border-gray-300"
-                          }`}
-                        >
-                          <RadioGroupItem
-                            value={PaymentMethodEnum.CASH}
-                            id="cash"
-                            className="text-blue-600"
-                          />
-                          <span className="text-[15px] font-medium">Cash</span>
-                        </label>
-                        <label
-                          className={`flex items-center gap-2.5 p-3 border rounded-lg cursor-pointer transition-colors text-[14px] ${
-                            formData.payment_method === PaymentMethodEnum.ONLINE
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-gray-200 bg-white hover:border-gray-300"
-                          }`}
-                        >
-                          <RadioGroupItem
-                            value={PaymentMethodEnum.ONLINE}
-                            id="online"
-                            className="text-blue-600"
-                          />
-                          <CreditCard className="h-4 w-4 text-gray-600" />
-                          <span className="text-[15px] font-medium">
-                            Online
-                          </span>
-                        </label>
-                      </RadioGroup>
-                    </div>
-
-                    {/* Payment Options */}
-                    <div className="space-y-2">
-                      <Label className="text-[14px] font-semibold text-gray-700">
-                        Payment Option <span className="text-red-500">*</span>
-                      </Label>
-                      <RadioGroup
-                        value={paymentOption}
-                        onValueChange={(value) =>
-                          handlePaymentOptionChange(
-                            value as "full" | "half" | "custom"
-                          )
-                        }
-                        className="grid grid-cols-3 gap-2"
-                      >
-                        <label
-                          className={`flex items-center justify-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-[13px] ${
-                            paymentOption === "full"
-                              ? "border-green-500 bg-green-50"
-                              : "border-gray-200 bg-white hover:border-gray-300"
-                          }`}
-                        >
-                          <RadioGroupItem
-                            value="full"
-                            id="full"
-                            className="text-green-600"
-                          />
-                          <span className="font-medium">Pay in Full</span>
-                        </label>
-                        <label
-                          className={`flex items-center justify-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-[13px] ${
-                            paymentOption === "half"
-                              ? "border-orange-500 bg-orange-50"
-                              : "border-gray-200 bg-white hover:border-gray-300"
-                          }`}
-                        >
-                          <RadioGroupItem
-                            value="half"
-                            id="half"
-                            className="text-orange-600"
-                          />
-                          <span className="font-medium">Pay Half</span>
-                        </label>
-                        <label
-                          className={`flex items-center justify-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-[13px] ${
-                            paymentOption === "custom"
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-gray-200 bg-white hover:border-gray-300"
-                          }`}
-                        >
-                          <RadioGroupItem
-                            value="custom"
-                            id="custom"
-                            className="text-blue-600"
-                          />
-                          <span className="font-medium">Custom Pay</span>
-                        </label>
-                      </RadioGroup>
-                    </div>
-
-                    {/* Paid Amount */}
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="paid_amount"
-                        className="text-[14px] font-semibold text-gray-700"
-                      >
-                        Paid Amount <span className="text-red-500">*</span>
-                      </Label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[15px] font-bold text-gray-600">
-                          ₹
-                        </span>
-                        <Input
-                          type="number"
-                          id="paid_amount"
-                          value={formData.paid_amount || ""}
-                          onChange={(e) => {
-                            const value =
-                              e.target.value === ""
-                                ? 0
-                                : Number(e.target.value);
-                            handlePaidAmountChange(value);
-                          }}
-                          placeholder="Enter paid amount"
-                          className="pl-9 h-10 text-[15px] border-gray-300"
-                          min="0"
-                          step="0.01"
-                          required
-                          disabled={paymentOption !== "custom"}
-                        />
-                      </div>
-                      {paymentOption !== "custom" && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Amount:{" "}
-                          <span className="font-semibold">
-                            {formatCurrency(
-                              paymentOption === "full"
-                                ? calculatedNet
-                                : calculatedNet / 2
-                            )}
-                          </span>
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Payment Notes */}
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="payment_notes"
-                        className="text-[14px] font-semibold text-gray-700"
-                      >
-                        Payment Notes <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="payment_notes"
-                        value={formData.payment_notes}
-                        onChange={(e) =>
-                          handleInputChange("payment_notes", e.target.value)
-                        }
-                        placeholder="Enter payment notes"
-                        className="h-10 text-[15px] border-gray-300"
-                        required
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </>
-          ) : null}
-
-          <DialogFooter className="px-6 py-4 border-t border-gray-200 bg-gray-50/50">
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <AlertCircle className="h-4 w-4 text-gray-400" />
-                <span>
-                  {previewData
-                    ? "Review the payroll details above and click 'Create Payroll' to proceed."
-                    : "Please select employee, month, and year, then click 'Get Preview' to load payroll calculations."}
-                </span>
-              </div>
-              {previewData && (
-                <Button
-                  type="submit"
-                  className="h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Create Payroll
-                </Button>
-              )}
+                     </div>
+                 </div>
             </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="submit"
+              className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-medium"
+            >
+              Confirm & Generate Payroll
+            </Button>
           </DialogFooter>
+          </>
+        ) : null}
         </form>
       </DialogContent>
 

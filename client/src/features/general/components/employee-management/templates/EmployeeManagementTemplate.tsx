@@ -45,6 +45,9 @@ export const EmployeeManagementTemplate = () => {
     leaves,
     advances,
     totalEmployees,
+    totalAttendance,
+    totalLeaves,
+    totalAdvances,
     activeEmployees,
     presentToday,
     pendingLeaves,
@@ -54,6 +57,8 @@ export const EmployeeManagementTemplate = () => {
     // UI State
     activeTab,
     setActiveTab,
+    employeesPage,
+    setEmployeesPage,
     attendancePage,
     leavesPage,
     advancesPage,
@@ -61,6 +66,7 @@ export const EmployeeManagementTemplate = () => {
     setLeavesPage,
     setAdvancesPage,
     pageSize,
+    setPageSize,
     
     // Loading states
     attendanceLoading,
@@ -438,6 +444,12 @@ export const EmployeeManagementTemplate = () => {
         } as EmployeeAdvanceRead & { created_at: string }))}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        employeesPage={employeesPage}
+        setEmployeesPage={setEmployeesPage}
+        totalEmployees={totalEmployees}
+        totalAttendance={totalAttendance}
+        totalLeaves={totalLeaves}
+        totalAdvances={totalAdvances}
         attendancePage={attendancePage}
         leavesPage={leavesPage}
         advancesPage={advancesPage}
@@ -445,6 +457,7 @@ export const EmployeeManagementTemplate = () => {
         setLeavesPage={setLeavesPage}
         setAdvancesPage={setAdvancesPage}
         pageSize={pageSize}
+        onPageSizeChange={setPageSize}
         attendanceLoading={attendanceLoading}
         leavesLoading={leavesLoading}
         advancesLoading={advancesLoading}

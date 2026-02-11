@@ -261,7 +261,7 @@ const AllReservationsTableComponent = ({
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => {
-          const status = row.getValue("status");
+          const status = row.getValue("status") as string;
           return <StatusBadge status={status} />;
         },
       },
@@ -276,7 +276,7 @@ const AllReservationsTableComponent = ({
         accessorKey: "application_income_id",
         header: "Application Fee Status",
         cell: ({ row }) => {
-          const applicationIncomeId = row.getValue("application_income_id");
+          const applicationIncomeId = row.getValue("application_income_id") as number | null | undefined;
           return (
             <ApplicationFeeBadge applicationIncomeId={applicationIncomeId} />
           );
@@ -525,7 +525,7 @@ const AllReservationsTableComponent = ({
           pageSize={pageSize}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
-          pageSizeOptions={[10, 20, 50, 100]}
+          pageSizeOptions={[10, 25, 50, 100]}
           
           className="w-full"
         />

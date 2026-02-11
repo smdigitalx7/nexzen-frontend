@@ -73,13 +73,20 @@ interface EmployeeManagementTabsProps {
   // UI State
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  employeesPage: number;
+  setEmployeesPage: (page: number) => void;
+  totalEmployees: number;
+  totalAttendance: number; // Added
+  totalLeaves: number; // Added
+  totalAdvances: number; // Added
   attendancePage: number;
   leavesPage: number;
   advancesPage: number;
-  setAttendancePage: (updater: (p: number) => number) => void;
-  setLeavesPage: (updater: (p: number) => number) => void;
-  setAdvancesPage: (updater: (p: number) => number) => void;
+  setAttendancePage: (page: number) => void;
+  setLeavesPage: (page: number) => void;
+  setAdvancesPage: (page: number) => void;
   pageSize: number;
+  onPageSizeChange: (pageSize: number) => void;
   
   // Loading states
   attendanceLoading: boolean;
@@ -136,6 +143,12 @@ export const EmployeeManagementTabs = ({
   advances,
   activeTab,
   setActiveTab,
+  employeesPage,
+  setEmployeesPage,
+  totalEmployees,
+  totalAttendance, // Added
+  totalLeaves, // Added
+  totalAdvances, // Added
   attendancePage,
   leavesPage,
   advancesPage,
@@ -143,6 +156,7 @@ export const EmployeeManagementTabs = ({
   setLeavesPage,
   setAdvancesPage,
   pageSize,
+  onPageSizeChange,
   attendanceLoading,
   leavesLoading,
   advancesLoading,
@@ -192,6 +206,11 @@ export const EmployeeManagementTabs = ({
           onViewEmployee={onViewEmployee}
           onUpdateStatus={onUpdateStatus}
           showSearch={true}
+          currentPage={employeesPage}
+          totalCount={totalEmployees}
+          onPageChange={setEmployeesPage}
+          pageSize={pageSize}
+          onPageSizeChange={onPageSizeChange}
         />
       ),
     },
@@ -209,6 +228,11 @@ export const EmployeeManagementTabs = ({
           onViewLeave={onViewLeave}
           onApproveLeave={onApproveLeave}
           onRejectLeave={onRejectLeave}
+          currentPage={leavesPage}
+          totalCount={totalLeaves}
+          onPageChange={setLeavesPage}
+          pageSize={pageSize}
+          onPageSizeChange={onPageSizeChange}
           showSearch={true}
           headerContent={
             <MonthYearFilter
@@ -242,6 +266,11 @@ export const EmployeeManagementTabs = ({
           onEditAttendance={onEditAttendance}
           onDeleteAttendance={onDeleteAttendance}
           onViewAttendance={onViewAttendance}
+          currentPage={attendancePage}
+          totalCount={totalAttendance}
+          onPageChange={setAttendancePage}
+          pageSize={pageSize}
+          onPageSizeChange={onPageSizeChange}
           showSearch={true}
           headerContent={
             <MonthYearFilter
@@ -277,6 +306,11 @@ export const EmployeeManagementTabs = ({
           onRejectAdvance={onRejectAdvance}
           onUpdateAmount={onUpdateAmount}
           showSearch={true}
+          currentPage={advancesPage}
+          totalCount={totalAdvances}
+          onPageChange={setAdvancesPage}
+          pageSize={pageSize}
+          onPageSizeChange={onPageSizeChange}
         />
       ),
     },

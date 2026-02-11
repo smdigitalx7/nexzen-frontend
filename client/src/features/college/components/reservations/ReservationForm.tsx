@@ -76,7 +76,7 @@ type ReservationFormState = {
   status: string;
   request_type: string;
   referred_by: number;
-  referred_by_name: string;
+  other_referee_name: string;
   remarks: string;
   reservation_date: string; // yyyy-mm-dd
 };
@@ -165,7 +165,8 @@ export default function ReservationForm({
       !form.course_name?.trim() ||
       // Course is mandatory after selecting group
       (form.preferred_group_id > 0 &&
-        (!form.preferred_course_id || form.preferred_course_id === 0)),
+        (!form.preferred_course_id || form.preferred_course_id === 0)) ||
+      !form.father_or_guardian_mobile?.trim(),
     [
       hasInvalidAadharOrMobile,
       form.student_name,
@@ -174,6 +175,7 @@ export default function ReservationForm({
       form.course_name,
       form.preferred_group_id,
       form.preferred_course_id,
+      form.father_or_guardian_mobile,
     ]
   );
 
@@ -277,7 +279,7 @@ export default function ReservationForm({
       status: "PENDING",
       request_type: "WALK_IN",
       referred_by: 0,
-      referred_by_name: "",
+      other_referee_name: "",
       remarks:
         "Student is interested in science subjects and extracurricular activities.",
       reservation_date: new Date().toISOString().split("T")[0],
@@ -331,7 +333,7 @@ export default function ReservationForm({
       status: "PENDING",
       request_type: "WALK_IN",
       referred_by: 0,
-      referred_by_name: "",
+      other_referee_name: "",
       remarks: "",
       reservation_date: new Date().toISOString().split("T")[0],
     });
@@ -494,7 +496,7 @@ export default function ReservationForm({
               </div>
               <div>
                 <Label htmlFor="father_or_guardian_mobile">
-                  Father/Guardian Mobile
+                  Father/Guardian Mobile *
                 </Label>
                 <Input
                   id="father_or_guardian_mobile"
@@ -603,8 +605,9 @@ export default function ReservationForm({
             </div>
           </div>
 
-          {/* Siblings Section */}
-          <div className="space-y-4">
+          {/* Siblings Section - Hidden in Edit Mode */}
+          {!isEdit && (
+            <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">
               Siblings Information
             </h3>
@@ -681,9 +684,11 @@ export default function ReservationForm({
                 Add Sibling
               </Button>
             </div>
-          </div>
+            </div>
+          )}
 
-          {/* Academic Information Section */}
+          {/* Academic Information Section - Hidden in Edit Mode */}
+          {!isEdit && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">
               Academic Information
@@ -913,6 +918,7 @@ export default function ReservationForm({
               )}
             </div>
           </div>
+          )}
 
           {/* Address Information Section */}
           <div className="space-y-4">
@@ -1075,9 +1081,9 @@ export default function ReservationForm({
                       setForm({
                         ...form,
                         request_type: value,
-                        // Clear referred_by and referred_by_name when switching to WALK_IN
+                        // Clear referred_by and other_referee_name when switching to WALK_IN
                         ...(value === "WALK_IN"
-                          ? { referred_by: 0, referred_by_name: "" }
+                          ? { referred_by: 0, other_referee_name: "" }
                           : {}),
                       });
                     }}
@@ -1105,35 +1111,55 @@ export default function ReservationForm({
                 </div>
                 {form.request_type === "REFERRAL" ? (
                   <>
-                    <div>
-                      <Label htmlFor="referred_by">Referred By</Label>
-                      <EmployeeSelect
-                        id="referred_by"
-                        value={form.referred_by.toString()}
-                        onValueChange={(value) => {
+                    <div className="flex items-end">
+                      <div className="flex-1">
+                        <Label htmlFor="referred_by">Referred By</Label>
+                        <EmployeeSelect
+                          id="referred_by"
+                          value={form.referred_by.toString()}
+                          onValueChange={(value) => {
+                            setForm({
+                              ...form,
+                              referred_by: Number(value),
+                              // Clear other_referee_name when selecting an employee
+                              other_referee_name: value ? "" : form.other_referee_name,
+                            });
+                          }}
+                          placeholder="Select referring employee..."
+                        />
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
                           setForm({
                             ...form,
-                            referred_by: Number(value),
-                            // Clear referred_by_name when selecting an employee
-                            referred_by_name: value ? "" : form.referred_by_name,
+                            referred_by: 0,
+                            other_referee_name: "",
                           });
                         }}
-                        placeholder="Select referring employee..."
-                      />
+                        className="ml-2"
+                      >
+                        Clear
+                      </Button>
                     </div>
                     {form.referred_by === 0 ? (
-                      <div>
-                        <Label htmlFor="referred_by_name">
-                          Referred By Name (Other)
-                        </Label>
-                        <Input
-                          id="referred_by_name"
-                          value={form.referred_by_name}
-                          onChange={(e) =>
-                            setForm({ ...form, referred_by_name: e.target.value })
-                          }
-                          placeholder="Enter referrer name if not an employee"
-                        />
+                      <div className="flex items-center space-x-2">
+                        <div className="flex-1">
+                          <Label htmlFor="other_referee_name">
+                            Other Referee Name
+                          </Label>
+                          <Input
+                            id="other_referee_name"
+                            value={form.other_referee_name}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                other_referee_name: e.target.value,
+                              })
+                            }
+                            placeholder="Enter referee name"
+                          />
+                        </div>
                       </div>
                     ) : null}
                   </>

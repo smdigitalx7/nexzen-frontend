@@ -105,24 +105,24 @@ interface EmployeeManagementDialogsProps {
   employees: any[];
   
   // Handlers
-  handleCreateEmployee: (data: any) => Promise<void>;
-  handleUpdateEmployee: (id: number, data: any) => Promise<void>;
-  handleDeleteEmployee: (id: number) => Promise<void>;
-  handleUpdateEmployeeStatus: (id: number, status: string) => Promise<void>;
-  handleCreateLeave: (data: any) => Promise<void>;
-  handleUpdateLeave: (id: number, data: any) => Promise<void>;
-  handleDeleteLeave: (id: number) => Promise<void>;
-  handleApproveLeave: (id: number) => Promise<void>;
-  handleRejectLeave: (id: number, reason: string) => Promise<void>;
-  handleCreateAdvance: (data: any) => Promise<any>;
-  handleUpdateAdvance: (id: number, data: any) => Promise<void>;
-  handleUpdateAdvanceStatus: (id: number, status: string, reason?: string) => Promise<void>;
-  handleUpdateAdvanceAmountPaid: (id: number, amount: number) => Promise<void>;
-  handleCreateAttendance: (data: any) => Promise<void>;
-  handleBulkCreateAttendance: (data: { total_working_days: number; month: number; year: number }) => Promise<void>;
-  handleUpdateAttendance: (employeeId: number, month: number, year: number) => Promise<void>;
-  handleUpdateAttendanceBulk: (data: { total_working_days: number; month: number; year: number }) => Promise<void>;
-  handleDeleteAttendance: (id: number) => Promise<void>;
+  handleCreateEmployee: (data: any) => void | Promise<void>;
+  handleUpdateEmployee: (id: number, data: any) => void | Promise<void>;
+  handleDeleteEmployee: (id: number) => void | Promise<void>;
+  handleUpdateEmployeeStatus: (id: number, status: string) => void | Promise<void>;
+  handleCreateLeave: (data: any) => void | Promise<void>;
+  handleUpdateLeave: (id: number, data: any) => void | Promise<void>;
+  handleDeleteLeave: (id: number) => void | Promise<void>;
+  handleApproveLeave: (id: number) => void | Promise<void>;
+  handleRejectLeave: (id: number, reason: string) => void | Promise<void>;
+  handleCreateAdvance: (data: any) => any | Promise<any>;
+  handleUpdateAdvance: (id: number, data: any) => void | Promise<void>;
+  handleUpdateAdvanceStatus: (id: number, status: string, reason?: string) => void | Promise<void>;
+  handleUpdateAdvanceAmountPaid: (id: number, amount: number) => void | Promise<void>;
+  handleCreateAttendance: (data: any) => void | Promise<void>;
+  handleBulkCreateAttendance: (data: { total_working_days: number; month: number; year: number }) => void | Promise<void>;
+  handleUpdateAttendance: (employeeId: number, month: number, year: number) => void | Promise<void>;
+  handleUpdateAttendanceBulk: (data: { total_working_days: number; month: number; year: number }) => void | Promise<void>;
+  handleDeleteAttendance: (id: number) => void | Promise<void>;
   
   // Loading states
   createEmployeePending?: boolean;

@@ -38,6 +38,11 @@ interface EmployeeTableProps {
   onViewEmployee: (employee: EmployeeRead) => void;
   onUpdateStatus?: (id: number, status: string) => void;
   showSearch?: boolean;
+  currentPage?: number;
+  totalCount?: number;
+  onPageChange?: (page: number) => void;
+  pageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 export const EmployeeTable = ({
@@ -49,6 +54,11 @@ export const EmployeeTable = ({
   onViewEmployee,
   onUpdateStatus,
   showSearch = true,
+  currentPage,
+  totalCount,
+  onPageChange,
+  pageSize,
+  onPageSizeChange,
 }: EmployeeTableProps) => {
 
   // Define columns for the data table using column factories
@@ -103,6 +113,13 @@ export const EmployeeTable = ({
       onAdd={canCreateEmployee ? onAddEmployee : undefined}
       addButtonText="Add Employee"
       actions={actions}
+      pagination="server"
+      currentPage={currentPage}
+      totalCount={totalCount}
+      onPageChange={onPageChange}
+      pageSize={pageSize}
+      onPageSizeChange={onPageSizeChange}
+      pageSizeOptions={[10, 25, 50, 100]}
     />
   );
 };

@@ -30,7 +30,7 @@ const EnrollmentsTabComponent = () => {
     admission_no: '' 
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(25);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
 
@@ -247,6 +247,7 @@ const EnrollmentsTabComponent = () => {
         totalCount={result.data?.total_count ?? 0}
         currentPage={result.data?.current_page ?? currentPage}
         pageSize={result.data?.page_size ?? pageSize}
+        pageSizeOptions={[10, 25, 50, 100]}
         onPageChange={(page) => setCurrentPage(page)}
         onPageSizeChange={(newSize) => {
           setPageSize(newSize);

@@ -62,6 +62,6 @@ export interface SchoolAdmissionDetails {
   transport_concession: string;
   payable_transport_fee: string;
   status: string;
-  referred_by_name: string;
+  other_referee_name: string;
 }
 

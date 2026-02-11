@@ -112,7 +112,7 @@ const StudentInfo = memo(({ admission }: { admission: SchoolAdmissionDetails }) 
       </div>
       <div>
         <p className="text-sm text-muted-foreground">Referred By</p>
-        <p className="font-medium">{admission.referred_by_name}</p>
+        <p className="font-medium">{admission.other_referee_name}</p>
       </div>
     </div>
   </div>

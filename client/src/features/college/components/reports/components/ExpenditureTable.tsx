@@ -1,8 +1,8 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/common/components/ui/button";
 import { CheckCircle, XCircle, Eye, Pencil, Trash2 } from "lucide-react";
-import { useUpdateCollegeExpenditure, useDeleteCollegeExpenditure, useCollegeExpenditure, useUpdateCollegeExpenditureStatus } from "@/features/college/hooks";
+import { useUpdateCollegeExpenditure, useDeleteCollegeExpenditure, useCollegeExpenditure, useUpdateCollegeExpenditureStatus, useCollegeExpenditureList } from "@/features/college/hooks";
 import { useCanEdit, useCanDelete } from "@/core/permissions";
 import type { CollegeExpenditureRead } from "@/features/college/types";
 import { FormDialog, ConfirmDialog } from "@/common/components/shared";
@@ -24,17 +24,17 @@ import { toast } from "@/common/hooks/use-toast";
 import { cleanupDialogState } from "@/common/utils/ui-cleanup";
 
 interface ExpenditureTableProps {
-  expenditureData: CollegeExpenditureRead[];
   onViewExpenditure?: (expenditure: CollegeExpenditureRead) => void;
   onExportCSV?: () => void;
   onAddExpenditure?: () => void;
+  enabled?: boolean;
 }
 
 export const ExpenditureTable = ({
-  expenditureData,
   onViewExpenditure,
   onExportCSV,
   onAddExpenditure,
+  enabled = true,
 }: ExpenditureTableProps) => {
   // Using shared table state management
   const {
@@ -69,6 +69,44 @@ export const ExpenditureTable = ({
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [selectedExpenditureId, setSelectedExpenditureId] = useState<number | null>(null);
   const { data: viewedExpenditure, isLoading: viewLoading, error: viewError } = useCollegeExpenditure(selectedExpenditureId);
+
+  // Pagination and filter state
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  // Debounce search – 500ms
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const v = searchInput.trim();
+      setSearchQuery(v === "" ? undefined : v);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  const { data: listResponse, isLoading: isLoadingList, refetch } = useCollegeExpenditureList({
+    page,
+    page_size: pageSize,
+    search: searchQuery,
+  }, {
+    enabled,
+  });
+
+  const expenditureList = useMemo(() => {
+    const raw = listResponse as { data?: CollegeExpenditureRead[]; total_count?: number } | undefined;
+    return Array.isArray(raw) ? raw : (raw?.data ?? []);
+  }, [listResponse]);
+
+  const totalCount = useMemo(() => {
+    const raw = listResponse as { data?: unknown[]; total_count?: number } | undefined;
+    if (Array.isArray(raw)) return raw.length;
+    return raw?.total_count ?? 0;
+  }, [listResponse]);
 
   const handleEdit = useCallback((expenditure: CollegeExpenditureRead) => {
     if (!expenditure || !expenditure.expenditure_id) {
@@ -338,11 +376,21 @@ export const ExpenditureTable = ({
       className="space-y-4"
     >
       <DataTable<CollegeExpenditureRead>
-        data={expenditureData}
+        data={expenditureList}
         columns={columns}
         title="Expenditure Records"
-        searchKey="expenditure_purpose"
-        searchPlaceholder="Search by purpose or remarks..."
+        showSearch={false}
+        toolbarLeftContent={
+          <div className="flex-1 max-w-sm">
+            <Input
+              placeholder="Search by purpose or remarks..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="h-9"
+            />
+          </div>
+        }
+        loading={isLoadingList}
         export={
           onExportCSV
             ? { enabled: true, filename: "expenditure-records", onExport: onExportCSV }
@@ -352,6 +400,16 @@ export const ExpenditureTable = ({
         addButtonText="Add Expenditure"
         actions={actions}
         actionsHeader="Actions"
+        pagination="server"
+        totalCount={totalCount}
+        currentPage={page}
+        pageSize={pageSize}
+        pageSizeOptions={[10, 25, 50, 100]}
+        onPageChange={setPage}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setPage(1);
+        }}
         emptyMessage="No expenditure records found"
       />
 

@@ -18,6 +18,13 @@ export function useCollegeExamMarksList(params?: CollegeExamMarksListParams) {
       params.exam_id > 0 &&
       typeof params.subject_id === "number" &&
       params.subject_id > 0,
+    select: (data: unknown): any => {
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === "object" && "data" in data) {
+        return data;
+      }
+      return data;
+    },
   });
 }
 

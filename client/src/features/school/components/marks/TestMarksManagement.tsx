@@ -60,7 +60,7 @@ import {
   useSchoolClasses,
 } from '@/features/school/hooks/use-school-dropdowns';
 import { useGrades } from "@/features/general/hooks/useGrades";
-import type { TestMarkWithDetails, TestMarksQuery } from '@/features/school/types/test-marks';
+import type { TestMarkWithDetails, TestMarksQuery, TestGroupAndSubjectResponse } from '@/features/school/types/test-marks';
 import type { 
   SchoolEnrollmentWithClassSectionDetails, 
   SchoolEnrollmentRead,
@@ -162,6 +162,11 @@ const TestMarksManagementComponent = ({
     null
   );
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   const [activeTab, setActiveTab] = useState('single');
   const [showAddTestMarksDialog, setShowAddTestMarksDialog] = useState(false);
 
@@ -206,6 +211,7 @@ const TestMarksManagementComponent = ({
     setSelectedSection(null);
     setSelectedSubject(null);
     setSelectedTest(null);
+    setPage(1);
   }, [selectedClass, setSelectedSection, setSelectedSubject, setSelectedTest]);
 
   // Single test mark view data
@@ -214,20 +220,21 @@ const TestMarksManagementComponent = ({
   const viewTestLoading = viewingTestMarkId ? viewQuery.isLoading : false;
   const viewTestError = viewingTestMarkId ? viewQuery.error : null;
 
-  // Test marks query
   const testMarksQuery = useMemo(() => {
     if (!selectedClass || !selectedSubject || !selectedTest) {
       return undefined;
     }
 
     const query: TestMarksQuery = {
-      class_id: selectedClass,
-      subject_id: selectedSubject,
-      test_id: selectedTest,
+      class_id: selectedClass as number,
+      subject_id: selectedSubject as number,
+      test_id: selectedTest as number,
+      page,
+      page_size: pageSize,
     };
 
     return query;
-  }, [selectedClass, selectedSubject, selectedTest]);
+  }, [selectedClass, selectedSubject, selectedTest, page, pageSize]);
 
   const hasRequiredFilters = Boolean(
     selectedClass && selectedClass > 0 &&
@@ -427,21 +434,15 @@ const TestMarksManagementComponent = ({
 
   // Process and filter data
   const flattenedMarks = useMemo(() => {
-    if (!testMarksData) return [] as TestMarkWithDetails[];
+    const raw = testMarksData as { data?: TestGroupAndSubjectResponse[]; total_count?: number } | TestGroupAndSubjectResponse[] | undefined;
     
     // Ensure we have an array - handle different response structures
     let dataArray: any[] = [];
-    const raw: unknown = testMarksData;
     if (Array.isArray(raw)) {
       dataArray = raw;
     } else if (raw && typeof raw === 'object') {
-      const wrapped = raw as any;
-      if (Array.isArray(wrapped.data)) {
-        dataArray = wrapped.data;
-      } else if (Array.isArray(wrapped.items)) {
-        dataArray = wrapped.items;
-      } else if (Array.isArray(wrapped.results)) {
-        dataArray = wrapped.results;
+      if (Array.isArray(raw.data)) {
+        dataArray = raw.data;
       }
     }
     
@@ -463,6 +464,12 @@ const TestMarksManagementComponent = ({
       }
     });
     return items;
+  }, [testMarksData]);
+
+  const totalCount = useMemo(() => {
+    const raw = testMarksData as { data?: unknown[]; total_count?: number } | TestGroupAndSubjectResponse[] | undefined;
+    if (Array.isArray(raw)) return raw.length;
+    return raw?.total_count ?? 0;
   }, [testMarksData]);
 
   // Client-side filtering
@@ -666,6 +673,11 @@ const TestMarksManagementComponent = ({
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
           >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
             <DataTable
               data={filteredMarks}
               columns={columns}
@@ -675,9 +687,19 @@ const TestMarksManagementComponent = ({
               actionsHeader="Actions"
               showSearch={true}
               searchPlaceholder="Search by student name..."
-              searchKeys={["student_name", "roll_number"]}
-              className=""
+              searchKey="student_name"
+              pagination="server"
+              totalCount={totalCount}
+              currentPage={page}
+              pageSize={pageSize}
+              pageSizeOptions={[10, 25, 50, 100]}
+              onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
             />
+          </motion.div>
           </motion.div>
         )}
 
@@ -798,13 +820,24 @@ const TestMarksManagementComponent = ({
                         )}
                       />
                       <div className="flex justify-end space-x-2">
-                        <Button type="button" variant="outline" onClick={closeTestMarkDialog}>Cancel</Button>
-                        <Button type="submit">Add Test Mark</Button>
+                        <Button
+                          variant="outline"
+                          onClick={closeTestMarkDialog}
+                          disabled={createTestMarkMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={createTestMarkMutation.isPending}
+                        >
+                          {createTestMarkMutation.isPending ? "Saving..." : "Save Mark"}
+                        </Button>
                       </div>
                     </form>
                   </Form>
                 </TabsContent>
-
+                
                 <TabsContent value="multiple" className="mt-4">
                   <Form {...multipleTestSubjectsForm}>
                     <form onSubmit={multipleTestSubjectsForm.handleSubmit(handleMultipleTestSubjectsSubmit)} className="space-y-4">
@@ -827,7 +860,7 @@ const TestMarksManagementComponent = ({
                                         key={enrollment.enrollment_id}
                                         value={enrollment.enrollment_id!.toString()}
                                       >
-                                        {enrollment.student_name} {enrollment.roll_number ? `(${enrollment.roll_number})` : ''}
+                                        {enrollment.student_name} {enrollment.roll_number ? `(${enrollment.roll_number})` : ''} - {enrollment.class_name}
                                       </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -857,64 +890,100 @@ const TestMarksManagementComponent = ({
                           </FormItem>
                         )}
                       />
-                      <div className="space-y-4">
+                      
+                      <div className="space-y-4 border rounded-lg p-4">
                         <div className="flex justify-between items-center">
-                          <FormLabel>Subjects</FormLabel>
-                          <Button type="button" variant="outline" size="sm" onClick={addSubjectRow}>
-                            <Plus className="h-4 w-4 mr-2" /> Add Subject
+                          <h4 className="font-semibold">Subject Marks</h4>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={addSubjectRow}
+                          >
+                            <Plus className="h-4 w-4 mr-1" /> Add Subject
                           </Button>
                         </div>
-                        {fields.map((field, index) => (
-                          <div key={field.id} className="border p-4 rounded-lg space-y-4">
-                             <div className="flex justify-between items-center mb-2">
-                               <span className="text-sm font-medium">Subject {index + 1}</span>
-                               {fields.length > 1 && (
-                                 <Button type="button" variant="ghost" size="sm" onClick={() => remove(index)} className="text-red-600 hover:text-red-700">
-                                   <Trash2 className="h-4 w-4" />
-                                 </Button>
-                               )}
-                             </div>
-                             <FormField
-                               control={multipleTestSubjectsForm.control}
-                               name={`subjects.${index}.subject_id`}
-                               render={({ field }) => (
-                                 <FormItem>
-                                   <FormLabel>Subject</FormLabel>
-                                   <FormControl>
+                        
+                        {fields.map((item, index) => (
+                          <div key={item.id} className="grid grid-cols-12 gap-3 items-end">
+                            <div className="col-span-11 grid grid-cols-3 gap-3">
+                              <FormField
+                                control={multipleTestSubjectsForm.control}
+                                name={`subjects.${index}.subject_id`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={index > 0 ? "sr-only" : ""}>Subject</FormLabel>
+                                    <FormControl>
                                       <ServerCombobox
                                          items={subjectsData?.items || []}
                                          value={field.value}
                                          onSelect={field.onChange}
                                          valueKey="subject_id"
                                          labelKey="subject_name"
-                                         placeholder="Select Subject"
+                                         placeholder="Subject"
                                          disabled={classId <= 0}
                                       />
-                                   </FormControl>
-                                   <FormMessage />
-                                 </FormItem>
-                               )}
-                             />
-                             <FormField
-                               control={multipleTestSubjectsForm.control}
-                               name={`subjects.${index}.marks_obtained`}
-                               render={({ field }) => (
-                                 <FormItem>
-                                   <FormLabel>Marks Obtained</FormLabel>
-                                   <FormControl>
-                                     <Input type="number" placeholder="0" {...field} />
-                                   </FormControl>
-                                   <FormMessage />
-                                 </FormItem>
-                               )}
-                             />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={multipleTestSubjectsForm.control}
+                                name={`subjects.${index}.marks_obtained`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={index > 0 ? "sr-only" : ""}>Marks</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" placeholder="Marks" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={multipleTestSubjectsForm.control}
+                                name={`subjects.${index}.remarks`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={index > 0 ? "sr-only" : ""}>Remarks</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Remarks" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <div className="col-span-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => remove(index)}
+                                disabled={fields.length === 1}
+                                className="text-red-500"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
+
                       <div className="flex justify-end space-x-2">
-                        <Button type="button" variant="outline" onClick={closeTestMarkDialog}>Cancel</Button>
-                        <Button type="submit" disabled={createMultipleSubjectsMutation.isPending}>
-                          {createMultipleSubjectsMutation.isPending ? "Adding..." : "Add Test Marks"}
+                        <Button
+                          variant="outline"
+                          onClick={closeTestMarkDialog}
+                          disabled={createMultipleSubjectsMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={createMultipleSubjectsMutation.isPending}
+                        >
+                          {createMultipleSubjectsMutation.isPending ? "Saving..." : "Save All Marks"}
                         </Button>
                       </div>
                     </form>
@@ -924,201 +993,152 @@ const TestMarksManagementComponent = ({
             ) : (
               <Form {...testMarkForm}>
                 <form onSubmit={testMarkForm.handleSubmit(handleTestMarkSubmit)} className="space-y-4">
-                   <FormField
-                     control={testMarkForm.control}
-                     name="enrollment_id"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel>Student</FormLabel>
-                         <FormControl>
-                            <Select onValueChange={field.onChange} value={field.value} disabled>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select student" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {enrollments
-                                  .filter((enrollment) => enrollment.enrollment_id != null)
-                                  .map((enrollment) => (
-                                    <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id!.toString()}>
-                                      {enrollment.student_name}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                   />
-                   {/* Similar fields for Edit mode but disabled/pre-filled */}
-                   <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={testMarkForm.control}
-                        name="test_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Test</FormLabel>
-                            <FormControl>
-                              <ServerCombobox
-                                 items={testsData?.items || []}
-                                 value={field.value}
-                                 onSelect={field.onChange}
-                                 valueKey="test_id"
-                                 labelKey="test_name"
-                                 placeholder="Select Test"
-                                 disabled
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={testMarkForm.control}
-                        name="subject_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Subject</FormLabel>
-                            <FormControl>
-                              <ServerCombobox
-                                 items={subjectsData?.items || []}
-                                 value={field.value}
-                                 onSelect={field.onChange}
-                                 valueKey="subject_id"
-                                 labelKey="subject_name"
-                                 placeholder="Select Subject"
-                                 disabled
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                   </div>
-                   <FormField
-                      control={testMarkForm.control}
-                      name="marks_obtained"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Marks Obtained</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="0" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={testMarkForm.control}
-                      name="remarks"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Remarks (Optional)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Additional comments..." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                   <div className="flex justify-end space-x-2">
-                      <Button type="button" variant="outline" onClick={closeTestMarkDialog}>Cancel</Button>
-                      <Button type="submit">Update Test Mark</Button>
-                   </div>
+                  <div className="bg-muted p-3 rounded-md mb-4 text-sm space-y-1">
+                    <p><strong>Student:</strong> {editingTestMark.student_name} ({editingTestMark.roll_number})</p>
+                    <p><strong>Test:</strong> {editingTestMark.test_name}</p>
+                    <p><strong>Subject:</strong> {editingTestMark.subject_name}</p>
+                  </div>
+                  
+                  <FormField
+                    control={testMarkForm.control}
+                    name="marks_obtained"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Marks Obtained</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={testMarkForm.control}
+                    name="remarks"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Remarks (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Additional comments..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={closeTestMarkDialog}
+                      disabled={false}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={false}
+                    >
+                      Update Mark
+                    </Button>
+                  </div>
                 </form>
               </Form>
             )}
           </DialogContent>
         </Dialog>
 
+        {/* View Details Dialog */}
         <Dialog open={showViewTestMarkDialog} onOpenChange={setShowViewTestMarkDialog}>
-          <DialogContent className="sm:max-w-[520px]">
-             <DialogHeader>
-               <DialogTitle>Test Mark Details</DialogTitle>
-             </DialogHeader>
-             {viewTestLoading ? (
-               <Loader.Data message="Loading mark..." />
-             ) : viewTestError ? (
-               <div className="p-6 text-center text-red-600">Failed to load mark details.</div>
-             ) : viewedTestMark ? (
-               <div className="space-y-4 pt-2">
-                 <div className="grid grid-cols-2 gap-4">
-                   <div>
-                     <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Student</div>
-                     <div className="font-medium text-lg">{viewedTestMark.student_name}</div>
-                     <div className="text-sm text-muted-foreground">Roll: {viewedTestMark.roll_number}</div>
-                   </div>
-                   <div>
-                     <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Class Info</div>
-                     <div className="font-medium">{viewedTestMark.class_name}</div>
-                     <div className="text-sm text-muted-foreground">{viewedTestMark.section_name}</div>
-                   </div>
-                   <div>
-                     <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Test & Subject</div>
-                     <div className="font-medium">{viewedTestMark.test_name}</div>
-                     <div className="text-sm text-muted-foreground">{viewedTestMark.subject_name}</div>
-                   </div>
-                   <div>
-                     <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Performance</div>
-                     <div className="flex items-center gap-2">
-                        <span className="font-bold text-xl">{viewedTestMark.marks_obtained}</span>
-                        <span className="text-muted-foreground">/ {viewedTestMark.max_marks || 100}</span>
-                     </div>
-                     <div className={`text-sm font-medium ${
-                       viewedTestMark.grade === 'F' ? 'text-red-600' : 'text-green-600'
-                     }`}>
-                       Grade: {viewedTestMark.grade} ({viewedTestMark.percentage}%)
-                     </div>
-                   </div>
-                 </div>
-                 {viewedTestMark.remarks && (
-                   <div className="bg-slate-50 p-3 rounded-md border text-sm">
-                      <span className="font-semibold block mb-1">Remarks:</span>
-                      {viewedTestMark.remarks}
-                   </div>
-                 )}
-                 <div className="text-xs text-muted-foreground text-right border-t pt-2">
-                    Date: {viewedTestMark.conducted_at ? new Date(viewedTestMark.conducted_at).toLocaleDateString() : 'N/A'}
-                 </div>
-               </div>
-             ) : (
-                <div className="p-6 text-center text-muted-foreground">No details found.</div>
-             )}
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Test Mark Details</DialogTitle>
+            </DialogHeader>
+            {viewTestLoading ? (
+              <div className="py-8 flex justify-center">
+                <Loader.Container message="Loading test mark..." />
+              </div>
+            ) : viewTestError ? (
+               <Alert variant="destructive">
+                  <AlertDescription>Error loading test mark details</AlertDescription>
+               </Alert>
+            ) : viewedTestMark && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 border rounded-lg p-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground uppercase font-semibold">Student</label>
+                    <p className="font-medium">{viewedTestMark.student_name}</p>
+                    <p className="text-sm text-muted-foreground">Roll: {viewedTestMark.roll_number}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground uppercase font-semibold">Class / Section</label>
+                    <p className="font-medium">{(viewedTestMark as any).class_name}</p>
+                    <p className="text-sm text-muted-foreground">{viewedTestMark.section_name}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground uppercase font-semibold">Test</label>
+                    <p className="font-medium">{viewedTestMark.test_name}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground uppercase font-semibold">Subject</label>
+                    <p className="font-medium">{viewedTestMark.subject_name}</p>
+                  </div>
+                  <div className="col-span-2 pt-2 border-t grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs text-muted-foreground uppercase font-semibold">Marks</label>
+                      <p className="text-xl font-bold">{viewedTestMark.marks_obtained}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground uppercase font-semibold">Percentage</label>
+                      <p className="text-xl font-bold">{viewedTestMark.percentage}%</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground uppercase font-semibold">Grade</label>
+                      <p className="text-xl font-bold">{viewedTestMark.grade}</p>
+                    </div>
+                  </div>
+                  {viewedTestMark.remarks && (
+                    <div className="col-span-2 pt-2 border-t">
+                      <label className="text-xs text-muted-foreground uppercase font-semibold">Remarks</label>
+                      <p className="text-sm">{viewedTestMark.remarks}</p>
+                    </div>
+                  )}
+                  <div className="col-span-2 pt-2 border-t">
+                    <label className="text-xs text-muted-foreground uppercase font-semibold">Conducted At</label>
+                    <p className="text-sm font-medium">{viewedTestMark.conducted_at ? new Date(viewedTestMark.conducted_at).toLocaleDateString() : "-"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={confirmDeleteId !== null} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+        {/* Delete Confirmation */}
+        <AlertDialog
+          open={!!confirmDeleteId}
+          onOpenChange={(open) => !open && setConfirmDeleteId(null)}
+        >
           <AlertDialogContent>
             <AlertHeader>
-              <AlertDialogTitle>Delete Test Mark</AlertDialogTitle>
+              <AlertDialogTitle>Delete Test Mark?</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete this test mark? This action cannot be undone.
+                Are you sure you want to delete this test mark record? This action cannot be undone.
               </AlertDialogDescription>
             </AlertHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700"
                 onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
               >
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        
+
+        {/* Add Marks By Class Dialog */}
         <AddTestMarksByClassDialog
-          isOpen={showAddTestMarksDialog}
-          onClose={() => setShowAddTestMarksDialog(false)}
-          onSuccess={() => {
-            void queryClient.invalidateQueries({
-              queryKey: schoolKeys.testMarks.root(),
-            });
-            void queryClient.refetchQueries({
-              queryKey: schoolKeys.testMarks.root(),
-              type: "active",
-            });
-          }}
+           isOpen={showAddTestMarksDialog}
+           onClose={() => setShowAddTestMarksDialog(false)}
         />
       </div>
     </div>

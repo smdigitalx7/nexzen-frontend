@@ -15,13 +15,14 @@ export function useSchoolExamMarksList(params?: ExamMarksQuery) {
       params.subject_id > 0 &&
       typeof params?.exam_id === "number" &&
       params.exam_id > 0,
-    select: (data: unknown): ExamGroupAndSubjectResponse[] => {
-      if (Array.isArray(data)) return data as ExamGroupAndSubjectResponse[];
+    select: (data: unknown): any => {
+      // Handle array response (legacy/unpaginated)
+      if (Array.isArray(data)) return data;
+      // Handle paginated response structure
       if (data && typeof data === "object" && "data" in data) {
-        const inner = (data as { data: unknown }).data;
-        return Array.isArray(inner) ? (inner as ExamGroupAndSubjectResponse[]) : [];
+        return data; // Return full object so UI can access total_count
       }
-      return [];
+      return data;
     },
   });
 }

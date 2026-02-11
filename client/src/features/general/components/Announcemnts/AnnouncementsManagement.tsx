@@ -32,7 +32,7 @@ const AnnouncementsManagement = () => {
                   className="group relative flex items-center justify-center p-2 bg-white border border-[#E11900]/50 rounded-xl hover:border-[#E11900] transition-all h-14 w-36 overflow-hidden shadow-sm"
                 >
                   <img 
-                    src="/assets/airteldltlogo.png" 
+                    src={import.meta.env.VITE_DLT_LOGO || "/assets/airteldltlogo.png"} 
                     alt="Airtel DLT" 
                     className="h-full w-full object-contain transition-all duration-300 transform group-hover:scale-105" 
                   />
@@ -52,7 +52,7 @@ const AnnouncementsManagement = () => {
                   className="group relative flex items-center justify-center p-2 bg-[#2C2C2C] border border-[#3C3C3C] rounded-xl hover:border-primary/40 transition-all h-14 w-36 overflow-hidden shadow-sm"
                 >
                   <img 
-                    src="/assets/Fast2SMS.png" 
+                    src={import.meta.env.VITE_SMS_PROVIDER_LOGO || "/assets/Fast2SMS.png"} 
                     alt="Fast2SMS" 
                     className="h-full w-full object-contain transition-all duration-300 transform group-hover:scale-105" 
                   />

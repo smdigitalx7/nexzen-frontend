@@ -115,8 +115,8 @@ const SMSReports = () => {
     BLOCKED: "bg-slate-100 text-slate-800 border-slate-200",
   };
 
-  const SummaryCard = ({ title, value, icon: Icon, colorClass, subtitle }: any) => (
-    <Card className="overflow-hidden border-none shadow-sm bg-white h-24 px-2 py-2">
+  const SummaryCard = ({ title, value, icon: Icon, colorClass, subtitle, borderColor }: any) => (
+    <Card className={`overflow-hidden shadow-sm bg-white h-24 px-2 py-2 border-2 ${borderColor}`}>
       <CardContent className="p-4 flex flex-col justify-center h-full">
         <div className="flex justify-between items-center h-full">
           <div className="space-y-1">
@@ -208,18 +208,21 @@ const SMSReports = () => {
                value={summaryResp?.data?.sent || 0} 
                icon={Send} 
                colorClass="bg-blue-100 text-blue-600"
+               borderColor="border-blue-200"
              />
              <SummaryCard 
                title="Delivered" 
                value={summaryResp?.data?.delivered || 0} 
                icon={CheckCircle2} 
                colorClass="bg-green-100 text-green-600"
+               borderColor="border-green-200"
              />
              <SummaryCard 
                title="Failed" 
                value={summaryResp?.data?.failed || 0} 
                icon={AlertTriangle} 
                colorClass="bg-red-100 text-red-800"
+               borderColor="border-red-200"
              />
              <SummaryCard 
                title="Other Status" 
@@ -227,6 +230,7 @@ const SMSReports = () => {
                subtitle={`${summaryResp?.data?.pending || 0} Pending, ${summaryResp?.data?.blocked || 0} Blocked`}
                icon={ShieldCheck} 
                colorClass="bg-slate-100 text-slate-600"
+               borderColor="border-slate-200"
              />
            </>
          )}

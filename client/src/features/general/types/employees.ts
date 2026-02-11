@@ -113,4 +113,12 @@ export interface EmployeeDashboardStats {
   total_salary_expense: number;
 }
 
+export interface EmployeePaginatedResponse {
+  data: EmployeeRead[];
+  total_count: number;
+  total_pages: number;
+  current_page: number;
+  page_size: number;
+}
+
 

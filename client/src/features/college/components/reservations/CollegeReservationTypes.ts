@@ -39,7 +39,7 @@ export type CollegeReservationFormState = {
   courseRequired: boolean;
   requestType: string;
   referredBy: string;
-  referredByName: string;
+  other_referee_name: string;
   reservationDate: string;
   siblingsJson: string;
   siblings: Array<{
@@ -87,7 +87,7 @@ export const initialFormState: CollegeReservationFormState = {
   courseRequired: true,
   requestType: "WALK_IN",
   referredBy: "",
-  referredByName: "",
+  other_referee_name: "",
   reservationDate: "",
   siblingsJson: "",
   siblings: [],

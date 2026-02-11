@@ -133,9 +133,14 @@ const SMSBulkAnnouncement = () => {
                        variant="outline" 
                        size="sm" 
                        className="h-auto p-1 text-[10px]"
-                       onClick={() => setFormData({ ...formData, audience_ids: [] })}
+                       onClick={() => setFormData({ 
+                         ...formData, 
+                         audience_ids: formData.audience_ids.length === classes.length 
+                           ? [] 
+                           : classes.map((cls: any) => cls.class_id) 
+                       })}
                      >
-                       Select All Classes
+                       {formData.audience_ids.length === classes.length ? "Deselect All" : "Select All Classes"}
                      </Button>
                    </div>
                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -258,10 +263,12 @@ const SMSBulkAnnouncement = () => {
                    {selectedTemplate.variable_names.length > 0 ? (
                      selectedTemplate.variable_names.map((v) => (
                        <div key={v} className="space-y-1.5">
-                         <Label htmlFor={`var-${v}`} className="text-xs">{v}</Label>
+                         <Label htmlFor={`var-${v}`} className="text-xs flex items-center gap-1">
+                           {v} <span className="text-red-500">*</span>
+                         </Label>
                          <Input 
                            id={`var-${v}`} 
-                           className="h-8 text-xs"
+                           className="h-8 text-xs border-red-500 focus-visible:ring-red-500"
                            placeholder={`Value for {${v}}`}
                            value={formData.template_variables[v] || ""}
                            onChange={(e) => handleVariableChange(v, e.target.value)}

@@ -284,6 +284,8 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -294,21 +296,27 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
 
   const { data: selectedBalance } = useCollegeTuitionBalanceByAdmission(selectedAdmissionNo);
 
-  // Reset group when class changes
+  // Reset group and page when class changes
   useEffect(() => {
     if (balanceClass) {
       setBalanceGroup("");
+      setPage(1);
     }
   }, [balanceClass]);
 
+  // Reset page when group or search changes
+  useEffect(() => {
+    setPage(1);
+  }, [balanceGroup, searchQuery]);
+
   const groupIdNum = balanceGroup ? parseInt(balanceGroup) : undefined;
   // Fetch data when class, group, or search query changes
-  const { data: tuitionResp, refetch } = useCollegeTuitionBalancesList(
+  const { data: tuitionResp, isLoading: tuitionLoading } = useCollegeTuitionBalancesList(
     classIdNum && groupIdNum ? { 
       class_id: classIdNum, 
       group_id: groupIdNum,
-      page: 1, 
-      pageSize: 50,
+      page: page, 
+      pageSize: pageSize,
       search: searchQuery,
     } : undefined
   );
@@ -415,7 +423,16 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
           onViewStudent={handleViewStudent}
           onExportCSV={onExportCSV}
           showHeader={false}
-          loading={!tuitionResp}
+          loading={tuitionLoading}
+          pagination="server"
+          totalCount={tuitionResp?.total_count ?? 0}
+          currentPage={tuitionResp?.current_page ?? page}
+          pageSize={tuitionResp?.page_size ?? pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
           searchValue={searchInput}
           onSearchChange={setSearchInput}
         />

@@ -15,6 +15,13 @@ export function useSchoolTestMarksList(params?: TestMarksQuery) {
       params.subject_id > 0 &&
       typeof params?.test_id === "number" && 
       params.test_id > 0,
+    select: (data: unknown): any => {
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === "object" && "data" in data) {
+        return data;
+      }
+      return data;
+    },
   });
 }
 

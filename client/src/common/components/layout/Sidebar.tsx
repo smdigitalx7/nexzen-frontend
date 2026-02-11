@@ -522,31 +522,65 @@ const Sidebar = () => {
       <div className="mt-auto border-t border-slate-200/80 bg-white/50 backdrop-blur-sm">
         <div className="p-3">
           <div className="flex items-center justify-start gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              className="h-10 w-10 hover:bg-red-100  bg-red-50 hover:text-red-900 text-red-600 hover:border-red-200 border border-red-100 transition-all duration-200 rounded-lg shrink-0"
-              title="Logout"
-              data-testid="sidebar-logout-button"
-            >
-              <LogOut className="h-4 w-4 text-red-600 hover:text-red-900 transition-colors" />
-            </Button>
+            {/* Logout Button with Tooltip */}
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  className="h-10 w-10 hover:bg-red-100  bg-red-50 hover:text-red-900 text-red-600 hover:border-red-200 border border-red-100 transition-all duration-200 rounded-lg shrink-0"
+                  title="Logout"
+                  data-testid="sidebar-logout-button"
+                >
+                  <LogOut className="h-4 w-4 text-red-600 hover:text-red-900 transition-colors" />
+                </Button>
+              </TooltipTrigger>
+              {!sidebarOpen && (
+                <TooltipContent 
+                  side="right" 
+                  sideOffset={10} 
+                  className="bg-slate-900 border-slate-800 text-slate-50 font-medium shadow-xl px-3 py-1.5"
+                >
+                  Logout
+                </TooltipContent>
+              )}
+            </Tooltip>
+
             {/* Version, Report Issue, Admin Guide, and Documents - Stacked layout */}
-            {sidebarOpen && (
+            {sidebarOpen ? (
               <div className="flex flex-col gap-1 text-[10px] text-slate-400">
                 {/* First line: Version | Report Issue */}
                 <div className="flex items-center gap-2">
-                  <span>{__BUILD_DATE__}</span>
+                  <Tooltip delayDuration={300}>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help hover:text-slate-600 transition-colors">{__BUILD_DATE__}</span>
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      side="top" 
+                      className="bg-slate-900 border-slate-800 text-slate-50 font-medium shadow-xl px-3 py-1.5 text-xs"
+                    >
+                      Application Version
+                    </TooltipContent>
+                  </Tooltip>
                   <span className="text-slate-300">|</span>
-                  <button
-                    onClick={() => setShowIssueReportDialog(true)}
-                    className="hover:text-slate-600 transition-colors cursor-pointer flex items-center gap-1"
-                    title="Report an Issue"
-                  >
-                    <Bug className="h-3 w-3" />
-                    Report Issue
-                  </button>
+                  <Tooltip delayDuration={300}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setShowIssueReportDialog(true)}
+                        className="hover:text-slate-600 transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <Bug className="h-3 w-3" />
+                        Report Issue
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      side="top" 
+                      className="bg-slate-900 border-slate-800 text-slate-50 font-medium shadow-xl px-3 py-1.5 text-xs"
+                    >
+                      Report a bug or issue
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
 
                 {/* Second line: Role-based Guide | Documents (for admin) */}
@@ -635,6 +669,124 @@ const Sidebar = () => {
                   }
 
                   return null;
+                })()}
+              </div>
+            ) : (
+              // Collapsed sidebar: Show icon buttons with tooltips
+              <div className="flex items-center gap-2">
+                {/* Report Issue Button */}
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowIssueReportDialog(true)}
+                      className="h-8 w-8 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 rounded-lg"
+                    >
+                      <Bug className="h-4 w-4 text-slate-500" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent 
+                    side="right" 
+                    sideOffset={10} 
+                    className="bg-slate-900 border-slate-800 text-slate-50 font-medium shadow-xl px-3 py-1.5"
+                  >
+                    Report Issue
+                  </TooltipContent>
+                </Tooltip>
+
+                {/* Role-based Guide Button */}
+                {(() => {
+                  const userRoleUpper = String(user?.role || "")
+                    .toUpperCase()
+                    .trim();
+                  const isAdminRole =
+                    userRoleUpper === ROLES.ADMIN ||
+                    userRoleUpper === "ADMIN" ||
+                    userRoleUpper === ROLES.INSTITUTE_ADMIN ||
+                    userRoleUpper === "INSTITUTE_ADMIN";
+                  const isAccountantRole =
+                    userRoleUpper === ROLES.ACCOUNTANT ||
+                    userRoleUpper === "ACCOUNTANT";
+                  const isAcademicRole =
+                    userRoleUpper === ROLES.ACADEMIC ||
+                    userRoleUpper === "ACADEMIC";
+
+                  let guideUrl = "";
+                  let guideLabel = "";
+
+                  if (isAdminRole) {
+                    guideUrl = "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                    guideLabel = "Admin Guide";
+                  } else if (isAccountantRole) {
+                    guideUrl = "https://docs.google.com/document/d/19XfkbLisVi5zql9Fuuv5_R4KijLGOow1/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                    guideLabel = "Accountant Guide";
+                  } else if (isAcademicRole) {
+                    guideUrl = "https://docs.google.com/document/d/1Lm2nX3UAVcJ42QVW2XONCoXUNuKHy5iv/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                    guideLabel = "Academic Guide";
+                  }
+
+                  if (!guideUrl) return null;
+
+                  return (
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => window.open(guideUrl, "_blank")}
+                          className="h-8 w-8 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 rounded-lg"
+                        >
+                          <BookOpen className="h-4 w-4 text-slate-500" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent 
+                        side="right" 
+                        sideOffset={10} 
+                        className="bg-slate-900 border-slate-800 text-slate-50 font-medium shadow-xl px-3 py-1.5"
+                      >
+                        {guideLabel}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })()}
+
+                {/* Documents Button (Admin only) */}
+                {(() => {
+                  const userRoleUpper = String(user?.role || "")
+                    .toUpperCase()
+                    .trim();
+                  const isAdminRole =
+                    userRoleUpper === ROLES.ADMIN ||
+                    userRoleUpper === "ADMIN" ||
+                    userRoleUpper === ROLES.INSTITUTE_ADMIN ||
+                    userRoleUpper === "INSTITUTE_ADMIN";
+
+                  if (!isAdminRole) return null;
+
+                  const documentsUrl = "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link";
+
+                  return (
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => window.open(documentsUrl, "_blank")}
+                          className="h-8 w-8 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 rounded-lg"
+                        >
+                          <FolderOpen className="h-4 w-4 text-slate-500" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent 
+                        side="right" 
+                        sideOffset={10} 
+                        className="bg-slate-900 border-slate-800 text-slate-50 font-medium shadow-xl px-3 py-1.5"
+                      >
+                        Documents
+                      </TooltipContent>
+                    </Tooltip>
+                  );
                 })()}
               </div>
             )}

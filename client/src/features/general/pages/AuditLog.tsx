@@ -62,6 +62,15 @@ import { useExcelExport } from "@/common/utils/export/useExcelExport";
 import { getExportFilename } from "@/common/utils/export/excel-export-utils";
 import { ExportProgressDialog } from "@/common/components/shared/ExportProgressDialog";
 import { ProductionErrorBoundary } from "@/common/components/shared/ProductionErrorBoundary";
+import { DataTable } from "@/common/components/shared/DataTable";
+import {
+  createTextColumn,
+  createDateColumn,
+  createStatusColumn,
+  StatusColors
+} from "@/common/utils/factory/columnFactories";
+import type { ColumnDef } from "@tanstack/react-table";
+import type { ActivitySummary } from "@/features/general/types/audit-logs";
 
 // Summary Tab Component
 function SummaryTab() {
@@ -71,11 +80,11 @@ function SummaryTab() {
 
   const { data: usersWithRoles = [], isLoading: usersLoading } = useUsersWithRolesAndBranches();
   const { exportToExcel, isExporting, exportProgress } = useExcelExport();
-  
+
   // Filter to only show users with ADMIN, ACCOUNTANT, or ACADEMIC roles
   const allowedRoles = ["ADMIN", "ACCOUNTANT", "ACADEMIC"];
-  const users = usersWithRoles.filter(user => 
-    user.roles && user.roles.length > 0 && 
+  const users = usersWithRoles.filter(user =>
+    user.roles && user.roles.length > 0 &&
     user.roles.some(role => allowedRoles.includes(role.role_name))
   );
   const {
@@ -88,6 +97,25 @@ function SummaryTab() {
     limit: limit,
     user_id: userId || undefined,
   });
+
+  const columns = useMemo((): ColumnDef<ActivitySummary>[] => [
+    createTextColumn<ActivitySummary>("user_full_name", { header: "User", fallback: "N/A" }),
+    createTextColumn<ActivitySummary>("branch_name", { header: "Branch", fallback: "N/A" }),
+    createTextColumn<ActivitySummary>("activity_description", { header: "Activity" }),
+    createStatusColumn<ActivitySummary>("category", (status) => {
+      switch (status) {
+        case "CREATE": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+        case "UPDATE": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+        case "DELETE": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+        case "VIEW": return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+        default: return "bg-gray-100 text-gray-800";
+      }
+    }, () => null, { header: "Category" }),
+    createTextColumn<ActivitySummary>("count_or_amount", { header: "Count/Amount" }),
+    createTextColumn<ActivitySummary>("time_ago", { header: "Time Ago" }),
+    createDateColumn<ActivitySummary>("changed_at", { header: "Changed At" }),
+    createTextColumn<ActivitySummary>("changed_date", { header: "Date" }),
+  ], []);
 
   const exportCSV = async () => {
     // ✅ OPTIMIZED: Use Web Worker for export to prevent UI blocking
@@ -350,17 +378,6 @@ function SummaryTab() {
             <div className="flex items-end gap-2">
               <Button
                 variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setUserId(null);
-                  setHoursBack(24);
-                  setLimit(100);
-                }}
-              >
-                Reset Filters
-              </Button>
-              <Button
-                variant="outline"
                 className="gap-2"
                 onClick={() => refetch()}
                 disabled={isLoading}
@@ -370,118 +387,23 @@ function SummaryTab() {
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="gap-2" 
-                onClick={exportCSV}
-                disabled={isExporting}
-              >
-                {isExporting ? (
-                  <Loader.Button size="xs" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                Export
+                Refresh
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Export Progress Dialog */}
-      <ExportProgressDialog
-        open={isExporting}
-        progress={exportProgress?.progress || 0}
-        status={exportProgress?.status || 'processing'}
-        message={exportProgress?.message}
+      <DataTable
+        data={activitySummaries}
+        columns={columns as any}
+        title="Activity Summaries"
+        loading={isLoading}
+        searchKey="activity_description"
+        export={{ enabled: true, filename: "activity_summary" }}
+        showSearch={true}
+        emptyMessage="No activity summaries found"
       />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Activity Summaries</CardTitle>
-          <CardDescription>
-            {isLoading
-              ? "Loading..."
-              : error
-                ? "Error loading activity summaries"
-                : `${activitySummaries.length} records`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader.Data message="Loading audit logs..." />
-            </div>
-          ) : error ? (
-            <div className="text-center py-12 text-destructive">
-              <p>Failed to load activity summaries</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => refetch()}
-              >
-                Try Again
-              </Button>
-            </div>
-          ) : activitySummaries.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>
-                No activity summaries found for {getHoursBackLabel(hoursBack)}
-                {userId ? ` for user ID ${userId}` : ""}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Branch</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Count/Amount</TableHead>
-                    <TableHead>Time Ago</TableHead>
-                    <TableHead>Changed At</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activitySummaries.map((activity, index) => (
-                    <TableRow
-                      key={`${activity.user_id}-${activity.changed_at}-${index}`}
-                    >
-                      <TableCell className="font-medium">
-                        {activity.user_full_name || "N/A"}
-                      </TableCell>
-                      <TableCell>{activity.branch_name || "N/A"}</TableCell>
-                      <TableCell>{activity.activity_description}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={getCategoryColor(activity.category)}
-                        >
-                          {activity.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{activity.count_or_amount}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {activity.time_ago}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDateTime(activity.changed_at)}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {activity.changed_date}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
@@ -490,7 +412,7 @@ function SummaryTab() {
 function LogsTab() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
-  const [limit, setLimit] = useState<number>(100);
+  const [limit, setLimit] = useState<number>(25);
   const [offset, setOffset] = useState<number>(0);
   const [selectedAuditIds, setSelectedAuditIds] = useState<number[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -511,18 +433,59 @@ function LogsTab() {
     offset,
   });
 
-  // ✅ FIX: Ensure readableLogs is always an array
-  const readableLogs = useMemo(() => {
-    if (!readableLogsData) return [];
-    const raw: unknown = readableLogsData;
-    // Handle case where API returns direct array
-    if (Array.isArray(raw)) return raw;
-    // Handle case where API returns { data: [...] }
-    if (raw && typeof raw === "object" && Array.isArray((raw as any).data)) {
-      return (raw as any).data as any[];
+  // Ensure readableLogs is always an array and extract pagination info
+  const { logs, totalCount, currentPageProps } = useMemo(() => {
+    const raw: any = readableLogsData;
+    if (!raw) return { logs: [], totalCount: 0, currentPageProps: 1 };
+
+    // Handle Case 1: Standardized AuditLogPaginatedResponse { data: [...], total_count: ... }
+    if (raw.data && Array.isArray(raw.data)) {
+      return {
+        logs: raw.data,
+        totalCount: raw.total_count || 0,
+        currentPageProps: Math.floor(offset / limit) + 1
+      };
     }
-    return [];
-  }, [readableLogsData]);
+
+    // Handle Case 2: Direct array (legacy fallback)
+    if (Array.isArray(raw)) {
+      return {
+        logs: raw,
+        totalCount: raw.length,
+        currentPageProps: 1
+      };
+    }
+
+    return { logs: [], totalCount: 0, currentPageProps: 1 };
+  }, [readableLogsData, offset, limit]);
+
+  const columns = useMemo((): ColumnDef<any>[] => [
+    createTextColumn("audit_id", { header: "Audit ID", className: "font-mono text-xs" }),
+    createStatusColumn("operation_type", (status) => {
+      switch (status) {
+        case "INSERT": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+        case "UPDATE": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+        case "DELETE": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+        case "SELECT": return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+        default: return "bg-gray-100 text-gray-800";
+      }
+    }, () => null, { header: "Operation" }),
+    createTextColumn("branch_name", { header: "Branch", fallback: "N/A" }),
+    createTextColumn("description", { header: "Description", className: "max-w-md truncate" }),
+  ], []);
+
+  const actions = useMemo(() => [
+    {
+      id: "delete",
+      label: "Delete",
+      icon: Trash2,
+      variant: "destructive" as const,
+      onClick: (row: any) => {
+        setSelectedAuditIds([row.audit_id]);
+        setShowDeleteDialog(true);
+      }
+    }
+  ], []);
 
   const deleteLogsMutation = useDeleteLogs();
   const deleteLogsByIdsMutation = useDeleteLogsByIds();
@@ -568,92 +531,56 @@ function LogsTab() {
   };
 
   const handleDelete = async () => {
-    // If audit IDs are selected, delete first, then export on success
-    if (selectedAuditIds.length > 0) {
-      try {
+    try {
+      if (selectedAuditIds.length > 0) {
+        // Specific records delete
         await deleteLogsByIdsMutation.mutateAsync({
           audit_ids: selectedAuditIds,
           confirm_deletion: true,
         });
-        
+
         // ✅ Only export Excel after successful deletion
-        const selectedLogs = readableLogs.filter((log) =>
+        const selectedLogs = logs.filter((log: any) =>
           selectedAuditIds.includes(log.audit_id)
         );
         if (selectedLogs.length > 0) {
           await exportCSV(selectedLogs);
         }
-        
-        setShowDeleteDialog(false);
-        setSelectedAuditIds([]);
+
         // Reset offset if current page might be empty after deletion
-        if (offset > 0 && readableLogs.length <= selectedAuditIds.length) {
+        if (offset > 0 && logs.length <= selectedAuditIds.length) {
           setOffset(0);
         }
-        // Force refresh by updating refresh key to trigger re-render
-        setRefreshKey(prev => prev + 1);
-        // Additional refetch as backup (mutation hook handles the main refresh)
-        setTimeout(async () => {
-          await refetch();
-        }, 100);
-      } catch (error: any) {
-        // Error message is shown by mutation hook's onError
-        // The error detail from API response will be displayed in the toast
-        console.error("Delete failed:", error);
-        // Don't close dialog on error so user can see the error message
+      } else if (startDate && endDate) {
+        // Range delete
+        // Check if dates are within last 7 days (re-validation for safety)
+        const start = new Date(startDate);
+        const min = new Date(minDate);
+        if (start >= min) {
+          toast({
+            title: "Invalid Date Range",
+            description: "Cannot delete logs from the last 7 days.",
+            variant: "destructive",
+          });
+          return; // Exit if validation fails
+        }
+
+        await deleteLogsMutation.mutateAsync({
+          start_date: startDate,
+          end_date: endDate,
+          confirm_deletion: true,
+        });
       }
-      return;
-    }
 
-    // Otherwise, use date range deletion
-    if (!startDate || !endDate) {
-      toast({
-        title: "Validation Error",
-        description: "Please select both start and end dates, or select audit logs to delete.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check if dates are within last 7 days
-    const start = new Date(startDate);
-    const min = new Date(minDate);
-    if (start >= min) {
-      toast({
-        title: "Invalid Date Range",
-        description: "Cannot delete logs from the last 7 days.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await deleteLogsMutation.mutateAsync({
-        start_date: startDate,
-        end_date: endDate,
-        confirm_deletion: true,
-      });
-      
-      // ✅ Only export Excel after successful deletion
-      if (readableLogs.length > 0) {
-        await exportCSV(readableLogs);
-      }
-      
-      setShowDeleteDialog(false);
       setSelectedAuditIds([]);
-      // Reset offset after date range deletion
-      setOffset(0);
-      // Force refresh by updating refresh key to trigger re-render
-      setRefreshKey(prev => prev + 1);
-      // Additional refetch as backup (mutation hook handles the main refresh)
-      setTimeout(async () => {
-        await refetch();
-      }, 100);
-    } catch (error: any) {
-      // Error message is shown by mutation hook's onError
-      // The error detail from API response will be displayed in the toast
+      setShowDeleteDialog(false);
+
+      // Force refresh
+      setRefreshKey((prev) => prev + 1);
+      setTimeout(() => refetch(), 100);
+    } catch (error) {
       console.error("Delete failed:", error);
-      // Don't close dialog on error so user can see the error message
+      // Error message is shown by mutation hook's onError
     }
   };
 
@@ -676,28 +603,18 @@ function LogsTab() {
     );
   };
 
-  // Pagination calculations
-  const currentPage = Math.floor(offset / limit) + 1;
-  const hasMorePages = readableLogs.length === limit;
-  const hasPreviousPage = offset > 0;
-
-  const handleNextPage = () => {
-    if (hasMorePages) {
-      setOffset(offset + limit);
-      setSelectedAuditIds([]); // Clear selection when changing pages
-    }
+  const handlePageChange = (page: number) => {
+    setOffset((page - 1) * limit);
+    setSelectedAuditIds([]);
   };
 
-  const handlePreviousPage = () => {
-    if (hasPreviousPage) {
-      setOffset(Math.max(0, offset - limit));
-      setSelectedAuditIds([]); // Clear selection when changing pages
-    }
+  const handlePageSizeChange = (newPageSize: number) => {
+    setLimit(newPageSize);
+    setOffset(0);
+    setSelectedAuditIds([]);
   };
 
-  const exportCSV = async (logsToExport?: typeof readableLogs) => {
-    const logs = logsToExport || readableLogs;
-    
+  const exportCSV = async (logsToExport?: any[]) => {
     // ✅ OPTIMIZED: Use Web Worker for export to prevent UI blocking
     const headers = [
       "Audit ID",
@@ -706,10 +623,11 @@ function LogsTab() {
       "Description",
     ];
 
-    const rows = logs.map((log) => [
+    const dataToExport = logsToExport || logs;
+    const rows = dataToExport.map((log: any) => [
       log.audit_id,
       log.operation_type,
-      log.branch_name,
+      log.branch_name || "N/A",
       log.description,
     ]);
 
@@ -744,27 +662,6 @@ function LogsTab() {
                 placeholder="Select end date"
               />
             </div>
-            <div>
-              <Label htmlFor="limit">Limit</Label>
-              <Select
-                value={limit.toString()}
-                onValueChange={(value) => {
-                  setLimit(Number(value));
-                  setOffset(0);
-                }}
-              >
-                <SelectTrigger id="limit">
-                  <SelectValue placeholder="Limit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="15">15 records</SelectItem>
-                  <SelectItem value="25">25 records</SelectItem>
-                  <SelectItem value="50">50 records</SelectItem>
-                  <SelectItem value="75">75 records</SelectItem>
-                  <SelectItem value="100">100 records</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div className="flex items-end gap-2">
               <Button
                 variant="outline"
@@ -772,7 +669,7 @@ function LogsTab() {
                 onClick={() => {
                   setStartDate("");
                   setEndDate("");
-                  setLimit(100);
+                  setLimit(25);
                   setOffset(0);
                   setSelectedAuditIds([]);
                 }}
@@ -790,12 +687,13 @@ function LogsTab() {
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
+                Refresh
               </Button>
             </div>
             <div className="flex items-end gap-2">
-              <Button 
-                variant="outline" 
-                className="gap-2" 
+              <Button
+                variant="outline"
+                className="gap-2"
                 onClick={() => exportCSV()}
                 disabled={isExporting}
               >
@@ -831,166 +729,35 @@ function LogsTab() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Audit Logs</CardTitle>
-              <CardDescription>
-                {isLoading
-                  ? "Loading..."
-                  : error
-                    ? "Error loading audit logs"
-                    : `Showing ${readableLogs.length} record${readableLogs.length !== 1 ? "s" : ""} (Page ${currentPage})`}
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button
-                        variant="outline"
-                        className="gap-2"
-                        onClick={handleDeleteClick}
-                        disabled={
-                          (selectedAuditIds.length === 0 && (!startDate || !endDate)) ||
-                          deleteLogsMutation.isPending ||
-                          deleteLogsByIdsMutation.isPending ||
-                          isLoading
-                        }
-                      >
-                        {(deleteLogsMutation.isPending || deleteLogsByIdsMutation.isPending) ? (
-                          <Loader.Button size="xs" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                        Delete
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {selectedAuditIds.length === 0 && (!startDate || !endDate) && (
-                    <TooltipContent>
-                      <p>Please select audit logs or select both Start Date and End Date to delete logs</p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader.Data message="Loading audit logs..." />
-            </div>
-          ) : error ? (
-            <div className="text-center py-12 text-destructive">
-              <p>Failed to load audit logs</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => refetch()}
-              >
-                Try Again
-              </Button>
-            </div>
-          ) : readableLogs.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>No audit logs found</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12"></TableHead>
-                    <TableHead>Audit ID</TableHead>
-                    <TableHead>Operation Type</TableHead>
-                    <TableHead>Branch</TableHead>
-                    <TableHead>Description</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {readableLogs.map((log: any) => (
-                    <TableRow key={log.audit_id}>
-                      <TableCell>
-                        <input
-                          type="checkbox"
-                          checked={selectedAuditIds.includes(log.audit_id)}
-                          onChange={() => toggleAuditIdSelection(log.audit_id)}
-                          className="h-4 w-4 rounded border-gray-300"
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {log.audit_id}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={getOperationTypeColor(log.operation_type)}
-                        >
-                          {log.operation_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{log.branch_name}</TableCell>
-                      <TableCell className="max-w-md">
-                        {log.description}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-        {/* Pagination */}
-        {!isLoading && !error && readableLogs.length > 0 && (
-          <div className="border-t px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Showing {offset + 1} to {offset + readableLogs.length} of
-                records
-              </div>
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handlePreviousPage}
-                      disabled={!hasPreviousPage || isLoading}
-                      className="gap-1"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <div className="flex items-center gap-2 px-4">
-                      <span className="text-sm font-medium">
-                        Page {currentPage}
-                      </span>
-                    </div>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleNextPage}
-                      disabled={!hasMorePages || isLoading}
-                      className="gap-1"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          </div>
-        )}
-      </Card>
+      <DataTable
+        data={logs}
+        columns={columns as any}
+        title="Audit Logs"
+        loading={isLoading}
+        searchKey="description"
+        export={{ enabled: true, filename: "audit_logs" }}
+        showSearch={true}
+        selectable={true}
+        onSelectionChange={(rows) => setSelectedAuditIds(rows.map((r: any) => r.audit_id))}
+        pagination="server"
+        currentPage={currentPageProps}
+        totalCount={totalCount}
+        onPageChange={handlePageChange}
+        pageSize={limit}
+        onPageSizeChange={handlePageSizeChange}
+        pageSizeOptions={[10, 25, 50, 100, 250]}
+        toolbarRightContent={
+          <Button
+            variant="destructive"
+            className="gap-2"
+            onClick={handleDeleteClick}
+            disabled={selectedAuditIds.length === 0 && (!startDate || !endDate)}
+          >
+            <Trash2 className="h-4 w-4" />
+            {selectedAuditIds.length > 0 ? `Delete (${selectedAuditIds.length})` : "Delete by Range"}
+          </Button>
+        }
+      />
 
       {/* Export Progress Dialog */}
       <ExportProgressDialog
@@ -1000,33 +767,19 @@ function LogsTab() {
         message={exportProgress?.message}
       />
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
-        title="Confirm Deletion"
+        title="Delete Audit Logs"
         description={
-          <>
-            {selectedAuditIds.length > 0 ? (
-              <>
-                Are you sure you want to delete <strong>{selectedAuditIds.length}</strong> selected audit
-                log(s)? This action cannot be undone.
-              </>
-            ) : (
-              <>
-                Are you sure you want to delete audit logs from <strong>{startDate}</strong> to <strong>{endDate}</strong>?
-                This action cannot be undone.
-              </>
-            )}
-          </>
+          selectedAuditIds.length > 0
+            ? `Are you sure you want to delete ${selectedAuditIds.length} selected audit log(s)? This action cannot be undone.`
+            : `Are you sure you want to delete audit logs from ${startDate} to ${endDate}? This action cannot be undone.`
         }
-        confirmText="Delete"
-        cancelText="Cancel"
+        confirmText="Confirm Delete"
         variant="destructive"
-        isLoading={deleteLogsMutation.isPending || deleteLogsByIdsMutation.isPending}
-        loadingText="Deleting..."
         onConfirm={handleDelete}
-        onCancel={() => setShowDeleteDialog(false)}
+        isLoading={deleteLogsMutation.isPending || deleteLogsByIdsMutation.isPending}
       />
     </div>
   );

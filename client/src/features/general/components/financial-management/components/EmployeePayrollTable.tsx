@@ -34,6 +34,11 @@ interface EmployeePayrollTableProps {
   onUpdateStatus?: (id: number, status: string) => void;
   getStatusColor: (status: string) => string;
   getStatusText: (status: string) => string;
+  currentPage: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
+  pageSize: number;
+  onPageSizeChange: (pageSize: number) => void;
 }
 
 export const EmployeePayrollTable = ({
@@ -44,6 +49,11 @@ export const EmployeePayrollTable = ({
   onUpdateStatus,
   getStatusColor: _getStatusColor,
   getStatusText: _getStatusText,
+  currentPage,
+  totalCount,
+  onPageChange,
+  pageSize,
+  onPageSizeChange,
 }: EmployeePayrollTableProps) => {
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
 
@@ -264,6 +274,13 @@ export const EmployeePayrollTable = ({
       export={{ enabled: true, filename: "payrolls" }}
       actions={actions}
       emptyMessage="No payroll records found for the selected filters."
+      pagination="server"
+      currentPage={currentPage}
+      totalCount={totalCount}
+      onPageChange={onPageChange}
+      pageSize={pageSize}
+      onPageSizeChange={onPageSizeChange}
+      pageSizeOptions={[10, 25, 50, 100]}
     />
   );
 };

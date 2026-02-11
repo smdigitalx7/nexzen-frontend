@@ -557,7 +557,13 @@ export function CollectFeePaymentView({
                                 {isSelected ? (
                                   <div className="flex items-center gap-0.5 w-20 shrink-0" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                                     <span className="text-muted-foreground text-xs">₹</span>
-                                    <Input type="number" value={amountVal} onChange={(e) => handleAmountChange(item.id, e.target.value)} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} className="h-8 border-0 border-b border-muted-foreground/40 rounded-none px-1 text-right text-sm font-bold bg-transparent focus-visible:ring-0 focus-visible:border-primary" step="0.01" min="0" aria-label={`Amount for ${item.label}`} />
+                                    <Input 
+                                      type="number" 
+                                      value={amountVal} 
+                                      readOnly 
+                                      className="h-8 border-0 border-b border-muted-foreground/20 rounded-none px-1 text-right text-sm font-bold bg-transparent focus-visible:ring-0 cursor-not-allowed opacity-80" 
+                                      aria-label={`Amount for ${item.label} (Read-only)`} 
+                                    />
                                   </div>
                                 ) : (
                                   <span className="text-sm font-bold tabular-nums text-foreground shrink-0">{formatCurrency(item.originalAmount)}</span>
@@ -566,21 +572,6 @@ export function CollectFeePaymentView({
                             )}
                           </button>
                           
-                          {onUpdateBookFee && !isEditing && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover/item:opacity-100 transition-opacity"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingBookFeeId(item.id);
-                                setNewBookFeeValue(item.originalAmount.toString());
-                              }}
-                              title="Edit Allocated Book Fee"
-                            >
-                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                            </Button>
-                          )}
                         </div>
                       </li>
                     );

@@ -51,7 +51,8 @@ export const SchoolReportsTemplate = () => {
   const EMPTY_ARRAY = useMemo(() => [], []);
 
   // ✅ OPTIMIZATION: Only fetch expenditure when tab is active; income is fetched inside IncomeSummaryTable
-  const { data: expenditureData = EMPTY_ARRAY } = useSchoolExpenditureList(undefined, { enabled: expenditureTabEnabled });
+  // ✅ Expenditure is now fetched inside ExpenditureTable
+  // const { data: expenditureData = EMPTY_ARRAY } = useSchoolExpenditureList(undefined, { enabled: expenditureTabEnabled });
 
   const {
     data: incomeDashboard,
@@ -111,9 +112,9 @@ export const SchoolReportsTemplate = () => {
       icon: TrendingUp,
       content: (
         <ExpenditureTable
-          expenditureData={expenditureData as any[]}
           onExportCSV={() => {}}
           onAddExpenditure={handleAddExpenditure}
+          enabled={expenditureTabEnabled}
         />
       ),
     },
@@ -129,7 +130,7 @@ export const SchoolReportsTemplate = () => {
         />
       ),
     },
-  ], [incomeTabEnabled, expenditureData, handleAddExpenditure, incomeDashboard, expenditureDashboard, incomeDashboardLoading, expenditureDashboardLoading]);
+  ], [incomeTabEnabled, handleAddExpenditure, incomeDashboard, expenditureDashboard, incomeDashboardLoading, expenditureDashboardLoading]);
 
   return (
     <div className="space-y-6 p-6">

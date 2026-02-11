@@ -9,6 +9,7 @@ import type {
   EmployeeDashboardStats,
   RecentEmployee,
   EmployeeMinimal,
+  EmployeePaginatedResponse
 } from "@/features/general/types/employees";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
 import { useGlobalRefetch } from "@/common/hooks/useGlobalRefetch";
@@ -17,35 +18,34 @@ import { useGlobalRefetch } from "@/common/hooks/useGlobalRefetch";
 export const employeeKeys = {
   all: ["employees"] as const,
   lists: () => [...employeeKeys.all, "list"] as const,
-  list: (filters: Record<string, unknown>) =>
-    [...employeeKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>, page?: number, pageSize?: number) =>
+    [...employeeKeys.lists(), { filters, page, pageSize }] as const,
   details: () => [...employeeKeys.all, "detail"] as const,
   detail: (id: number) => [...employeeKeys.details(), id] as const,
   dashboard: () => [...employeeKeys.all, "dashboard"] as const,
   recent: (limit?: number) =>
     [...employeeKeys.all, "recent", { limit }] as const,
   withBranches: () => [...employeeKeys.all, "with-branches"] as const,
-  byBranch: () => [...employeeKeys.all, "by-branch"] as const,
+  byBranch: (page?: number, pageSize?: number) => [...employeeKeys.all, "by-branch", { page, pageSize }] as const,
   teachersByBranch: () => [...employeeKeys.all, "teachers-by-branch"] as const,
   minimal: () => [...employeeKeys.all, "minimal"] as const,
 };
 
 // Hooks for fetching data
-export const useEmployeesByInstitute = () => {
+export const useEmployeesByInstitute = (page: number = 1, pageSize: number = 25) => {
   return useQuery({
-    queryKey: employeeKeys.lists(),
-    queryFn: () => EmployeesService.listByInstitute(),
+    queryKey: employeeKeys.list({}, page, pageSize),
+    queryFn: () => EmployeesService.listByInstitute({ page, page_size: pageSize }),
   });
 };
 
-export const useEmployeesByBranch = (enabled: boolean = true) => {
+export const useEmployeesByBranch = (enabled: boolean = true, page: number = 1, pageSize: number = 25) => {
   return useQuery({
-    queryKey: employeeKeys.byBranch(),
-    queryFn: () => EmployeesService.listByBranch(),
+    queryKey: employeeKeys.byBranch(page, pageSize),
+    queryFn: () => EmployeesService.listByBranch({ page, page_size: pageSize }),
     enabled, // Allow conditional query execution to prevent unnecessary fetches
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
-    select: (data: any) => Array.isArray(data) ? data : data.data || [],
   });
 };
 

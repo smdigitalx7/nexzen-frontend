@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/common/components/ui/dialog";
@@ -35,11 +35,6 @@ const DistanceSlabsTab = ({
   const [isAddFeeOpen, setIsAddFeeOpen] = useState(false);
   const [isEditFeeOpen, setIsEditFeeOpen] = useState(false);
   const [editFeeId, setEditFeeId] = useState<number | null>(null);
-
-  const handleDeleteSlab = (id: number) => {
-    // Add delete functionality when available
-    // Delete functionality to be implemented
-  };
 
   const columns: ColumnDef<DistanceSlabRead>[] = useMemo(() => [
     {
@@ -86,20 +81,13 @@ const DistanceSlabsTab = ({
     },
   ], []);
 
-  // Action configurations for DataTable V2
+  // Action configurations for DataTable V2 - Only Edit action (no delete API available)
   const actions: ActionConfig<DistanceSlabRead>[] = useMemo(() => [
     {
       id: "edit",
       label: "Edit",
       icon: Edit,
       onClick: (row: DistanceSlabRead) => handleEditSlab(row)
-    },
-    {
-      id: "delete",
-      label: "Delete",
-      icon: Trash2,
-      variant: "destructive",
-      onClick: (row: DistanceSlabRead) => handleDeleteSlab(row.slab_id)
     }
   ], []);
 

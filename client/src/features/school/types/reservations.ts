@@ -47,7 +47,7 @@ export interface SchoolReservationCreate {
   status: SchoolReservationStatusEnum;
   request_type?: SchoolReservationRequestTypeEnum | null;
   referred_by?: number | null;
-  referred_by_name?: string | null;
+  other_referee_name?: string | null;
   remarks?: string | null;
   reservation_date?: string | null;
 }
@@ -86,8 +86,7 @@ export interface SchoolReservationRead {
   tuition_concession?: number | null;
   concession_lock?: boolean | null;
   status: SchoolReservationStatusEnum;
-  referred_by?: number | null;
-  remarks?: string | null;
+  other_referee_name?: string | null;
   reservation_date?: string | null;
   created_at: string;
   updated_at?: string | null;

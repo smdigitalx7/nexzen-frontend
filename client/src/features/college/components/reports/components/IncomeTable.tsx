@@ -68,7 +68,7 @@ interface IncomeTableProps {
   enabled?: boolean;
 }
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 25;
 const RECENT_LIMIT = 5;
 
 export const IncomeTable = ({
@@ -93,6 +93,7 @@ export const IncomeTable = ({
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [showRecent, setShowRecent] = useState(false);
 
   // Debounce search (receipt no, student name) – 500ms like All Reservations
@@ -131,9 +132,9 @@ export const IncomeTable = ({
       admission_no: admissionQuery ?? undefined,
       search: searchQuery ?? undefined,
       page,
-      page_size: DEFAULT_PAGE_SIZE,
+      page_size: pageSize,
     }),
-    [admissionQuery, searchQuery, page]
+    [admissionQuery, searchQuery, page, pageSize]
   );
 
   const listEnabled = enabled && activeTab === "income-summary" && !showRecent;
@@ -404,6 +405,16 @@ export const IncomeTable = ({
                   actions={actions}
                   actionsHeader="Actions"
                   emptyMessage="No income records found"
+                  pagination="server"
+                  totalCount={totalCount}
+                  currentPage={page}
+                  pageSize={pageSize}
+                  pageSizeOptions={[10, 25, 50, 100]}
+                  onPageChange={(p) => setPage(p)}
+                  onPageSizeChange={(s) => {
+                    setPageSize(s);
+                    setPage(1);
+                  }}
                 />
               </>
             ),

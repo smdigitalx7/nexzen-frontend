@@ -34,6 +34,10 @@ export type StatusUpdateTableProps = {
   error?: any;
   onRefetch: () => void;
   totalCount?: number;
+  currentPage?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 };
 
 const StatusBadge = memo(({ status }: { status: string }) => {
@@ -157,6 +161,11 @@ const StatusUpdateTableComponent = ({
   reservations,
   isLoading,
   onRefetch,
+  totalCount,
+  currentPage,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
 }: StatusUpdateTableProps) => {
   const [statusChanges, setStatusChanges] = useState<Record<string, "PENDING" | "CONFIRMED" | "CANCELLED">>({});
   const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>({});
@@ -257,8 +266,13 @@ const StatusUpdateTableComponent = ({
         searchPlaceholder="Search students..."
         searchKey="studentName"
         title="Status Updates"
-        pagination="client"
-        pageSize={10}
+        pagination="server"
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+        pageSizeOptions={[10, 25, 50, 100]}
         className="border-none shadow-none"
       />
     </div>

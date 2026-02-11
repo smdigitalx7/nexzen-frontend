@@ -28,12 +28,18 @@ export const EnrollmentsTabComponent = () => {
   });
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   useEffect(() => {
     const trimmed = searchInput.trim();
     const t = setTimeout(() => setSearchQuery(trimmed === "" ? undefined : trimmed), 500);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, query.class_id, query.group_id, query.course_id]);
 
   // Fetch dropdown data
   const { data: classesData } = useCollegeClasses({ enabled: true });
@@ -59,11 +65,13 @@ export const EnrollmentsTabComponent = () => {
     const params: CollegeEnrollmentFilterParams = {
       class_id: Number(query.class_id),
       group_id: Number(query.group_id),
+      page: currentPage,
+      page_size: pageSize,
       search: searchQuery ?? undefined,
     };
     if (query.course_id) params.course_id = Number(query.course_id);
     return params;
-  }, [query.class_id, query.group_id, query.course_id, searchQuery]);
+  }, [query.class_id, query.group_id, query.course_id, searchQuery, currentPage, pageSize]);
 
   const result = useCollegeEnrollmentsList(apiParams);
   const shouldUseAdmissionNo = Boolean(query.admission_no?.trim());
@@ -165,7 +173,7 @@ export const EnrollmentsTabComponent = () => {
       });
     }
     // Fallback: treat as flat list (each item is a row)
-    return list.map((e: Record<string, unknown>) => ({
+    return list.map((e: any) => ({
       ...e,
       class_name: (e.class_name as string) ?? classes.find((c) => c.class_id === e.class_id)?.class_name ?? '',
       group_name: (e.group_name as string) ?? allGroups.find((g) => g.group_id === e.group_id)?.group_name ?? '',
@@ -258,6 +266,16 @@ export const EnrollmentsTabComponent = () => {
         showSearch={!apiParams}
         loading={isLoading}
         export={{ enabled: true, filename: 'enrollments_list' }}
+        pagination="server"
+        totalCount={result.data?.total_count ?? 0}
+        currentPage={result.data?.current_page ?? currentPage}
+        pageSize={result.data?.page_size ?? pageSize}
+        pageSizeOptions={[10, 25, 50, 100]}
+        onPageChange={(page) => setCurrentPage(page)}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
         toolbarLeftContent={
           apiParams ? (
             <div className="w-full sm:flex-1 min-w-0">
@@ -283,9 +301,9 @@ export const EnrollmentsTabComponent = () => {
         }}
         enrollment={viewEnrollment || null}
         isLoading={isLoadingView}
-        classes={classes}
-        groups={groups}
-        courses={courses}
+        classes={classes as any}
+        groups={allGroups as any}
+        courses={allCourses as any}
       />
     </div>
   );

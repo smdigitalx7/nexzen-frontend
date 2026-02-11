@@ -30,43 +30,54 @@ export default function CollegeReservationEdit({ form, setForm, classFee, transp
   const genderValue = useMemo(() => (form.gender || "OTHER").toString(), [form.gender]);
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="student_name">Student Name</Label>
-          <Input id="student_name" value={form.student_name || ""} onChange={(e) => setForm({ ...form, student_name: e.target.value })} />
+    <div className="space-y-6 p-1">
+      {/* Student Information Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <div className="h-8 w-1 bg-primary rounded-full" />
+          <h3 className="font-semibold text-base">Student Information</h3>
         </div>
-        <div>
-          <Label htmlFor="aadhar_no">Aadhar No</Label>
-          <Input id="aadhar_no" value={form.aadhar_no || ""} onChange={(e) => setForm({ ...form, aadhar_no: e.target.value })} />
-        </div>
-        <div>
-          <Label htmlFor="gender">Gender</Label>
-          <SmartSelect
-            items={[
-              { value: "MALE", label: "Male" },
-              { value: "FEMALE", label: "Female" },
-              { value: "OTHER", label: "Other" },
-            ]}
-            value={genderValue}
-            onSelect={(v: string) => setForm({ ...form, gender: v })}
-            placeholder="Select gender"
-            radioLayout="horizontal"
-          />
-        </div>
-        <div>
-          <Label htmlFor="dob">Date of Birth</Label>
-          <DatePicker
-            id="dob"
-            value={form.dob || ""}
-            onChange={(value) => setForm({ ...form, dob: value })}
-            placeholder="Select date of birth"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="student_name">Student Name</Label>
+            <Input id="student_name" value={form.student_name || ""} onChange={(e) => setForm({ ...form, student_name: e.target.value })} />
+          </div>
+          <div>
+            <Label htmlFor="aadhar_no">Aadhar No</Label>
+            <Input id="aadhar_no" value={form.aadhar_no || ""} onChange={(e) => setForm({ ...form, aadhar_no: e.target.value })} />
+          </div>
+          <div>
+            <Label htmlFor="gender">Gender</Label>
+            <SmartSelect
+              items={[
+                { value: "MALE", label: "Male" },
+                { value: "FEMALE", label: "Female" },
+                { value: "OTHER", label: "Other" },
+              ]}
+              value={genderValue}
+              onSelect={(v: string) => setForm({ ...form, gender: v })}
+              placeholder="Select gender"
+              radioLayout="horizontal"
+            />
+          </div>
+          <div>
+            <Label htmlFor="dob">Date of Birth</Label>
+            <DatePicker
+              id="dob"
+              value={form.dob || ""}
+              onChange={(value) => setForm({ ...form, dob: value })}
+              placeholder="Select date of birth"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Parent Details</div>
+      {/* Parent/Guardian Information Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <div className="h-8 w-1 bg-primary rounded-full" />
+          <h3 className="font-semibold text-base">Parent/Guardian Information</h3>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="father_or_guardian_name">Father/Guardian Name</Label>
@@ -103,40 +114,12 @@ export default function CollegeReservationEdit({ form, setForm, classFee, transp
         </div>
       </div>
 
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Academic Details</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="preferred_class_id">Preferred Class</Label>
-            <CollegeClassDropdown
-              id="preferred_class_id"
-              value={
-                form.preferred_class_id
-                  ? typeof form.preferred_class_id === "string"
-                    ? parseInt(form.preferred_class_id, 10)
-                    : form.preferred_class_id
-                  : null
-              }
-              onChange={(value) => {
-                onClassChange(value !== null ? value.toString() : "0");
-              }}
-              placeholder="Select class"
-              modal={modal}
-            />
-          </div>
-          <div>
-            <Label htmlFor="previous_class">Previous Class</Label>
-            <Input id="previous_class" value={form.previous_class || ""} onChange={(e) => setForm({ ...form, previous_class: e.target.value })} />
-          </div>
-          <div className="col-span-2">
-            <Label htmlFor="previous_school_details">Previous School</Label>
-            <Input id="previous_school_details" value={form.previous_school_details || ""} onChange={(e) => setForm({ ...form, previous_school_details: e.target.value })} />
-          </div>
+      {/* Contact Details Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <div className="h-8 w-1 bg-primary rounded-full" />
+          <h3 className="font-semibold text-base">Contact Details</h3>
         </div>
-      </div>
-
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Contact Details</div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="present_address">Present Address</Label>
@@ -149,8 +132,12 @@ export default function CollegeReservationEdit({ form, setForm, classFee, transp
         </div>
       </div>
 
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Fees</div>
+      {/* Fees Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <div className="h-8 w-1 bg-primary rounded-full" />
+          <h3 className="font-semibold text-base">Fees</h3>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="application_fee">Application Fee</Label>
@@ -173,8 +160,12 @@ export default function CollegeReservationEdit({ form, setForm, classFee, transp
         )}
       </div>
 
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Transport</div>
+      {/* Transport Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <div className="h-8 w-1 bg-primary rounded-full" />
+          <h3 className="font-semibold text-base">Transport</h3>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex items-center gap-2">
             <Switch checked={!!form.transport_required} onCheckedChange={(v) => setForm({ ...form, transport_required: v })} id="transport_required" />
@@ -213,5 +204,4 @@ export default function CollegeReservationEdit({ form, setForm, classFee, transp
     </div>
   );
 }
-
 

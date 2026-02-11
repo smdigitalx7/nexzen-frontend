@@ -51,7 +51,7 @@ export interface CollegeReservationCreate {
   status: ReservationStatusEnum;
   request_type?: ReservationRequestTypeEnum | null;
   referred_by?: number | null;
-  referred_by_name?: string | null;
+  other_referee_name?: string | null;
   remarks?: string | null;
 }
 
@@ -100,7 +100,7 @@ export interface CollegeReservationRead {
   status: ReservationStatusEnum;
   request_type?: ReservationRequestTypeEnum | null;
   referred_by?: number | null;
-  referred_by_name?: string | null;
+  other_referee_name?: string | null;
   remarks?: string | null;
   reservation_date?: string | null;
   created_at: string;
@@ -204,7 +204,7 @@ export interface CollegeReservationView {
   transport_concession: string;
   payable_transport_fee: string;
   status: string;
-  referred_by_name: string;
+  other_referee_name: string;
   application_fee_income_id: number;
   created_at: string;
 }

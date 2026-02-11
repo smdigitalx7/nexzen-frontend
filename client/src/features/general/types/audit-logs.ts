@@ -55,3 +55,11 @@ export interface AuditLogDeleteResponse {
   newest_log_date?: string | null;
   message: string;
 }
+
+export interface AuditLogPaginatedResponse {
+  data: AuditLogReadable[];
+  total_count: number;
+  total_pages: number;
+  current_page: number;
+  page_size: number;
+}

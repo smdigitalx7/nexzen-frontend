@@ -149,8 +149,7 @@ StudentDetailsSection.displayName = "StudentDetailsSection";
 // Memoized parent details section
 const ParentDetailsSection = memo(
   ({ form, setForm }: { form: any; setForm: (next: any) => void }) => (
-    <div className="border-t pt-4">
-      <div className="font-medium mb-2">Parent Details</div>
+    <div>
       <div className="grid grid-cols-2 gap-4">
         <FormField
           id="father_or_guardian_name"
@@ -283,8 +282,7 @@ AcademicDetailsSection.displayName = "AcademicDetailsSection";
 // Memoized contact details section
 const ContactDetailsSection = memo(
   ({ form, setForm }: { form: any; setForm: (next: any) => void }) => (
-    <div className="border-t pt-4">
-      <div className="font-medium mb-2">Contact Details</div>
+    <div>
       <div className="grid grid-cols-2 gap-4">
         <FormField
           id="present_address"
@@ -318,8 +316,7 @@ const FeesSection = memo(
     classFee?: number;
     transportFee?: number;
   }) => (
-    <div className="border-t pt-4">
-      <div className="font-medium mb-2">Fees</div>
+    <div>
       <div className="grid grid-cols-2 gap-4">
         <FormField
           id="application_fee"
@@ -386,8 +383,7 @@ const TransportSection = memo(
     transportFee?: number;
     onDistanceSlabChange: (slabId: string) => void;
   }) => (
-    <div className="border-t pt-4">
-      <div className="font-medium mb-2">Transport</div>
+    <div>
       <div className="grid grid-cols-2 gap-4">
         <SelectField
           id="transport_required"
@@ -482,30 +478,63 @@ const SchoolReservationEditComponent = ({
   onSave,
 }: Props) => {
   return (
-    <div className="space-y-6">
-      <StudentDetailsSection form={form} setForm={setForm} />
-      <ParentDetailsSection form={form} setForm={setForm} />
-      <AcademicDetailsSection
-        form={form}
-        setForm={setForm}
-        classes={classes}
-        onClassChange={onClassChange}
-      />
-      <ContactDetailsSection form={form} setForm={setForm} />
-      <FeesSection
-        form={form}
-        setForm={setForm}
-        classFee={classFee}
-        transportFee={transportFee}
-      />
-      <TransportSection
-        form={form}
-        setForm={setForm}
-        routes={routes}
-        distanceSlabs={distanceSlabs}
-        transportFee={transportFee}
-        onDistanceSlabChange={onDistanceSlabChange}
-      />
+    <div className="space-y-6 p-1">
+      {/* Student Information Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <div className="h-8 w-1 bg-primary rounded-full" />
+          <h3 className="font-semibold text-base">Student Information</h3>
+        </div>
+        <StudentDetailsSection form={form} setForm={setForm} />
+      </div>
+
+      {/* Parent/Guardian Information Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <div className="h-8 w-1 bg-primary rounded-full" />
+          <h3 className="font-semibold text-base">Parent/Guardian Information</h3>
+        </div>
+        <ParentDetailsSection form={form} setForm={setForm} />
+      </div>
+
+      {/* Contact Details Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <div className="h-8 w-1 bg-primary rounded-full" />
+          <h3 className="font-semibold text-base">Contact Details</h3>
+        </div>
+        <ContactDetailsSection form={form} setForm={setForm} />
+      </div>
+
+      {/* Fees Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <div className="h-8 w-1 bg-primary rounded-full" />
+          <h3 className="font-semibold text-base">Fees</h3>
+        </div>
+        <FeesSection
+          form={form}
+          setForm={setForm}
+          classFee={classFee}
+          transportFee={transportFee}
+        />
+      </div>
+
+      {/* Transport Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <div className="h-8 w-1 bg-primary rounded-full" />
+          <h3 className="font-semibold text-base">Transport</h3>
+        </div>
+        <TransportSection
+          form={form}
+          setForm={setForm}
+          routes={routes}
+          distanceSlabs={distanceSlabs}
+          transportFee={transportFee}
+          onDistanceSlabChange={onDistanceSlabChange}
+        />
+      </div>
     </div>
   );
 };

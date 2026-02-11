@@ -32,6 +32,10 @@ export default function AttendanceView() {
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  
   const attendeeParams = useMemo(() => {
     if (!isTabActive || !selectedClassId) return null;
     return {
@@ -39,12 +43,15 @@ export default function AttendanceView() {
       month: selectedMonth,
       year: selectedYear,
       section_id: selectedSectionId || undefined,
+      page,
+      page_size: pageSize,
     };
-  }, [selectedClassId, selectedMonth, selectedYear, selectedSectionId, isTabActive]);
+  }, [selectedClassId, selectedMonth, selectedYear, selectedSectionId, page, pageSize, isTabActive]);
   
   const studentsQuery = useSchoolAttendanceAllStudents(attendeeParams);
-  const response = studentsQuery.data || { data: [] };
+  const response = studentsQuery.data || { data: [], total_count: 0 };
   const allStudents = (response?.data as any[]) || [];
+  const totalCount = response?.total_count || 0;
   const { toast } = useToast();
   
   const [editOpen, setEditOpen] = useState(false);
@@ -131,6 +138,7 @@ export default function AttendanceView() {
               onChange={(value: number | null) => {
                 setSelectedClassId(value);
                 setSelectedSectionId(null);
+                setPage(1);
               }}
               placeholder="Select class"
               className="w-40 bg-background"
@@ -144,8 +152,8 @@ export default function AttendanceView() {
             <MonthYearFilter
               month={selectedMonth}
               year={selectedYear}
-              onMonthChange={setSelectedMonth}
-              onYearChange={setSelectedYear}
+              onMonthChange={(m) => { setSelectedMonth(m); setPage(1); }}
+              onYearChange={(y) => { setSelectedYear(y); setPage(1); }}
               monthId="attendance-month"
               yearId="attendance-year"
               showLabels={false}
@@ -159,7 +167,7 @@ export default function AttendanceView() {
               id="attendance-view-section"
               classId={selectedClassId || 0}
               value={selectedSectionId}
-              onChange={(value: number | null) => setSelectedSectionId(value)}
+              onChange={(value: number | null) => { setSelectedSectionId(value); setPage(1); }}
               disabled={!selectedClassId}
               placeholder="All sections"
               className="w-40 bg-background"
@@ -201,6 +209,16 @@ export default function AttendanceView() {
                 actionsHeader="Actions"
                 emptyMessage="No attendance records found for this selection."
                 export={{ enabled: true, filename: "attendance_report" }}
+                pagination="server"
+                totalCount={totalCount}
+                currentPage={page}
+                pageSize={pageSize}
+                pageSizeOptions={[10, 25, 50, 100]}
+                onPageChange={setPage}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setPage(1);
+                }}
               />
         )}
       </CardContent>

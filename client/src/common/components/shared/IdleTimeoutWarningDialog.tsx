@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,8 +8,8 @@ import {
   DialogFooter,
 } from "@/common/components/ui/dialog";
 import { Button } from "@/common/components/ui/button";
-import { AlertTriangle, LogOut, Clock } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { LogOut, Clock, ShieldAlert } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface IdleTimeoutWarningDialogProps {
   open: boolean;
@@ -26,81 +26,82 @@ export function IdleTimeoutWarningDialog({
 }: IdleTimeoutWarningDialogProps) {
   const secondsLeft = Math.ceil(remainingTime / 1000);
   
-  // Dynamic color based on time remaining (turns deep red under 10s)
+  // Dynamic color based on time remaining
   const isCritical = secondsLeft <= 10;
   
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onStayLoggedIn()}>
-      <DialogContent className="sm:max-w-[425px] overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md border-t-4 border-t-amber-500">
+        <DialogHeader className="space-y-4">
           <motion.div 
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className={cn(
-              "mx-auto flex h-14 w-14 items-center justify-center rounded-full mb-4",
-              isCritical ? "bg-red-100" : "bg-amber-100"
-            )}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 border-2 border-amber-200"
           >
-            <AlertTriangle 
-              className={cn("h-8 w-8", isCritical ? "text-red-600" : "text-amber-600")} 
+            <ShieldAlert 
+              className="h-8 w-8 text-amber-600" 
               aria-hidden="true" 
             />
           </motion.div>
-          <DialogTitle className="text-center text-2xl font-bold tracking-tight">
-            Session Expiring
-          </DialogTitle>
-          <DialogDescription className="text-center pt-2 text-base">
-            Your session will expire soon due to inactivity. You'll be logged out automatically.
-          </DialogDescription>
+          
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            <DialogTitle className="text-center text-xl font-semibold">
+              Session Expiring Soon
+            </DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              Your session will expire due to inactivity. Would you like to continue?
+            </DialogDescription>
+          </motion.div>
         </DialogHeader>
 
-        <div className="flex flex-col items-center justify-center py-8">
-          <AnimatePresence mode="wait">
-            <motion.div
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="flex flex-col items-center justify-center py-6 bg-gradient-to-b from-amber-50/50 to-transparent rounded-lg border border-amber-100"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <Clock className={cn("h-6 w-6", isCritical ? "text-red-500" : "text-amber-600")} />
+            <motion.span
               key={secondsLeft}
-              initial={{ y: 20, opacity: 0, scale: 0.8 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: -20, opacity: 0, scale: 1.1 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
               className={cn(
-                "flex items-center gap-3 text-5xl font-black mb-1",
-                isCritical ? "text-red-600" : "text-amber-600",
-                isCritical && "animate-pulse"
+                "text-4xl font-bold tabular-nums",
+                isCritical ? "text-red-600" : "text-amber-600"
               )}
             >
-              <Clock className="h-10 w-10" />
-              <span>{secondsLeft}s</span>
-            </motion.div>
-          </AnimatePresence>
-          <motion.p 
-            animate={isCritical ? { scale: [1, 1.05, 1] } : {}}
-            transition={{ repeat: Infinity, duration: 1 }}
-            className="text-sm font-medium text-muted-foreground uppercase tracking-widest mt-2"
-          >
+              {secondsLeft}
+            </motion.span>
+            <span className={cn("text-xl font-medium", isCritical ? "text-red-600" : "text-amber-600")}>
+              seconds
+            </span>
+          </div>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Time Remaining
-          </motion.p>
-        </div>
+          </p>
+        </motion.div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-3 pt-4 border-t">
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-3">
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             onClick={onLogout}
-            className="w-full sm:flex-1 h-12 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            className="w-full sm:flex-1 gap-2"
           >
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
+            <LogOut className="h-4 w-4" />
+            Logout Now
           </Button>
           <Button
             type="button"
             onClick={onStayLoggedIn}
-            className={cn(
-              "w-full sm:flex-1 h-12 text-white font-semibold transition-all duration-300",
-              isCritical 
-                ? "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200" 
-                : "bg-amber-600 hover:bg-amber-700"
-            )}
+            className="w-full sm:flex-1 bg-amber-600 hover:bg-amber-700 text-white font-medium"
           >
             Continue Session
           </Button>
@@ -110,7 +111,7 @@ export function IdleTimeoutWarningDialog({
   );
 }
 
-// Helper for class merging if not already available in this scope
+// Helper for class merging
 function cn(...inputs: any[]) {
   return inputs.filter(Boolean).join(" ");
 }

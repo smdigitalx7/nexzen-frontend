@@ -7,6 +7,7 @@ import type {
   AuditLogDeleteParams,
   AuditLogDeleteByIdsParams,
   AuditLogDeleteResponse,
+  AuditLogPaginatedResponse
 } from "@/features/general/types/audit-logs";
 
 /**
@@ -46,12 +47,12 @@ export const AuditLogsService = {
   /**
    * Get readable audit logs
    * Returns audit log entries with human-readable descriptions
-   * @param params - Query parameters (start_date, end_date, limit, offset)
-   * @returns Promise<AuditLogReadable[]> - Array of readable audit logs
+   * @param params - Query parameters (start_date, end_date, limit, offset, page, page_size)
+   * @returns Promise<AuditLogPaginatedResponse> - Paginated readable audit logs
    */
   getReadableLogs(
-    params?: AuditLogReadableParams
-  ): Promise<AuditLogReadable[]> {
+    params?: AuditLogReadableParams & { page?: number; page_size?: number }
+  ): Promise<AuditLogPaginatedResponse> {
     const queryParams: Record<string, string | number | null | undefined> = {};
     
     if (params?.start_date !== undefined && params?.start_date !== null) {
@@ -66,8 +67,14 @@ export const AuditLogsService = {
     if (params?.offset !== undefined) {
       queryParams.offset = params.offset;
     }
+    if (params?.page !== undefined) {
+      queryParams.page = params.page;
+    }
+    if (params?.page_size !== undefined) {
+      queryParams.page_size = params.page_size;
+    }
 
-    return Api.get<AuditLogReadable[]>("/audit-logs/readable", queryParams);
+    return Api.get<AuditLogPaginatedResponse>("/audit-logs/readable", queryParams);
   },
 
   /**

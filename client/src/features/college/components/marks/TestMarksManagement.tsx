@@ -137,6 +137,10 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('single');
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   // API hooks
   const { data: groupsData } = useCollegeGroups(selectedClass || undefined);
   const { data: subjectsData } = useCollegeSubjects(selectedGroup || 0);
@@ -183,7 +187,8 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
     setSelectedGroup(null);
     setSelectedSubject(null);
     setSelectedTest(null);
-  }, [selectedClass]);
+    setPage(1);
+  }, [selectedClass, setSelectedGroup, setSelectedSubject, setSelectedTest]);
 
   // Single test mark view data (enabled only when an id is set)
   const viewQuery = useCollegeTestMark(viewingTestMarkId);
@@ -203,10 +208,12 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
       group_id: selectedGroup,
       test_id: selectedTest,
       subject_id: selectedSubject,
+      page,
+      pageSize,
     };
 
     return query;
-  }, [selectedClass, selectedGroup, selectedTest, selectedSubject]);
+  }, [selectedClass, selectedGroup, selectedTest, selectedSubject, page, pageSize]);
 
   const { data: testMarksData, isLoading: testMarksLoading, error: testMarksError } = useCollegeTestMarksList(testMarksQuery);
   const createTestMarkMutation = useCreateCollegeTestMark();
@@ -496,7 +503,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
           ('mark_id' in mark || 'test_mark_id' in mark) &&
           'enrollment_id' in mark
         )
-        .map((markObj) => {
+        .map((markObj: unknown) => {
           const obj = markObj as unknown as Record<string, unknown>;
           return {
             mark_id: Number(obj.mark_id || obj.test_mark_id || 0),
@@ -520,6 +527,12 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
     }
 
     return [] as (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[];
+  }, [testMarksData]);
+
+  const totalCount = useMemo(() => {
+    const raw = testMarksData as { data?: unknown[]; total_count?: number } | any[] | undefined;
+    if (Array.isArray(raw)) return raw.length;
+    return raw?.total_count ?? 0;
   }, [testMarksData]);
 
   const testMarks = flattenedMarks;
@@ -1248,6 +1261,16 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
                 actions={testMarkActions}
                 actionsHeader="Actions"
                 emptyMessage="No test marks found"
+                pagination="server"
+                totalCount={totalCount}
+                currentPage={page}
+                pageSize={pageSize}
+                pageSizeOptions={[10, 25, 50, 100]}
+                onPageChange={setPage}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setPage(1);
+                }}
               />
             </div>
 

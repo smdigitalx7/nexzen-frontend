@@ -1,7 +1,7 @@
-﻿import { useState, useMemo, useCallback } from "react";
+﻿import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Eye, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
-import { useUpdateSchoolExpenditure, useDeleteSchoolExpenditure, useSchoolExpenditure, useUpdateSchoolExpenditureStatus } from "@/features/school/hooks";
+import { useUpdateSchoolExpenditure, useDeleteSchoolExpenditure, useSchoolExpenditure, useUpdateSchoolExpenditureStatus, useSchoolExpenditureList } from "@/features/school/hooks";
 import { useCanEdit, useCanDelete } from "@/core/permissions";
 import type { SchoolExpenditureRead } from "@/features/school/types";
 import { FormDialog, ConfirmDialog } from "@/common/components/shared";
@@ -25,15 +25,15 @@ import { cleanupDialogState } from "@/common/utils/ui-cleanup";
 import { startTransition } from "react";
 
 interface ExpenditureTableProps {
-  expenditureData: SchoolExpenditureRead[];
   onExportCSV?: () => void;
   onAddExpenditure?: () => void;
+  enabled?: boolean;
 }
 
 export const ExpenditureTable = ({
-  expenditureData,
   onExportCSV,
   onAddExpenditure,
+  enabled = true,
 }: ExpenditureTableProps) => {
   // Using shared table state management
   const {
@@ -50,6 +50,44 @@ export const ExpenditureTable = ({
   // View dialog state
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [viewExpenditureId, setViewExpenditureId] = useState<number | null>(null);
+
+  // Pagination and filter state
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  // Debounce search – 500ms
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const v = searchInput.trim();
+      setSearchQuery(v === "" ? undefined : v);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  const { data: listResponse, isLoading: isLoadingList, refetch } = useSchoolExpenditureList({
+    page,
+    page_size: pageSize,
+    search: searchQuery,
+  }, {
+    enabled,
+  });
+
+  const expenditureList = useMemo(() => {
+    const raw = listResponse as { data?: SchoolExpenditureRead[]; total_count?: number } | undefined;
+    return Array.isArray(raw) ? raw : (raw?.data ?? []);
+  }, [listResponse]);
+
+  const totalCount = useMemo(() => {
+    const raw = listResponse as { data?: unknown[]; total_count?: number } | undefined;
+    if (Array.isArray(raw)) return raw.length;
+    return raw?.total_count ?? 0;
+  }, [listResponse]);
   
   // Fetch expenditure details for viewing
   const { data: viewExpenditure, isLoading: isViewLoading, error: viewError } = useSchoolExpenditure(viewExpenditureId);
@@ -323,16 +361,37 @@ export const ExpenditureTable = ({
       className="space-y-4"
     >
       <DataTable
-        data={expenditureData}
+        data={expenditureList}
         columns={columns}
         title="Expenditure Records"
-        searchKey="expenditure_purpose"
-        searchPlaceholder="Search by purpose or remarks..."
+        showSearch={false}
+        toolbarLeftContent={
+          <div className="flex-1 max-w-sm">
+            <Input
+              placeholder="Search by purpose or remarks..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="h-9"
+            />
+          </div>
+        }
+        loading={isLoadingList}
         export={{ enabled: !!onExportCSV, onExport: onExportCSV }}
         onAdd={onAddExpenditure}
         addButtonText="Add Expenditure"
         actions={actions}
         actionsHeader="Actions"
+        pagination="server"
+        totalCount={totalCount}
+        currentPage={page}
+        pageSize={pageSize}
+        pageSizeOptions={[10, 25, 50, 100]}
+        onPageChange={setPage}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setPage(1);
+        }}
+        emptyMessage="No expenditure records found"
       />
 
       {/* Edit Dialog */}

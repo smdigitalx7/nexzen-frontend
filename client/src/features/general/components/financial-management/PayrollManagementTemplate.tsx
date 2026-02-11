@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { CreditCard, Plus, Download, Users, Eye } from "lucide-react";
+import { CreditCard, Plus, Download, Users, Eye, FileSpreadsheet } from "lucide-react";
+import { useState } from "react";
 import { Badge } from "@/common/components/ui/badge";
 import { Button } from "@/common/components/ui/button";
 import {
@@ -8,6 +9,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/common/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/common/components/ui/sheet";
+import { GeneratePayrollPage } from "./components/GeneratePayrollPage";
+import { PayrollsService } from "@/features/general/services/payrolls.service";
 import { TabSwitcher, MonthYearFilter } from "@/common/components/shared";
 import {
   usePayrollManagement,
@@ -27,6 +36,8 @@ import type {
   DetailedPayrollRead,
   PayrollCreate,
 } from "@/features/general/types/payrolls";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // Extended interface that includes employee information
 interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
@@ -64,196 +75,171 @@ const PayrollHeader = memo(
 
 PayrollHeader.displayName = "PayrollHeader";
 
-// Memoized employee info section component
-const EmployeeInfoSection = memo(
-  ({ detailedPayroll }: { detailedPayroll: DetailedPayrollRead }) => {
+// Memoized detailed payslip view component
+const PayslipDetailView = memo(
+  ({
+    detailedPayroll,
+    onDownload,
+  }: {
+    detailedPayroll: DetailedPayrollRead;
+    onDownload: () => void;
+  }) => {
     if (!detailedPayroll) return null;
+
+    const periodLabel = new Date(
+      detailedPayroll.payroll_year,
+      detailedPayroll.payroll_month - 1
+    ).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+
     return (
-      <div className="bg-slate-50 p-4 rounded-lg">
-        <h3 className="font-semibold text-lg mb-3">Employee Information</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Employee Name:</span>
-            <span className="font-medium">{detailedPayroll.employee_name}</span>
+      <div className="max-w-3xl mx-auto bg-white p-2">
+        {/* Payslip Card */}
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-gray-50 p-6 border-b border-gray-200 text-center">
+            <h2 className="text-xl font-bold text-gray-800 uppercase tracking-widest">
+              Payslip
+            </h2>
+            <p className="text-sm text-gray-500 mt-1 font-medium">
+              {periodLabel}
+            </p>
           </div>
-          <div>
-            <span className="text-muted-foreground">Employee Type:</span>
-            <span className="font-medium">{detailedPayroll.employee_type}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Pay Period:</span>
-            <span className="font-medium">
-              {new Date(
-                detailedPayroll.payroll_year,
-                detailedPayroll.payroll_month - 1
-              ).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-);
 
-EmployeeInfoSection.displayName = "EmployeeInfoSection";
+          <div className="p-8 space-y-8">
+            {/* Employee Details */}
+            <div className="grid grid-cols-2 gap-x-12 gap-y-4">
+              <div>
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
+                  Employee Name
+                </span>
+                <span className="text-base font-semibold text-gray-900">
+                  {detailedPayroll.employee_name}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
+                  Designation
+                </span>
+                <span className="text-base font-medium text-gray-700">
+                  {detailedPayroll.employee_type}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
+                  Status
+                </span>
+                <Badge
+                  variant="outline"
+                  className={
+                    detailedPayroll.status === "PAID"
+                      ? "text-green-600 border-green-200 bg-green-50"
+                      : "text-yellow-600 border-yellow-200 bg-yellow-50"
+                  }
+                >
+                  {detailedPayroll.status}
+                </Badge>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
+                  Generated On
+                </span>
+                <span className="text-sm font-medium text-gray-700">
+                  {new Date(detailedPayroll.generated_at).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
 
-// Memoized payroll summary section component
-const PayrollSummarySection = memo(
-  ({ detailedPayroll }: { detailedPayroll: DetailedPayrollRead }) => {
-    if (!detailedPayroll) return null;
-    return (
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <h3 className="font-semibold text-lg mb-3">Payroll Summary</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Gross Pay:</span>
-            <span className="font-medium">
-              {formatCurrency(detailedPayroll.gross_pay)}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Previous Balance:</span>
-            <span className="font-medium">
-              {formatCurrency(detailedPayroll.previous_balance)}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Total Deductions:</span>
-            <span className="font-medium">
-              {formatCurrency(detailedPayroll.total_deductions)}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Net Pay:</span>
-            <span className="text-lg font-bold">
-              {formatCurrency(detailedPayroll.net_pay)}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-);
+            {/* Financial Table */}
+            <div className="border border-gray-200 rounded-md overflow-hidden">
+              <div className="grid grid-cols-2 text-sm">
+                {/* Earnings */}
+                <div className="border-r border-gray-200">
+                  <div className="bg-gray-50 p-3 border-b border-gray-200 font-semibold text-gray-600 uppercase text-xs">
+                    Earnings
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Gross Salary</span>
+                      <span className="font-medium text-gray-900">
+                        {formatCurrency(detailedPayroll.gross_pay)}
+                      </span>
+                    </div>
+                    {/* Spacer for alignment */}
+                    <div className="h-6"></div>
+                    <div className="h-6"></div>
+                  </div>
+                  <div className="bg-gray-50 p-3 border-t border-gray-200 flex justify-between items-center">
+                    <span className="font-semibold text-gray-700">Total</span>
+                    <span className="font-bold text-gray-900">
+                      {formatCurrency(detailedPayroll.gross_pay)}
+                    </span>
+                  </div>
+                </div>
 
-PayrollSummarySection.displayName = "PayrollSummarySection";
+                {/* Deductions */}
+                <div>
+                  <div className="bg-gray-50 p-3 border-b border-gray-200 font-semibold text-gray-600 uppercase text-xs">
+                    Deductions
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Loss of Pay</span>
+                      <span className="font-medium text-red-600">
+                        -{formatCurrency(detailedPayroll.lop)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Advance</span>
+                      <span className="font-medium text-red-600">
+                        -{formatCurrency(detailedPayroll.advance_deduction)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Other</span>
+                      <span className="font-medium text-red-600">
+                        -{formatCurrency(detailedPayroll.other_deductions)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 p-3 border-t border-gray-200 flex justify-between items-center">
+                    <span className="font-semibold text-gray-700">Total</span>
+                    <span className="font-bold text-red-600">
+                      -{formatCurrency(detailedPayroll.total_deductions)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-// Memoized deductions breakdown section component
-const DeductionsBreakdownSection = memo(
-  ({ detailedPayroll }: { detailedPayroll: DetailedPayrollRead }) => {
-    if (!detailedPayroll) return null;
-    return (
-      <div className="bg-red-50 p-4 rounded-lg">
-        <h3 className="font-semibold text-lg mb-3">Deductions Breakdown</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Loss of Pay (LOP):</span>
-            <span className="font-medium">
-              {formatCurrency(detailedPayroll.lop)}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Advance Deduction:</span>
-            <span className="font-medium">
-              {formatCurrency(detailedPayroll.advance_deduction)}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Other Deductions:</span>
-            <span className="font-medium">
-              {formatCurrency(detailedPayroll.other_deductions)}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Total Deductions:</span>
-            <span className="font-bold">
-              {formatCurrency(detailedPayroll.total_deductions)}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-);
+            {/* Net Pay */}
+            <div className="flex justify-between items-end p-6 bg-slate-900 rounded-lg text-white shadow-lg">
+              <div>
+                <div className="text-slate-400 text-sm font-medium uppercase tracking-wider mb-1">
+                  Net Payable
+                </div>
+                <div className="text-xs text-slate-400">
+                  Paid via{" "}
+                  <span className="text-white capitalize">
+                    {detailedPayroll.payment_method?.toLowerCase() || "cash"}
+                  </span>
+                </div>
+              </div>
+              <div className="text-3xl font-bold">
+                {formatCurrency(detailedPayroll.net_pay)}
+              </div>
+            </div>
 
-DeductionsBreakdownSection.displayName = "DeductionsBreakdownSection";
-
-// Memoized payment info section component
-const PaymentInfoSection = memo(
-  ({ detailedPayroll }: { detailedPayroll: DetailedPayrollRead }) => {
-    if (!detailedPayroll) return null;
-    return (
-      <div className="bg-green-50 p-4 rounded-lg">
-        <h3 className="font-semibold text-lg mb-3">Payment Information</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Paid Amount:</span>
-            <span className="font-medium">
-              {formatCurrency(detailedPayroll.paid_amount)}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Carryover Balance:</span>
-            <span className="font-medium">
-              {formatCurrency(detailedPayroll.carryover_balance)}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Payment Method:</span>
-            <span className="font-medium">
-              {detailedPayroll.payment_method}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Status:</span>
-            <span className="font-medium">
-              <Badge
-                variant={
-                  detailedPayroll.status === "PAID"
-                    ? "default"
-                    : detailedPayroll.status === "PENDING"
-                      ? "secondary"
-                      : "destructive"
-                }
+            {/* Action */}
+            <div className="pt-2">
+              <Button
+                className="w-full border-dashed border-2 hover:bg-slate-50"
+                variant="outline"
+                size="lg"
+                onClick={onDownload}
               >
-                {detailedPayroll.status}
-              </Badge>
-            </span>
-          </div>
-        </div>
-        {detailedPayroll.payment_notes && (
-          <div className="mt-3">
-            <span className="text-muted-foreground">Payment Notes:</span>
-            <p className="font-medium mt-1">{detailedPayroll.payment_notes}</p>
-          </div>
-        )}
-      </div>
-    );
-  }
-);
-
-PaymentInfoSection.displayName = "PaymentInfoSection";
-
-// Memoized record info section component
-const RecordInfoSection = memo(
-  ({ detailedPayroll }: { detailedPayroll: DetailedPayrollRead }) => {
-    if (!detailedPayroll) return null;
-    return (
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h3 className="font-semibold text-lg mb-3">Record Information</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Generated At:</span>
-            <span className="font-medium">
-              {new Date(detailedPayroll.generated_at).toLocaleString()}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Updated At:</span>
-            <span className="font-medium">
-              {detailedPayroll.updated_at
-                ? new Date(detailedPayroll.updated_at).toLocaleString()
-                : "Never"}
-            </span>
+                <Download className="mr-2 h-4 w-4" /> Download Official Payslip
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -261,23 +247,11 @@ const RecordInfoSection = memo(
   }
 );
 
-RecordInfoSection.displayName = "RecordInfoSection";
-
-// Memoized action buttons component
-const ActionButtons = memo(
-  ({ onDownloadPayslip }: { onDownloadPayslip: () => void }) => (
-    <div className="flex justify-end gap-2 pt-4 border-t">
-      <Button variant="outline" onClick={onDownloadPayslip}>
-        <Download className="h-4 w-4 mr-2" />
-        Download Payslip
-      </Button>
-    </div>
-  )
-);
-
-ActionButtons.displayName = "ActionButtons";
+PayslipDetailView.displayName = "PayslipDetailView";
 
 export const PayrollManagementTemplateComponent = () => {
+  const [initialEmployeeId, setInitialEmployeeId] = useState<number | null>(null);
+
   // Dashboard stats hook
   const { data: dashboardStats, isLoading: dashboardLoading } =
     usePayrollDashboard();
@@ -292,12 +266,13 @@ export const PayrollManagementTemplateComponent = () => {
   }, [managementData.payrolls]);
 
   const employees: EmployeeRead[] = useMemo(() => {
-    if (!Array.isArray(managementData.employees)) {
+    const rawEmployees: any = managementData.employees;
+    if (!Array.isArray(rawEmployees)) {
       return [];
     }
     // Type guard: ensure all items are EmployeeRead
-    return managementData.employees.filter(
-      (emp): emp is EmployeeRead =>
+    return rawEmployees.filter(
+      (emp: any): emp is EmployeeRead =>
         typeof emp === "object" && emp !== null && "employee_id" in emp
     );
   }, [managementData.employees]);
@@ -346,6 +321,13 @@ export const PayrollManagementTemplateComponent = () => {
     // Loading states
     isLoading,
 
+    // Pagination
+    payrollPage,
+    setPayrollPage,
+    totalCount,
+    pageSize,
+    setPageSize,
+
     // Handlers
     handleUpdateStatus,
     handleViewPayslip,
@@ -359,11 +341,15 @@ export const PayrollManagementTemplateComponent = () => {
 
     // User context
     currentBranch,
-  } = managementData;
+  } = managementData as any;
 
   // Memoized handlers
   const handleCreatePayrollClick = useCallback(() => {
-    // ✅ FIX: Clear selectedPayroll when opening create dialog to ensure create path is taken
+    setActiveTab("generate_payroll");
+  }, [setActiveTab]);
+
+  const handleGeneratePayroll = useCallback((employeeId: number) => {
+    setInitialEmployeeId(employeeId);
     setSelectedPayroll(null);
     setShowCreateDialog(true);
   }, [setShowCreateDialog, setSelectedPayroll]);
@@ -382,8 +368,133 @@ export const PayrollManagementTemplateComponent = () => {
   );
 
   const handleDownloadPayslip = useCallback(() => {
-    // Download payslip functionality to be implemented
-  }, []);
+    if (!detailedPayroll?.payroll_id) return;
+
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width;
+      
+      // Helper for currency in PDF (standard font doesn't support ₹ symbol)
+      const formatForPdf = (amount: number) => {
+        return `Rs. ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      };
+
+      // Header Section
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      const branchName = currentBranch?.branch_name || "Velonex ERP";
+      doc.text(branchName.toUpperCase(), pageWidth / 2, 20, { align: "center" });
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("OFFICIAL PAYSLIP", pageWidth / 2, 28, { align: "center" });
+
+      // Period
+      const periodLabel = new Date(
+        detailedPayroll.payroll_year,
+        detailedPayroll.payroll_month - 1
+      ).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+      
+      doc.setFontSize(11);
+      doc.text(`Period: ${periodLabel}`, pageWidth / 2, 35, { align: "center" });
+      
+      // Line separator
+      doc.setLineWidth(0.5);
+      doc.line(15, 40, pageWidth - 15, 40);
+
+      // Employee Details
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Employee Details", 15, 50);
+      
+      autoTable(doc, {
+        startY: 55,
+        head: [],
+        body: [
+          ["Employee Name:", detailedPayroll.employee_name],
+          ["Designation:", detailedPayroll.employee_type || "-"],
+          ["Employee ID:", detailedPayroll.employee_id.toString()],
+          ["Generated On:", new Date(detailedPayroll.generated_at).toLocaleDateString()],
+          ["Status:", detailedPayroll.status],
+        ],
+        theme: 'plain',
+        styles: { fontSize: 10, cellPadding: 1.5 },
+        columnStyles: {
+          0: { fontStyle: 'bold', cellWidth: 40 },
+        },
+      });
+
+      // Salary Details Header
+      const salaryStartY = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Salary Details", 15, salaryStartY);
+
+      // Earnings & Deductions Table
+      autoTable(doc, {
+        startY: salaryStartY + 5,
+        head: [['Earnings', 'Amount', 'Deductions', 'Amount']],
+        body: [
+          ['Basic & Allowances', formatForPdf(detailedPayroll.gross_pay), 'Loss of Pay (LOP)', formatForPdf(detailedPayroll.lop)],
+          ['', '', 'Advance Deduction', formatForPdf(detailedPayroll.advance_deduction)],
+          ['', '', 'Other Deductions', formatForPdf(detailedPayroll.other_deductions)],
+          // Total Row
+          ['Total Earnings', formatForPdf(detailedPayroll.gross_pay), 'Total Deductions', formatForPdf(detailedPayroll.total_deductions)],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 10, cellPadding: 3, valign: 'middle' },
+        columnStyles: {
+          1: { halign: 'right' },
+          3: { halign: 'right' },
+        },
+        didParseCell: (data) => {
+             // Highlight total row
+             if (data.row.index === 3) {
+                 data.cell.styles.fontStyle = 'bold';
+                 data.cell.styles.fillColor = [240, 240, 240];
+             }
+        }
+      });
+
+      // Net Pay Section
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFillColor(245, 247, 250);
+      doc.setDrawColor(200, 200, 200);
+      doc.roundedRect(15, finalY, pageWidth - 30, 25, 3, 3, 'FD');
+      
+      doc.setFontSize(12);
+      doc.setTextColor(50, 50, 50);
+      doc.text("Net Payable Amount", 25, finalY + 16);
+      
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text(formatForPdf(detailedPayroll.net_pay), pageWidth - 25, finalY + 16, { align: "right" });
+      
+      // Payment Method
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Paid via ${detailedPayroll.payment_method?.toLowerCase() || 'cash'}`, 25, finalY + 32);
+
+      // Footer
+      const footerY = finalY + 45;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(128, 128, 128);
+      doc.text("This is a computer-generated document and does not require a signature.", pageWidth / 2, footerY, { align: "center" });
+      
+      const generatedDate = new Date().toLocaleString();
+      doc.text(`Generated on: ${generatedDate}`, pageWidth - 15, footerY, { align: "right" });
+
+      // Save
+      doc.save(`Payslip-${detailedPayroll.employee_name}-${periodLabel}.pdf`);
+
+    } catch (error) {
+      console.error("Failed to generate PDF", error);
+    }
+  }, [detailedPayroll, currentBranch]);
 
   // Memoized tabs configuration
   const tabsConfig = useMemo(
@@ -428,8 +539,32 @@ export const PayrollManagementTemplateComponent = () => {
               onUpdateStatus={handleUpdateStatus}
               getStatusColor={getStatusColor}
               getStatusText={getStatusText}
+              currentPage={payrollPage}
+              totalCount={totalCount}
+              onPageChange={setPayrollPage}
+              pageSize={pageSize}
+              onPageSizeChange={setPageSize}
             />
           </div>
+        ),
+      },
+      {
+        value: "generate_payroll",
+        label: "Generate Payroll",
+        icon: FileSpreadsheet,
+        content: (
+          <GeneratePayrollPage
+            onGenerate={handleGeneratePayroll}
+            onView={(payroll) => {
+              setSelectedPayroll(payroll as any);
+              setSelectedPayrollId(payroll.payroll_id);
+              setShowPayslipDialog(true);
+            }}
+            month={selectedMonth}
+            year={selectedYear}
+            onMonthChange={setSelectedMonth}
+            onYearChange={setSelectedYear}
+          />
         ),
       },
     ],
@@ -445,6 +580,10 @@ export const PayrollManagementTemplateComponent = () => {
       selectedYear,
       setSelectedMonth,
       setSelectedYear,
+      payrollPage,
+      setPayrollPage,
+      totalCount,
+      pageSize,
     ]
   );
 
@@ -503,6 +642,7 @@ export const PayrollManagementTemplateComponent = () => {
           await handleCreatePayroll(data);
         }}
         employees={employees}
+        initialEmployeeId={initialEmployeeId}
       />
 
       {/* Edit Payroll Form Dialog */}
@@ -520,15 +660,15 @@ export const PayrollManagementTemplateComponent = () => {
         selectedPayroll={selectedPayroll}
       />
 
-      {/* Detailed Payroll View Dialog */}
-      <Dialog open={showPayslipDialog} onOpenChange={handleClosePayslipDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
-            <DialogTitle className="flex items-center gap-2">
+      {/* Detailed Payroll View Sheet */}
+      <Sheet open={showPayslipDialog} onOpenChange={handleClosePayslipDialog}>
+        <SheetContent className="w-full sm:max-w-[800px] overflow-y-auto">
+          <SheetHeader className="pb-4 border-b">
+            <SheetTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
               Payroll Details
-            </DialogTitle>
-          </DialogHeader>
+            </SheetTitle>
+          </SheetHeader>
 
           <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
             {detailedPayrollLoading ? (
@@ -601,26 +741,16 @@ export const PayrollManagementTemplateComponent = () => {
                 };
 
                 return (
-                  <div className="space-y-6">
-                    <EmployeeInfoSection
-                      detailedPayroll={detailedPayrollData}
-                    />
-                    <PayrollSummarySection
-                      detailedPayroll={detailedPayrollData}
-                    />
-                    <DeductionsBreakdownSection
-                      detailedPayroll={detailedPayrollData}
-                    />
-                    <PaymentInfoSection detailedPayroll={detailedPayrollData} />
-                    <RecordInfoSection detailedPayroll={detailedPayrollData} />
-                    <ActionButtons onDownloadPayslip={handleDownloadPayslip} />
-                  </div>
+                  <PayslipDetailView
+                    detailedPayroll={detailedPayrollData}
+                    onDownload={handleDownloadPayslip}
+                  />
                 );
               })()
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

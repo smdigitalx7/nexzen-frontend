@@ -30,6 +30,11 @@ interface AdvancesTableProps {
   onRejectAdvance?: (advance: EmployeeAdvanceRead) => void;
   onUpdateAmount?: (advance: EmployeeAdvanceRead) => void;
   showSearch?: boolean;
+  currentPage?: number;
+  totalCount?: number;
+  onPageChange?: (page: number) => void;
+  pageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 const AdvancesTableComponent = ({
@@ -42,6 +47,11 @@ const AdvancesTableComponent = ({
   onRejectAdvance,
   onUpdateAmount,
   showSearch = true,
+  currentPage,
+  totalCount,
+  onPageChange,
+  pageSize,
+  onPageSizeChange,
 }: AdvancesTableProps) => {
 
   // Define columns for the data table using column factories
@@ -173,6 +183,13 @@ const AdvancesTableComponent = ({
       onAdd={canCreateAdvance ? onAddAdvance : undefined}
       addButtonText="Add Advance"
       actions={actions}
+      pagination="server"
+      currentPage={currentPage}
+      totalCount={totalCount}
+      onPageChange={onPageChange}
+      pageSize={pageSize}
+      onPageSizeChange={onPageSizeChange}
+      pageSizeOptions={[10, 25, 50, 100]}
     />
   );
 };
