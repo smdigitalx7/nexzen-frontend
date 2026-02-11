@@ -16,7 +16,8 @@ export const useAdminDashboardData = () => {
     limit: 5,
   });
 
-  const displaySummary = auditLogSummary.slice(0, 5);
+  // Ensure auditLogSummary is always an array before calling slice
+  const displaySummary = Array.isArray(auditLogSummary) ? auditLogSummary.slice(0, 5) : [];
 
   return {
     dashboardData,

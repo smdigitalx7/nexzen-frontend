@@ -746,9 +746,7 @@ function ReservationManagementComponent() {
 
     return {
       studentName: r.student_name || "",
-      studentAadhar: isView
-        ? ""
-        : (r as CollegeReservationRead).aadhar_no || "",
+      studentAadhar: (r as CollegeReservationRead).aadhar_no || "",
       fatherName: isView
         ? (r as CollegeReservationView).father_or_guardian_name || ""
         : (r as CollegeReservationRead).father_or_guardian_name || "",
@@ -778,13 +776,9 @@ function ReservationManagementComponent() {
               .toISOString()
               .split("T")[0];
           })(),
-      previousSchool: isView
-        ? ""
-        : (r as CollegeReservationRead).previous_school_details || "",
+      previousSchool: (r as CollegeReservationRead).previous_school_details || "",
       village: "",
-      lastClass: isView
-        ? ""
-        : (r as CollegeReservationRead).previous_class || "",
+      lastClass: (r as CollegeReservationRead).previous_class || "",
       presentAddress: isView
         ? (r as CollegeReservationView).present_address || ""
         : (r as CollegeReservationRead).present_address || "",
@@ -826,7 +820,7 @@ function ReservationManagementComponent() {
         : (r as CollegeReservationRead).application_fee != null
           ? String((r as CollegeReservationRead).application_fee)
           : "",
-      remarks: isView ? "" : (r as CollegeReservationRead).remarks || "",
+      remarks: (r as CollegeReservationRead).remarks || "",
       preferredClassId: isView
         ? "0"
         : (r as CollegeReservationRead).preferred_class_id != null

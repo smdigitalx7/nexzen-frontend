@@ -119,15 +119,15 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
       variant: "elevated" as const,
       size: "sm" as const,
     },
-    {
-      title: "Records This Year",
-      value: stats?.income_records_this_year || 0,
-      icon: TrendingUp,
-      color: "yellow" as const,
-      description: "Transactions this year",
-      variant: "elevated" as const,
-      size: "sm" as const,
-    },
+    // {
+    //   title: "Records This Year",
+    //   value: stats?.income_records_this_year || 0,
+    //   icon: TrendingUp,
+    //   color: "yellow" as const,
+    //   description: "Transactions this year",
+    //   variant: "elevated" as const,
+    //   size: "sm" as const,
+    // },
   ];
 
   return (

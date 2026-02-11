@@ -10,6 +10,7 @@ import { useLogoStatus, useLogos, useUploadLogo, useDeleteLogo } from "@/feature
 import type { LogoType } from "@/features/general/types/logos";
 import { useToast } from "@/common/hooks/use-toast";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
+import { HelpTooltip } from "@/common/components/shared/HelpTooltip";
 
 export default function LogoManagementTab() {
   const { currentBranch } = useAuthStore();
@@ -118,7 +119,10 @@ export default function LogoManagementTab() {
         <Card className="border-slate-200 shadow-none">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center justify-between">
-              <span>Left Logo</span>
+              <span className="inline-flex items-center">
+                Left Logo
+                <HelpTooltip content="This logo will be displayed on the top-left corner of official receipts and PDF documents." />
+              </span>
               {logoStatus?.has_left_logo ? (
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
               ) : (
@@ -201,7 +205,10 @@ export default function LogoManagementTab() {
         <Card className="border-slate-200 shadow-none">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center justify-between">
-              <span>Right Logo</span>
+              <span className="inline-flex items-center">
+                Right Logo
+                <HelpTooltip content="This logo will be displayed on the top-right corner of official receipts and PDF documents." />
+              </span>
               {logoStatus?.has_right_logo ? (
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
               ) : (

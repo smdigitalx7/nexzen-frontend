@@ -60,7 +60,7 @@ export function DataTableExport<TData>({
   const [exportStatus, setExportStatus] = useState<"idle" | "loading" | "processing" | "complete" | "error">("idle");
 
   const handleExport = useCallback(async () => {
-    if (data.length === 0) return;
+    if (!data || data.length === 0) return;
 
     setShowDialog(true);
     setExportStatus("loading");

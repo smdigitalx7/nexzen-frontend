@@ -3,32 +3,35 @@ export interface SchoolExamCreate {
   weight_percentage: number; // 0.01-100
   pass_marks: number;
   max_marks: number;
-  is_active?: boolean; // Optional, default: true
+  weightage_divider: number;
+  is_active?: boolean;
 }
 
 export interface SchoolExamUpdate {
   exam_name?: string;
-  weight_percentage?: number; // 0.01-100
+  weight_percentage?: number;
   pass_marks?: number;
   max_marks?: number;
+  weightage_divider?: number;
   is_active?: boolean;
 }
 
 export interface SchoolExamRead {
   exam_id: number;
   exam_name: string;
-  weight_percentage: number;
+  weight_percentage: number | string;
   pass_marks: number;
   max_marks: number;
+  weightage_divider: number;
   is_active: boolean;
+  exam_date?: string | null;
+  academic_year_id?: number;
   created_by?: number | null;
   updated_by?: number | null;
 }
 
 // Exam with optional schedule (for list/get endpoints with include_schedule=true)
-export interface SchoolExamWithScheduleRead extends SchoolExamRead {
-  exam_date?: string | null; // Optional date from exam schedule
-}
+export interface SchoolExamWithScheduleRead extends SchoolExamRead {}
 
 // Exam Schedule Types
 export interface ExamScheduleCreate {

@@ -21,6 +21,7 @@ import { useMemo, useState, memo, useCallback } from "react";
 import { Save, Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/common/utils";
+import { HelpTooltip } from "@/common/components/shared/HelpTooltip";
 
 const AADHAR_MAX_LENGTH = 12;
 const MOBILE_LENGTH = 10;
@@ -243,7 +244,10 @@ const StudentInfoSection = memo(
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <Label htmlFor="student_name">Student Name *</Label>
+          <Label htmlFor="student_name" className="inline-flex items-center">
+            Student Name *
+            <HelpTooltip content="Enter the full name of the student as per official records." />
+          </Label>
           <Input
             id="student_name"
             value={form.student_name}
@@ -252,7 +256,10 @@ const StudentInfoSection = memo(
           />
         </div>
         <div>
-          <Label htmlFor="aadhar_no">Aadhar No</Label>
+          <Label htmlFor="aadhar_no" className="inline-flex items-center">
+            Aadhar No
+            <HelpTooltip content="Enter the 12-digit unique identification number (UIDAI) of the student." />
+          </Label>
           <Input
             id="aadhar_no"
             value={form.aadhar_no}
@@ -356,8 +363,9 @@ const ParentInfoSection = memo(
           />
         </div>
         <div>
-          <Label htmlFor="father_or_guardian_aadhar_no">
+          <Label htmlFor="father_or_guardian_aadhar_no" className="inline-flex items-center">
             Father/Guardian Aadhar No
+            <HelpTooltip content="12-digit Aadhar number of the father or legal guardian." />
           </Label>
           <Input
             id="father_or_guardian_aadhar_no"
@@ -376,8 +384,9 @@ const ParentInfoSection = memo(
           )}
         </div>
         <div>
-          <Label htmlFor="father_or_guardian_mobile">
+          <Label htmlFor="father_or_guardian_mobile" className="inline-flex items-center">
             Father/Guardian Mobile
+            <HelpTooltip content="10-digit mobile number for communication and OTP." />
           </Label>
           <Input
             id="father_or_guardian_mobile"
@@ -428,8 +437,9 @@ const ParentInfoSection = memo(
           />
         </div>
         <div>
-          <Label htmlFor="mother_or_guardian_aadhar_no">
+          <Label htmlFor="mother_or_guardian_aadhar_no" className="inline-flex items-center">
             Mother/Guardian Aadhar No *
+            <HelpTooltip content="12-digit Aadhar number of the mother or legal guardian." />
           </Label>
           <Input
             id="mother_or_guardian_aadhar_no"
@@ -448,8 +458,9 @@ const ParentInfoSection = memo(
           )}
         </div>
         <div>
-          <Label htmlFor="mother_or_guardian_mobile">
+          <Label htmlFor="mother_or_guardian_mobile" className="inline-flex items-center">
             Mother/Guardian Mobile *
+            <HelpTooltip content="10-digit mobile number for communication." />
           </Label>
           <Input
             id="mother_or_guardian_mobile"
@@ -810,7 +821,10 @@ const ReservationFormComponent = ({
                 />
               </div>
               <div>
-                <Label htmlFor="tuition_fee">Tuition Fee</Label>
+                <Label htmlFor="tuition_fee" className="inline-flex items-center">
+                  Tuition Fee
+                  <HelpTooltip content="Annual or term-based fee for education services." />
+                </Label>
                 <Input
                   id="tuition_fee"
                   type="number"
@@ -820,7 +834,10 @@ const ReservationFormComponent = ({
                 />
               </div>
               <div>
-                <Label htmlFor="book_fee">Book Fee</Label>
+                <Label htmlFor="book_fee" className="inline-flex items-center">
+                  Book Fee
+                  <HelpTooltip content="One-time fee for books and stationery materials." />
+                </Label>
                 <Input
                   id="book_fee"
                   type="number"
@@ -911,9 +928,10 @@ const ReservationFormComponent = ({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="preferred_distance_slab_id">
-                      Distance Slab
-                    </Label>
+                    <Label htmlFor="preferred_distance_slab_id" className="inline-flex items-center">
+                  Distance Slab
+                  <HelpTooltip content="Select the distance range to calculate transport fees." />
+                </Label>
                     <DistanceSlabDropdown
                       id="preferred_distance_slab_id"
                       value={

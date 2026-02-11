@@ -100,6 +100,14 @@ export const EmployeesService = {
   updateStatus(id: number, status: string): Promise<EmployeeRead> {
     return Api.patch<EmployeeRead>(`/employees/${id}/status`, { status });
   },
+
+  /**
+   * Get all drivers
+   * GET /employees/drivers
+   */
+  listDrivers(): Promise<EmployeeRead[]> {
+    return Api.get<EmployeeRead[]>("/employees/drivers");
+  },
 };
 
 

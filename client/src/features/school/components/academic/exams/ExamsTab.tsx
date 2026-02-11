@@ -58,6 +58,7 @@ export const ExamsTab = ({
       pass_marks: "",
       max_marks: "",
       weight_percentage: "",
+      weightage_divider: "1",
       is_active: true
     }
   });
@@ -74,6 +75,7 @@ export const ExamsTab = ({
       pass_marks: "",
       max_marks: "",
       weight_percentage: "",
+      weightage_divider: "1",
       is_active: true
     }
   });
@@ -106,6 +108,7 @@ export const ExamsTab = ({
         weight_percentage: weightPercentage,
         pass_marks: parseInt(newExam.pass_marks || "35") || 35,
         max_marks: parseInt(newExam.max_marks || "100") || 100,
+        weightage_divider: parseInt(newExam.weightage_divider || "1") || 1,
         is_active: newExam.is_active ?? true,
       };
       await createExam.mutateAsync(payload);
@@ -159,6 +162,7 @@ export const ExamsTab = ({
         weight_percentage: weightPercentage,
         pass_marks: passMarks,
         max_marks: maxMarks,
+        weightage_divider: parseInt(editExam.weightage_divider || "1") || 1,
         is_active: editExam.is_active !== undefined ? editExam.is_active : undefined,
       };
       await updateExam.mutateAsync(updatePayload);
@@ -193,6 +197,7 @@ export const ExamsTab = ({
       pass_marks: exam.pass_marks?.toString() || "35",
       max_marks: exam.max_marks?.toString() || "100",
       weight_percentage: exam.weight_percentage?.toString() || "",
+      weightage_divider: exam.weightage_divider?.toString() || "1",
       is_active: exam.is_active ?? true
     });
     setIsEditExamOpen(true);
@@ -214,6 +219,13 @@ export const ExamsTab = ({
       header: "Weight %",
       cell: ({ row }) => (
         <span className="text-sm font-medium">{row.original.weight_percentage}%</span>
+      ),
+    },
+    {
+      accessorKey: "weightage_divider",
+      header: "Divider",
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.weightage_divider}</span>
       ),
     },
     createBadgeColumn<SchoolExamRead>("pass_marks", { 
@@ -356,19 +368,32 @@ export const ExamsTab = ({
               placeholder="Enter max marks"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="weight_percentage">Weight Percentage *</Label>
-            <Input
-              id="weight_percentage"
-              type="number"
-              step="0.01"
-              min="0.01"
-              max="100"
-              value={newExam.weight_percentage}
-              onChange={(e) => updateNewExamField('weight_percentage', e.target.value)}
-              placeholder="e.g., 30.00"
-            />
-            <p className="text-xs text-muted-foreground">Must be between 0.01 and 100</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="weight_percentage">Weight Percentage *</Label>
+              <Input
+                id="weight_percentage"
+                type="number"
+                step="0.01"
+                min="0.01"
+                max="100"
+                value={newExam.weight_percentage}
+                onChange={(e) => updateNewExamField('weight_percentage', e.target.value)}
+                placeholder="e.g., 30.00"
+              />
+              <p className="text-xs text-muted-foreground">Must be between 0.01 and 100</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="weightage_divider">Weightage Divider *</Label>
+              <Input
+                id="weightage_divider"
+                type="number"
+                min="1"
+                value={newExam.weightage_divider}
+                onChange={(e) => updateNewExamField('weightage_divider', e.target.value)}
+                placeholder="e.g., 1"
+              />
+            </div>
           </div>
           <div className="flex items-center space-x-2">
             <Switch
@@ -429,19 +454,32 @@ export const ExamsTab = ({
               placeholder="Enter max marks"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit_weight_percentage">Weight Percentage</Label>
-            <Input
-              id="edit_weight_percentage"
-              type="number"
-              step="0.01"
-              min="0.01"
-              max="100"
-              value={editExam.weight_percentage}
-              onChange={(e) => updateEditExamField('weight_percentage', e.target.value)}
-              placeholder="e.g., 30.00"
-            />
-            <p className="text-xs text-muted-foreground">Must be between 0.01 and 100</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit_weight_percentage">Weight Percentage</Label>
+              <Input
+                id="edit_weight_percentage"
+                type="number"
+                step="0.01"
+                min="0.01"
+                max="100"
+                value={editExam.weight_percentage}
+                onChange={(e) => updateEditExamField('weight_percentage', e.target.value)}
+                placeholder="e.g., 30.00"
+              />
+              <p className="text-xs text-muted-foreground">Must be between 0.01 and 100</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit_weightage_divider">Weightage Divider</Label>
+              <Input
+                id="edit_weightage_divider"
+                type="number"
+                min="1"
+                value={editExam.weightage_divider}
+                onChange={(e) => updateEditExamField('weightage_divider', e.target.value)}
+                placeholder="e.g., 1"
+              />
+            </div>
           </div>
           <div className="flex items-center space-x-2">
             <Switch

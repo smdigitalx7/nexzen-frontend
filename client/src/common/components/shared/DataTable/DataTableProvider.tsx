@@ -111,12 +111,15 @@ export function DataTableProvider<TData>({
 
   // Filter data (client-side only)
   const filteredData = useMemo(() => {
+    // CRITICAL: Handle null/undefined data gracefully to prevent runtime crashes
+    const safeData = Array.isArray(data) ? data : [];
+
     if (pagination === "server") {
       // Server handles filtering
-      return data;
+      return safeData;
     }
 
-    let result = [...data];
+    let result = [...safeData];
 
     // Apply search
     if (searchTerm && searchKey) {

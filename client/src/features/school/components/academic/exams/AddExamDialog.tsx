@@ -25,6 +25,8 @@ interface AddExamDialogProps {
     end_date: string;
     pass_marks: string;
     max_marks: string;
+    weight_percentage: string;
+    weightage_divider: string;
   };
   setExamData: (data: any) => void;
 }
@@ -152,6 +154,40 @@ export const AddExamDialog = ({
               />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="weight_percentage">Weight %</Label>
+              <Input
+                id="weight_percentage"
+                type="number"
+                step="0.01"
+                value={examData.weight_percentage}
+                onChange={(e) =>
+                  setExamData({
+                    ...examData,
+                    weight_percentage: e.target.value,
+                  })
+                }
+                placeholder="30"
+              />
+            </div>
+            <div>
+              <Label htmlFor="weightage_divider">Weightage Divider</Label>
+              <Input
+                id="weightage_divider"
+                type="number"
+                value={examData.weightage_divider}
+                onChange={(e) =>
+                  setExamData({
+                    ...examData,
+                    weightage_divider: e.target.value,
+                  })
+                }
+                placeholder="1"
+              />
+            </div>
+          </div>
+
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>

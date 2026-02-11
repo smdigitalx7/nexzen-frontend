@@ -29,6 +29,7 @@ export const employeeKeys = {
   byBranch: (page?: number, pageSize?: number) => [...employeeKeys.all, "by-branch", { page, pageSize }] as const,
   teachersByBranch: () => [...employeeKeys.all, "teachers-by-branch"] as const,
   minimal: () => [...employeeKeys.all, "minimal"] as const,
+  drivers: () => [...employeeKeys.all, "drivers"] as const,
 };
 
 // Hooks for fetching data
@@ -105,6 +106,15 @@ export const useRecentEmployees = (limit: number = 5) => {
   return useQuery({
     queryKey: employeeKeys.recent(limit),
     queryFn: () => EmployeesService.getRecent(limit),
+  });
+};
+
+export const useDrivers = (enabled: boolean = true) => {
+  return useQuery({
+    queryKey: employeeKeys.drivers(),
+    queryFn: () => EmployeesService.listDrivers(),
+    enabled,
+    staleTime: 5 * 60 * 1000,
   });
 };
 

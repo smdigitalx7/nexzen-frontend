@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/common/components/ui/dialog";
 import { useResetPassword, useVerifyOtp } from "@/features/general/hooks/useAuthActions";
+import { HelpTooltip } from "@/common/components/shared/HelpTooltip";
 
 type Step = "current_password" | "otp" | "reset" | "success";
 
@@ -104,7 +105,10 @@ export function ResetPasswordDialog({ open, onOpenChange }: ResetPasswordDialogP
               className="space-y-4"
             >
               <div className="space-y-2">
-                <Label htmlFor="reset-current-password">Current password</Label>
+                <Label htmlFor="reset-current-password" className="inline-flex items-center">
+                  Current password
+                  <HelpTooltip content="Enter your existing account password to request a one-time verification code (OTP)." />
+                </Label>
                 <Input
                   id="reset-current-password"
                   type="password"
@@ -176,7 +180,10 @@ export function ResetPasswordDialog({ open, onOpenChange }: ResetPasswordDialogP
               className="space-y-4"
             >
               <div className="space-y-2">
-                <Label htmlFor="reset-new-password">New password</Label>
+                <Label htmlFor="reset-new-password" className="inline-flex items-center">
+                  New password
+                  <HelpTooltip content="Set a new password with at least 8 characters, including letters and numbers for better security." />
+                </Label>
                 <Input
                   id="reset-new-password"
                   type="password"

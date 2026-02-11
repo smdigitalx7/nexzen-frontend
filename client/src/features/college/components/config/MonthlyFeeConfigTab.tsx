@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 import { useMonthlyFeeConfig } from "@/features/college/hooks/useMonthlyFeeConfig";
 import type { MonthlyFeeConfigCreate, MonthlyFeeConfigUpdate } from "@/features/college/types/monthly-fee-config";
+import { HelpTooltip } from "@/common/components/shared/HelpTooltip";
 
 const MonthlyFeeConfigTab = () => {
   const {
@@ -126,8 +127,9 @@ const MonthlyFeeConfigTab = () => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="fee_amount">
+              <Label htmlFor="fee_amount" className="inline-flex items-center">
                 {monthlyFeeConfig ? "Update Monthly Fee Amount (₹)" : "Create Monthly Fee Amount (₹)"}
+                <HelpTooltip content="Set the standard monthly tuition fee for this branch. This amount will be applied to all students enrolled in this branch." />
               </Label>
               <div className="flex items-center gap-2">
                 <Input

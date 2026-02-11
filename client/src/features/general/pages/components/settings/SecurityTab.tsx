@@ -8,6 +8,7 @@ import { useResetPassword, useVerifyOtp } from "@/features/general/hooks/useAuth
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/common/components/ui/input-otp";
 import { motion, AnimatePresence } from "framer-motion";
+import { HelpTooltip } from "@/common/components/shared/HelpTooltip";
 
 const SecurityTab = () => {
   const { toast } = useToast();
@@ -100,7 +101,10 @@ const SecurityTab = () => {
                     Enter your current password to receive an OTP on your registered mobile number.
                   </p>
                   <div className="space-y-2">
-                    <Label htmlFor="reset-current-password">Current password</Label>
+                    <Label htmlFor="reset-current-password" className="inline-flex items-center">
+                      Current password
+                      <HelpTooltip content="Enter your existing account password to request a one-time verification code (OTP)." />
+                    </Label>
                     <div className="relative">
                       <Input
                         id="reset-current-password"
@@ -153,7 +157,10 @@ const SecurityTab = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-3 md:col-span-2 flex flex-col items-center">
-                      <Label htmlFor="otpCode" className="w-full">Verification Code (OTP)</Label>
+                      <Label htmlFor="otpCode" className="w-full inline-flex items-center">
+                        Verification Code (OTP)
+                        <HelpTooltip content="Enter the 6-digit code sent to your registered mobile number." />
+                      </Label>
                       <InputOTP
                         maxLength={6}
                         value={passwordData.otpCode}
@@ -172,7 +179,10 @@ const SecurityTab = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password</Label>
+                      <Label htmlFor="newPassword" className="inline-flex items-center">
+                        New Password
+                        <HelpTooltip content="Set a new password with at least 8 characters, including letters and numbers for better security." />
+                      </Label>
                       <div className="relative">
                         <Input
                           id="newPassword"

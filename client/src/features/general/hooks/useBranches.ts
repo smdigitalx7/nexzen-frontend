@@ -22,7 +22,7 @@ export const useBranches = () => {
   return useQuery({
     queryKey: branchKeys.lists(),
     queryFn: () => BranchesService.list(),
-    enabled: false, // ✅ OPTIMIZATION: On-demand only - branches come from auth store
+    enabled: true, // ✅ ENABLED: Required for User Management dropdowns
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,

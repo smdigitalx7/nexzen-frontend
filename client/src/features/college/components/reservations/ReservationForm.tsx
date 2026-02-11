@@ -16,6 +16,7 @@ import {
 import { useMemo, useState } from "react";
 import { Save } from "lucide-react";
 import { cn } from "@/common/utils";
+import { HelpTooltip } from "@/common/components/shared/HelpTooltip";
 
 const AADHAR_MAX_LENGTH = 12;
 const MOBILE_LENGTH = 10;
@@ -400,7 +401,10 @@ export default function ReservationForm({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="student_name">Student Name *</Label>
+                <Label htmlFor="student_name" className="inline-flex items-center">
+                  Student Name *
+                  <HelpTooltip content="Enter the full name of the student as per official records." />
+                </Label>
                 <Input
                   id="student_name"
                   value={form.student_name}
@@ -411,7 +415,10 @@ export default function ReservationForm({
                 />
               </div>
               <div>
-                <Label htmlFor="aadhar_no">Aadhar No</Label>
+                <Label htmlFor="aadhar_no" className="inline-flex items-center">
+                  Aadhar No
+                  <HelpTooltip content="Enter the 12-digit unique identification number (UIDAI) of the student." />
+                </Label>
                 <Input
                   id="aadhar_no"
                   value={form.aadhar_no}
@@ -495,8 +502,9 @@ export default function ReservationForm({
                 )}
               </div>
               <div>
-                <Label htmlFor="father_or_guardian_mobile">
+                <Label htmlFor="father_or_guardian_mobile" className="inline-flex items-center">
                   Father/Guardian Mobile *
+                  <HelpTooltip content="10-digit mobile number for communication and OTP." />
                 </Label>
                 <Input
                   id="father_or_guardian_mobile"
@@ -843,33 +851,62 @@ export default function ReservationForm({
                   )}
               </div>
               <div>
-                <Label htmlFor="total_tuition_fee">Total Tuition Fee</Label>
+                <Label htmlFor="application_fee" className="inline-flex items-center">
+                  Application Fee
+                  <HelpTooltip content="Non-refundable fee for processing the application." />
+                </Label>
                 <Input
-                  id="total_tuition_fee"
+                  id="application_fee"
                   type="number"
-                  value={totalTuitionFee || ""}
-                  readOnly
-                  placeholder="Calculated from group and course fees"
+                  value={form.application_fee}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      application_fee: Number(e.target.value),
+                    })
+                  }
                 />
               </div>
               <div>
-                <Label htmlFor="group_fee">Group Fee</Label>
+                <Label htmlFor="group_fee" className="inline-flex items-center">
+                  Group Fee
+                  <HelpTooltip content="Fee based on the selected academic group." />
+                </Label>
                 <Input
                   id="group_fee"
                   type="number"
-                  value={groupFee || form.group_fee || ""}
+                  value={form.group_fee}
                   readOnly
-                  placeholder="Select a group to auto-populate"
+                  className="bg-slate-50"
+                  placeholder="Calculated automatically"
                 />
               </div>
               <div>
-                <Label htmlFor="course_fee">Course Fee</Label>
+                <Label htmlFor="course_fee" className="inline-flex items-center">
+                  Course Fee
+                  <HelpTooltip content="Fee based on the selected course." />
+                </Label>
                 <Input
                   id="course_fee"
                   type="number"
-                  value={courseFee || form.course_fee || ""}
+                  value={form.course_fee}
                   readOnly
-                  placeholder="Select a course to auto-populate"
+                  className="bg-slate-50"
+                  placeholder="Calculated automatically"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="total_tuition_fee" className="inline-flex items-center">
+                  Total Tuition Fee
+                  <HelpTooltip content="Total sum of Group Fee and Course Fee." />
+                </Label>
+                <Input
+                  id="total_tuition_fee"
+                  type="number"
+                  value={totalTuitionFee}
+                  readOnly
+                  className="bg-slate-50"
+                  placeholder="Calculated automatically"
                 />
               </div>
               <div>
@@ -901,7 +938,10 @@ export default function ReservationForm({
               </div>
               {form.book_fee_required && (
                 <div>
-                  <Label htmlFor="book_fee">Book Fee *</Label>
+                  <Label htmlFor="book_fee" className="inline-flex items-center">
+                    Book Fee *
+                    <HelpTooltip content="Fee for books and stationery materials." />
+                  </Label>
                   <Input
                     id="book_fee"
                     type="number"
@@ -918,9 +958,9 @@ export default function ReservationForm({
               )}
             </div>
           </div>
-          )}
+        )}
 
-          {/* Address Information Section */}
+
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">
               Address Information
@@ -1193,65 +1233,9 @@ export default function ReservationForm({
             </div>
           )}
 
-          {/* Fee Information Section */}
-          <div className="space-y-4 ">
-            <h3 className="text-lg font-semibold border-b pb-2">
-              Application Fee Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="application_fee">
-                  Application Fee <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="application_fee"
-                  type="number"
-                  min="1"
-                  value={form.application_fee}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      application_fee: Number(e.target.value),
-                    })
-                  }
-                  className={cn(
-                    "w-full mb-5",
-                    (!form.application_fee ||
-                      Number(form.application_fee || 0) <= 0) &&
-                      "border-red-500 focus:ring-red-500"
-                  )}
-                  required
-                  placeholder="Enter application fee amount"
-                />
-                {(!form.application_fee ||
-                  Number(form.application_fee || 0) <= 0) && (
-                  <p className="text-sm text-red-500 mt-1">
-                    Application fee is required and must be greater than 0
-                  </p>
-                )}
-              </div>
-
-              {/* <div>
-                <Label htmlFor="course_required">Course Required</Label>
-                <Select
-                  value={form.course_required ? "true" : "false"}
-                  onValueChange={(value) =>
-                    setForm({ ...form, course_required: value === "true" })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select course requirement" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Yes</SelectItem>
-                    <SelectItem value="false">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div> */}
-            </div>
-          </div>
         </div>
       </div>
+
 
       {/* Sticky Footer for New Reservation - Only show for new reservations, not edit mode */}
       {!isEdit && (

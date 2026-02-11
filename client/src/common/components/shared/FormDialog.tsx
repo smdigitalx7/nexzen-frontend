@@ -43,6 +43,7 @@ interface FormDialogProps {
   statusOptions?: Array<{ value: string; label: string; color?: string }>;
   getStatusColor?: (status: string) => string;
   statusUpdateText?: string;
+  overlayClassName?: string;
 }
 
 export const FormDialog: React.FC<FormDialogProps> = ({
@@ -80,6 +81,7 @@ export const FormDialog: React.FC<FormDialogProps> = ({
     return option?.color || 'bg-gray-100 text-gray-800 border-gray-200';
   },
   statusUpdateText = 'Update Status',
+  overlayClassName,
 }) => {
   const handleCancel = () => {
     if (onCancel) {
@@ -93,6 +95,9 @@ export const FormDialog: React.FC<FormDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className={cn(DIALOG_SIZES[size], "max-h-[90vh] flex flex-col p-0")}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        overlayClassName={overlayClassName}
       >
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
           <DialogTitle>{title}</DialogTitle>

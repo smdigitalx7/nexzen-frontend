@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ColumnDef } from '@tanstack/react-table';
-import { Trash2, Shield, ShieldX, Eye, Edit } from 'lucide-react';
+import { Trash2, Shield, ShieldX, Eye, Edit, Copy, RefreshCw, EyeOff, User, Mail, Phone, Building, Key, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/common/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/common/components/ui/avatar';
 import { Button } from '@/common/components/ui/button';
@@ -103,6 +103,47 @@ const UserManagement = () => {
   
   // Password validation state
   const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Generate a password based on name and mobile number
+  const generatePassword = () => {
+    if (!formData.full_name) {
+      toast({
+        title: "Name Required",
+        description: "Please enter a full name first to generate a password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const namePart = formData.full_name.split(' ')[0].toLowerCase().replace(/[^a-z]/g, '');
+    const phonePart = formData.mobile_no ? formData.mobile_no.slice(-4) : Math.floor(1000 + Math.random() * 9000).toString();
+    const specialChars = "!@#$";
+    const randomChar = specialChars[Math.floor(Math.random() * specialChars.length)];
+    
+    // Capitalize first letter of namePart for better complexity
+    const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+    const generated = `${formattedName}${randomChar}${phonePart}`;
+    
+    handleFormChange('password', generated);
+    handleFormChange('confirm_password', generated);
+    
+    toast({
+      title: "Password Generated",
+      description: "A password has been generated based on the user's details.",
+      variant: "success",
+    });
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied!",
+      description: "Password copied to clipboard.",
+      variant: "success",
+    });
+  };
 
 
   const handleAddUser = () => {
@@ -514,218 +555,270 @@ const UserManagement = () => {
             <strong>Complete Setup:</strong> The user will be created with the selected role and branch assignment. You can add optional access notes to provide additional context about the user's permissions.
           </div>
         )}
-        <form id="user-form" onSubmit={handleFormSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="full_name">Full Name *</Label>
-                <Input
-                  id="full_name"
-                  value={formData.full_name}
-                  onChange={(e) => handleFormChange('full_name', e.target.value)}
-                  placeholder="Enter full name"
-                  required
-                  data-testid="input-full-name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleFormChange('email', e.target.value)}
-                  placeholder="Enter email"
-                  required
-                  data-testid="input-email"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="mobile_no">Mobile Number</Label>
-                <Input
-                  id="mobile_no"
-                  value={formData.mobile_no || ""}
-                  onChange={(e) => handleFormChange('mobile_no', e.target.value)}
-                  placeholder="Enter mobile number (e.g., 9876543210)"
-                  data-testid="input-mobile"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Exclude country code (e.g., 9876543210 for India).
-                </p>
-              </div>
-              <div></div>
-            </div>
-            
-            {/* Role and Branch Selection */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="role">Role *</Label>
-                <Select value={selectedRole?.toString() || ""} onValueChange={(value) => setSelectedRole(parseInt(value))}>
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rolesLoading ? (
-                      <SelectItem value="loading" disabled>Loading roles...</SelectItem>
-                    ) : (
-                      roles.map((role) => (
-                        <SelectItem key={role.role_id} value={role.role_id.toString()}>
-                          {role.role_name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="branch">Branch *</Label>
-                <Select value={selectedBranch?.toString() || ""} onValueChange={(value) => setSelectedBranch(parseInt(value))}>
-                  <SelectTrigger id="branch">
-                    <SelectValue placeholder="Select a branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branchesLoading ? (
-                      <SelectItem value="loading" disabled>Loading branches...</SelectItem>
-                    ) : (
-                      branchesArray.map((branch: BranchRead) => (
-                        <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
-                          {branch.branch_name} ({branch.branch_type})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            {/* Access Notes */}
-            <div>
-              <Label htmlFor="access_notes">Access Notes</Label>
-              <Input
-                id="access_notes"
-                value={accessNotes}
-                onChange={(e) => setAccessNotes(e.target.value)}
-                placeholder="Optional notes about user access"
-                data-testid="input-access-notes"
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="is_active"
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) => handleFormChange('is_active', checked as boolean)}
-                />
-                <Label htmlFor="is_active">Active</Label>
-              </div>
-              <div></div>
-            </div>
-            {!isEditing && (
+        <form id="user-form" onSubmit={handleFormSubmit} className="space-y-6">
+            {/* Section 1: Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Basic Information</h3>
+              
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="password">Password *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="full_name">Full Name *</Label>
                   <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => handleFormChange('password', e.target.value)}
-                    placeholder="Enter password (min 8 characters)"
+                    id="full_name"
+                    value={formData.full_name}
+                    onChange={(e) => handleFormChange('full_name', e.target.value)}
+                    placeholder="Enter full name"
                     required
-                    minLength={8}
-                    data-testid="input-password"
+                    data-testid="input-full-name"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Password must be at least 8 characters long
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="email">Email Address *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleFormChange('email', e.target.value)}
+                    placeholder="example@mail.com"
+                    required
+                    data-testid="input-email"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="mobile_no">Mobile Number</Label>
+                  <Input
+                    id="mobile_no"
+                    value={formData.mobile_no || ""}
+                    onChange={(e) => handleFormChange('mobile_no', e.target.value)}
+                    placeholder="10-digit mobile number"
+                    data-testid="input-mobile"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Exclude country code (e.g., 9876543210).
                   </p>
                 </div>
-                <div>
-                  <Label htmlFor="confirm_password">Confirm Password *</Label>
-                  <Input
-                    id="confirm_password"
-                    type="password"
-                    value={formData.confirm_password}
-                    onChange={(e) => handleFormChange('confirm_password', e.target.value)}
-                    placeholder="Confirm password"
-                    required
-                    minLength={8}
-                    data-testid="input-confirm-password"
-                    className={passwordsMatch === false ? 'border-red-500' : passwordsMatch === true ? 'border-green-500' : ''}
+                <div className="flex items-center space-x-2 pt-6">
+                  <Checkbox
+                    id="is_active"
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) => handleFormChange('is_active', checked as boolean)}
                   />
-                  {passwordsMatch === false && (
-                    <p className="text-xs text-red-600 mt-1">
-                      Passwords do not match
-                    </p>
-                  )}
-                  {passwordsMatch === true && (
-                    <p className="text-xs text-green-600 mt-1">
-                      Passwords match ✓
-                    </p>
-                  )}
+                  <Label htmlFor="is_active" className="text-sm font-medium">Active Account</Label>
+                </div>
+              </div>
+            </div>
+            
+            {/* Section 2: Roles & Permissions */}
+            <div className="space-y-4 pt-2">
+              <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Roles & Permissions</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="role">Primary Role *</Label>
+                  <Select value={selectedRole?.toString() || ""} onValueChange={(value) => setSelectedRole(parseInt(value))}>
+                    <SelectTrigger id="role">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rolesLoading ? (
+                        <SelectItem value="loading" disabled>Loading roles...</SelectItem>
+                      ) : (
+                        roles
+                          .filter(role => role.role_name !== 'INSTITUTE_ADMIN')
+                          .map((role) => (
+                            <SelectItem key={role.role_id} value={role.role_id.toString()}>
+                              {role.role_name}
+                            </SelectItem>
+                          ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="branch">Base Branch *</Label>
+                  <Select value={selectedBranch?.toString() || ""} onValueChange={(value) => setSelectedBranch(parseInt(value))}>
+                    <SelectTrigger id="branch">
+                      <SelectValue placeholder="Select a branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branchesLoading ? (
+                        <SelectItem value="loading" disabled>Loading branches...</SelectItem>
+                      ) : (
+                        branchesArray.map((branch: BranchRead) => (
+                          <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
+                            {branch.branch_name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-1.5">
+                <Label htmlFor="user_access_notes">Internal Notes (Optional)</Label>
+                <Input
+                  id="user_access_notes"
+                  value={accessNotes}
+                  onChange={(e) => setAccessNotes(e.target.value)}
+                  placeholder="Additional context about this user assignment"
+                  data-testid="input-access-notes"
+                />
+              </div>
+            </div>
+            
+            {/* Section 3: Security */}
+            {!isEditing && (
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <h3 className="text-sm font-semibold text-gray-900">Security Credentials</h3>
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    size="sm" 
+                    onClick={generatePassword}
+                    className="h-auto p-0 text-blue-600 hover:text-blue-700 font-bold text-xs"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Generate Password
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5 relative">
+                    <Label htmlFor="password">Login Password *</Label>
+                    <div className="relative group">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={(e) => handleFormChange('password', e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        minLength={8}
+                        className="pr-20"
+                        data-testid="input-password"
+                      />
+                      <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:bg-transparent"
+                          onClick={() => copyToClipboard(formData.password)}
+                          disabled={!formData.password}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="confirm_password">Confirm Password *</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirm_password"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={formData.confirm_password}
+                        onChange={(e) => handleFormChange('confirm_password', e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        minLength={8}
+                        className={`w-full pr-10 ${
+                          passwordsMatch === false ? 'border-red-500' : 
+                          passwordsMatch === true ? 'border-green-500' : ''
+                        }`}
+                        data-testid="input-confirm-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {passwordsMatch === false && (
+                      <p className="text-[10px] text-red-600 font-medium mt-1">Passwords do not match</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
         </form>
+
       </FormDialog>
 
       {/* User Detail Dialog */}
       <FormDialog
         open={showDetail}
         onOpenChange={setShowDetail}
-        title="User Details"
-        description="View user information and account details"
+        title="User Profile"
+        description="Detailed account information and branch accesses"
         size="MEDIUM"
         showFooter={false}
       >
         {selectedUser && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
-                <AvatarFallback className="text-lg">
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-14 w-14">
+                <AvatarFallback className="text-xl font-bold bg-neutral-100 text-neutral-600">
                   {selectedUser.full_name.split(' ').map((n: string) => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <h3 className="font-semibold">{selectedUser.full_name}</h3>
+              <div className="space-y-0.5">
+                <h3 className="text-lg font-semibold">{selectedUser.full_name}</h3>
                 <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <Label className="text-muted-foreground">Mobile</Label>
-                <p>{selectedUser.mobile_no || 'N/A'}</p>
+
+            <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm border-t pt-4">
+              <div className="space-y-1">
+                <Label className="text-muted-foreground font-normal">Mobile Number</Label>
+                <p className="font-medium">{selectedUser.mobile_no || 'N/A'}</p>
               </div>
-              <div>
-                <Label className="text-muted-foreground">Role</Label>
-                <p>{selectedUser.is_institute_admin ? 'Institute Admin' : 'User'}</p>
+              <div className="space-y-1">
+                <Label className="text-muted-foreground font-normal">Account Status</Label>
+                <div>
+                  <Badge variant={selectedUser.is_active ? "success" : "secondary" as any} className="text-[10px] font-bold">
+                    {selectedUser.is_active ? 'ACTIVE' : 'INACTIVE'}
+                  </Badge>
+                </div>
               </div>
-              <div>
-                <Label className="text-muted-foreground">Status</Label>
-                <Badge className={selectedUser.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'}>
-                  {selectedUser.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Created</Label>
-                <p>{new Date(selectedUser.created_at).toLocaleDateString()}</p>
+              <div className="space-y-1">
+                <Label className="text-muted-foreground font-normal">Created On</Label>
+                <p className="font-medium">{new Date(selectedUser.created_at).toLocaleDateString()}</p>
               </div>
             </div>
             
-            
-            {/* Legacy roles and branches display for backward compatibility */}
-            {('roles' in selectedUser && selectedUser.roles && selectedUser.roles.length > 0) && (
-              <div className="mt-4">
-                <Label className="text-muted-foreground">Roles & Branches</Label>
-                <div className="mt-2 space-y-2">
-                  {selectedUser.roles.map((role, index) => (
-                    <div key={role.role_id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+            {detailedUser && ('accesses' in detailedUser && detailedUser.accesses && detailedUser.accesses.length > 0) && (
+              <div className="space-y-3 pt-2 border-t">
+                <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Branch Accesses</h4>
+                <div className="grid gap-2">
+                  {detailedUser.accesses.map((access, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-md border">
                       <div>
-                        <span className="font-medium">{role.role_name}</span>
-                        {selectedUser.branches && selectedUser.branches[index] && (
-                          <span className="text-muted-foreground ml-2">at {selectedUser.branches[index].branch_name}</span>
-                        )}
+                        <p className="text-sm font-semibold">{access.branch_name}</p>
+                        <p className="text-[11px] text-muted-foreground uppercase font-medium">{access.role_name}</p>
                       </div>
+                      {access.is_default && (
+                        <Badge variant="outline" className="text-[9px] bg-white border-neutral-300 font-bold">
+                          DEFAULT
+                        </Badge>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -753,9 +846,10 @@ const UserManagement = () => {
       <FormDialog
         open={showAccessDialog}
         onOpenChange={setShowAccessDialog}
-        title="Manage Branch Access"
-        description={`Manage branch access for ${selectedUser?.full_name}`}
-        size="LARGE"
+        title="Branch Access Management"
+        description={`Configure permissions for ${selectedUser?.full_name}`}
+        size="MEDIUM"
+        overlayClassName="bg-black/20 backdrop-blur-[1px]"
         isLoading={createAccessMutation.isPending}
         onSave={() => {
           const form = document.getElementById('access-form') as HTMLFormElement;
@@ -763,41 +857,45 @@ const UserManagement = () => {
             form.requestSubmit();
           }
         }}
-        saveText={createAccessMutation.isPending ? "Adding..." : "Add Access"}
-        cancelText="Cancel"
+        saveText={createAccessMutation.isPending ? "Assigning..." : "Assign Access"}
+        cancelText="Close"
       >
         {formError && (
-          <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md mb-4">
-            <strong>Error:</strong> {formError}
+          <div className="text-sm text-red-600 bg-red-50 p-2 rounded-md mb-4 border border-red-100">
+            {formError}
           </div>
         )}
         
         {/* Existing Access Permissions */}
         {detailedUser && ('accesses' in detailedUser && detailedUser.accesses && detailedUser.accesses.length > 0) && (
-          <div className="mb-6">
-            <Label className="text-muted-foreground text-sm font-medium">Current Access Permissions</Label>
-            <div className="mt-2 space-y-2">
+          <div className="mb-6 space-y-2">
+            <Label className="text-xs font-bold uppercase text-muted-foreground">Current Portfolios</Label>
+            <div className="space-y-1">
               {detailedUser.accesses.map((access, index) => (
-                <div key={access.access_id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-md border">
-                  <div className="flex items-center space-x-3">
-                    <Shield className="h-4 w-4 text-blue-600" />
-                    <div>
-                      <span className="font-medium text-sm">{access.role_name}</span>
-                      <span className="text-muted-foreground text-sm ml-2">at {access.branch_name}</span>
+                <div key={access.access_id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">{access.role_name}</span>
                       {access.is_default && (
-                        <Badge variant="outline" className="ml-2 text-xs">Default</Badge>
+                        <Badge className="text-[9px] h-3.5 bg-neutral-600">PRIMARY</Badge>
                       )}
                     </div>
+                    <span className="text-xs text-muted-foreground">{access.branch_name}</span>
                   </div>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    onClick={() => handleRevokeAccessFromDialog(access.access_id, detailedUser.user_id, access.role_name, access.branch_name)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => handleRevokeAccessFromDialog(
+                      access.access_id, 
+                      detailedUser.user_id, 
+                      access.role_name, 
+                      access.branch_name
+                    )}
+                    className="text-red-500 hover:text-red-700 hover:bg-transparent h-8 p-0"
                     disabled={revokeAccessMutation.isPending}
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
-                    {revokeAccessMutation.isPending ? "Revoking..." : "Revoke"}
+                    Revoke
                   </Button>
                 </div>
               ))}
@@ -805,87 +903,86 @@ const UserManagement = () => {
           </div>
         )}
 
-        {/* Add New Access Form */}
-        <div className="border-t pt-4">
-          <Label className="text-muted-foreground text-sm font-medium mb-4 block">Add New Access</Label>
-          <form id="access-form" onSubmit={handleAccessFormSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="access-branch">Branch *</Label>
-                <Select 
-                  value={accessFormData.branch_id.toString()} 
-                  onValueChange={(value) => setAccessFormData(prev => ({ ...prev, branch_id: parseInt(value) }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branchesLoading ? (
-                      <SelectItem value="loading" disabled>Loading branches...</SelectItem>
-                    ) : (
-                      branchesArray.map((branch: BranchRead) => (
-                        <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
-                          {branch.branch_name} ({branch.branch_type})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="access-role">Role *</Label>
-                <Select 
-                  value={accessFormData.role_id.toString()} 
-                  onValueChange={(value) => setAccessFormData(prev => ({ ...prev, role_id: parseInt(value) }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rolesLoading ? (
-                      <SelectItem value="loading" disabled>Loading roles...</SelectItem>
-                    ) : (
-                      roles.map((role) => (
+        <form id="access-form" onSubmit={handleAccessFormSubmit} className="space-y-4 pt-4 border-t">
+          <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-2">Assign New Authority</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="access-branch">Target Branch *</Label>
+              <Select 
+                value={accessFormData.branch_id?.toString() || ""} 
+                onValueChange={(value) => setAccessFormData(prev => ({ ...prev, branch_id: parseInt(value) }))}
+              >
+                <SelectTrigger id="access-branch">
+                  <SelectValue placeholder="Select branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branchesLoading ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : (
+                    branchesArray.map((branch: BranchRead) => (
+                      <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
+                        {branch.branch_name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="access-role">Authority Role *</Label>
+              <Select 
+                value={accessFormData.role_id?.toString() || ""} 
+                onValueChange={(value) => setAccessFormData(prev => ({ ...prev, role_id: parseInt(value) }))}
+              >
+                <SelectTrigger id="access-role">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rolesLoading ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : (
+                    roles
+                      .filter(role => role.role_name !== 'INSTITUTE_ADMIN')
+                      .map((role) => (
                         <SelectItem key={role.role_id} value={role.role_id.toString()}>
                           {role.role_name}
                         </SelectItem>
                       ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
-            
-            <div>
-              <Label htmlFor="access-notes">Access Notes</Label>
-              <Input
-                id="access-notes"
-                value={accessFormData.access_notes}
-                onChange={(e) => setAccessFormData(prev => ({ ...prev, access_notes: e.target.value }))}
-                placeholder="Optional notes about this access"
+          </div>
+          
+          <div className="space-y-1.5">
+            <Label htmlFor="access-notes">Assignment Notes</Label>
+            <Input
+              id="access-notes"
+              value={accessFormData.access_notes}
+              onChange={(e) => setAccessFormData(prev => ({ ...prev, access_notes: e.target.value }))}
+              placeholder="Justification or context"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="access-is-default"
+                checked={accessFormData.is_default}
+                onCheckedChange={(checked) => setAccessFormData(prev => ({ ...prev, is_default: checked as boolean }))}
               />
+              <Label htmlFor="access-is-default" className="text-xs">Set as Primary Access</Label>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="access-is-default"
-                  checked={accessFormData.is_default}
-                  onCheckedChange={(checked) => setAccessFormData(prev => ({ ...prev, is_default: checked as boolean }))}
-                />
-                <Label htmlFor="access-is-default">Set as Default Access</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="access-is-active"
-                  checked={accessFormData.is_active}
-                  onCheckedChange={(checked) => setAccessFormData(prev => ({ ...prev, is_active: checked as boolean }))}
-                />
-                <Label htmlFor="access-is-active">Active</Label>
-              </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="access-is-active"
+                checked={accessFormData.is_active}
+                onCheckedChange={(checked) => setAccessFormData(prev => ({ ...prev, is_active: checked as boolean }))}
+              />
+              <Label htmlFor="access-is-active" className="text-xs">Instant Activation</Label>
             </div>
-          </form>
-        </div>
+          </div>
+        </form>
       </FormDialog>
 
       {/* Revoke Access from Access Dialog Confirmation */}
@@ -893,8 +990,9 @@ const UserManagement = () => {
         open={showAccessRevokeDialog}
         onOpenChange={setShowAccessRevokeDialog}
         title="Revoke Access"
-        description={`Are you sure you want to revoke ${accessToRevokeFromDialog?.roleName} access at ${accessToRevokeFromDialog?.branchName}? This action cannot be undone.`}
-        size="MEDIUM"
+        description={`Are you sure you want to revoke ${accessToRevokeFromDialog?.roleName} access at ${accessToRevokeFromDialog?.branchName}?`}
+        size="SMALL"
+        overlayClassName="bg-black/60 backdrop-blur-[6px]"
         isLoading={revokeAccessMutation.isPending}
         onSave={confirmRevokeAccessFromDialog}
         saveText={revokeAccessMutation.isPending ? "Revoking..." : "Revoke Access"}
