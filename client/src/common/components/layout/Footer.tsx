@@ -17,7 +17,7 @@ const Footer = () => {
 
     if (userRoleUpper === ROLES.ACADEMIC || userRoleUpper === "ACADEMIC") {
       return {
-        url: "https://docs.google.com/document/d/1Lm2nX3UAVcJ42QVW2XONCoXUNuKHy5iv/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true",
+        url: import.meta.env.VITE_ACADEMIC_GUIDE_URL || "https://docs.google.com/document/d/1Lm2nX3UAVcJ42QVW2XONCoXUNuKHy5iv/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true",
         title: "Academic Guide",
       };
     } else if (
@@ -25,7 +25,7 @@ const Footer = () => {
       userRoleUpper === "ACCOUNTANT"
     ) {
       return {
-        url: "https://docs.google.com/document/d/19XfkbLisVi5zql9Fuuv5_R4KijLGOow1/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true",
+        url: import.meta.env.VITE_ACCOUNTANT_GUIDE_URL || "https://docs.google.com/document/d/19XfkbLisVi5zql9Fuuv5_R4KijLGOow1/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true",
         title: "Accountant Guide",
       };
     } else if (
@@ -35,7 +35,7 @@ const Footer = () => {
       userRoleUpper === "INSTITUTE_ADMIN"
     ) {
       return {
-        url: "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true",
+        url: import.meta.env.VITE_ADMIN_GUIDE_URL || "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true",
         title: "Admin Guide",
       };
     }
@@ -82,7 +82,7 @@ const Footer = () => {
                 size="sm"
                 onClick={() =>
                   window.open(
-                    "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link",
+                    import.meta.env.VITE_DOCUMENTATION_URL || "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link",
                     "_blank"
                   )
                 }

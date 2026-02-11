@@ -111,7 +111,7 @@ const DataManagementTab = () => {
               </p>
             </div>
             <Button 
-                onClick={() => window.open('https://drive.google.com/drive/folders/169bNImY07pS5OitQd4F2jWk7pI8J2L8C', '_blank')}
+                onClick={() => window.open(import.meta.env.VITE_BACKUP_DRIVE_URL || 'https://drive.google.com/drive/folders/169bNImY07pS5OitQd4F2jWk7pI8J2L8C', '_blank')}
                 className="gap-2 bg-blue-600 hover:bg-blue-700 h-9"
             >
               <Cloud className="h-4 w-4" />

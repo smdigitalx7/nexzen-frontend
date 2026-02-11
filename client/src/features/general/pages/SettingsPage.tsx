@@ -56,12 +56,6 @@ const settingsMenuItems: SettingsMenuItem[] = [
     icon: Database,
   },
   {
-    id: "support",
-    label: "Support",
-    description: "Help and contact info",
-    icon: Headphones,
-  },
-  {
     id: "about",
     label: "About",
     description: "App info and support",
@@ -98,8 +92,6 @@ const SettingsPage = () => {
         return <ConfigurationTab />;
       case "data":
         return <DataManagementTab />;
-      case "support":
-        return <SupportTab />;
       case "about":
         return <AboutTab />;
       default:

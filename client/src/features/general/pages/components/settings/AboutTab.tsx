@@ -54,7 +54,7 @@ const AboutTab = () => {
             <button
               onClick={() => {
                 window.open(
-                  "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS",
+                  import.meta.env.VITE_DOCUMENTATION_URL || "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS",
                   "_blank",
                   "noopener,noreferrer"
                 );

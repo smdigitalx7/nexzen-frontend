@@ -603,9 +603,9 @@ const Sidebar = () => {
                   // Admin users: Admin Guide | Documents
                   if (isAdminRole) {
                     const adminGuideUrl =
-                      "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                      import.meta.env.VITE_ADMIN_GUIDE_URL || "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
                     const documentsUrl =
-                      "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link";
+                      import.meta.env.VITE_DOCUMENTATION_URL || "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link";
 
                     return (
                       <div className="flex items-center gap-2">
@@ -631,7 +631,7 @@ const Sidebar = () => {
                   // Accountant users: Accountant Guide
                   if (isAccountantRole) {
                     const accountantGuideUrl =
-                      "https://docs.google.com/document/d/19XfkbLisVi5zql9Fuuv5_R4KijLGOow1/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                      import.meta.env.VITE_ACCOUNTANT_GUIDE_URL || "https://docs.google.com/document/d/19XfkbLisVi5zql9Fuuv5_R4KijLGOow1/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
 
                     return (
                       <div className="flex items-center gap-2">
@@ -651,7 +651,7 @@ const Sidebar = () => {
                   // Academic users: Academic Guide
                   if (isAcademicRole) {
                     const academicGuideUrl =
-                      "https://docs.google.com/document/d/1Lm2nX3UAVcJ42QVW2XONCoXUNuKHy5iv/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                      import.meta.env.VITE_ACADEMIC_GUIDE_URL || "https://docs.google.com/document/d/1Lm2nX3UAVcJ42QVW2XONCoXUNuKHy5iv/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
 
                     return (
                       <div className="flex items-center gap-2">
@@ -716,13 +716,13 @@ const Sidebar = () => {
                   let guideLabel = "";
 
                   if (isAdminRole) {
-                    guideUrl = "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                    guideUrl = import.meta.env.VITE_ADMIN_GUIDE_URL || "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
                     guideLabel = "Admin Guide";
                   } else if (isAccountantRole) {
-                    guideUrl = "https://docs.google.com/document/d/19XfkbLisVi5zql9Fuuv5_R4KijLGOow1/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                    guideUrl = import.meta.env.VITE_ACCOUNTANT_GUIDE_URL || "https://docs.google.com/document/d/19XfkbLisVi5zql9Fuuv5_R4KijLGOow1/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
                     guideLabel = "Accountant Guide";
                   } else if (isAcademicRole) {
-                    guideUrl = "https://docs.google.com/document/d/1Lm2nX3UAVcJ42QVW2XONCoXUNuKHy5iv/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                    guideUrl = import.meta.env.VITE_ACADEMIC_GUIDE_URL || "https://docs.google.com/document/d/1Lm2nX3UAVcJ42QVW2XONCoXUNuKHy5iv/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
                     guideLabel = "Academic Guide";
                   }
 
@@ -764,7 +764,7 @@ const Sidebar = () => {
 
                   if (!isAdminRole) return null;
 
-                  const documentsUrl = "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link";
+                  const documentsUrl = import.meta.env.VITE_DOCUMENTATION_URL || "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link";
 
                   return (
                     <Tooltip delayDuration={0}>
