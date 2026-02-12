@@ -67,7 +67,7 @@ export const ClassTeacherTab = () => {
     useTeachersByBranch(teachersDropdownOpen);
 
   const { data: allEmployeesData } =
-    useEmployeesByBranch(teachersDropdownOpen, 1, 200);
+    useEmployeesByBranch(teachersDropdownOpen, 1, 100);
 
   // ✅ FIX: Handle paginated employee data and direct arrays
   const allEmployees = useMemo(() => {

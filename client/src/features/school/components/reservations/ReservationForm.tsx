@@ -18,7 +18,7 @@ import {
   PopoverTrigger,
 } from "@/common/components/ui/popover";
 import { useMemo, useState, memo, useCallback } from "react";
-import { Save, Calendar as CalendarIcon } from "lucide-react";
+import { Save, Calendar as CalendarIcon, Info } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/common/utils";
 import { HelpTooltip } from "@/common/components/shared/HelpTooltip";
@@ -760,6 +760,10 @@ const ReservationFormComponent = ({
             <h3 className="text-lg font-semibold border-b pb-2">
               Academic Information
             </h3>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-blue-50/50 p-2 rounded-md border border-blue-100">
+              <Info className="h-4 w-4 text-blue-600 shrink-0" />
+              <span>Note: Please select a class to view the applicable class and book fees as per school regulations.</span>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="previous_class">Previous Class</Label>
@@ -795,7 +799,7 @@ const ReservationFormComponent = ({
                   value={
                     form.class_name
                       ? classes.find((c) => c.class_name === form.class_name)
-                          ?.class_id || null
+                        ?.class_id || null
                       : null
                   }
                   onChange={(value) => {
@@ -913,7 +917,7 @@ const ReservationFormComponent = ({
                       id="preferred_transport_id"
                       value={
                         form.preferred_transport_id &&
-                        form.preferred_transport_id !== "0"
+                          form.preferred_transport_id !== "0"
                           ? parseInt(form.preferred_transport_id, 10)
                           : null
                       }
@@ -929,14 +933,14 @@ const ReservationFormComponent = ({
                   </div>
                   <div>
                     <Label htmlFor="preferred_distance_slab_id" className="inline-flex items-center">
-                  Distance Slab
-                  <HelpTooltip content="Select the distance range to calculate transport fees." />
-                </Label>
+                      Distance Slab
+                      <HelpTooltip content="Select the distance range to calculate transport fees." />
+                    </Label>
                     <DistanceSlabDropdown
                       id="preferred_distance_slab_id"
                       value={
                         form.preferred_distance_slab_id &&
-                        form.preferred_distance_slab_id !== "0"
+                          form.preferred_distance_slab_id !== "0"
                           ? parseInt(form.preferred_distance_slab_id, 10)
                           : null
                       }
@@ -1140,17 +1144,17 @@ const ReservationFormComponent = ({
                     "w-full mb-5",
                     (!form.application_fee ||
                       Number(form.application_fee || 0) <= 0) &&
-                      "border-red-500 focus:ring-red-500"
+                    "border-red-500 focus:ring-red-500"
                   )}
                   required
                   placeholder="Enter application fee amount"
                 />
                 {(!form.application_fee ||
                   Number(form.application_fee || 0) <= 0) && (
-                  <p className="text-sm text-red-500 mt-1">
-                    Application fee is required and must be greater than 0
-                  </p>
-                )}
+                    <p className="text-sm text-red-500 mt-1">
+                      Application fee is required and must be greater than 0
+                    </p>
+                  )}
               </div>
               <div></div>
             </div>

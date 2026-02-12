@@ -259,14 +259,6 @@ const SectionsTabComponent = () => {
               placeholder="Enter section name"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Switch
-              id="is_active"
-              checked={Boolean(newSection.is_active)}
-              onCheckedChange={(checked) => updateNewSection('is_active', checked)}
-            />
-            <Label htmlFor="is_active">Active</Label>
-          </div>
         </div>
       </FormDialog>
 

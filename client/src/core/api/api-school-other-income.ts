@@ -3,9 +3,9 @@ import { getApiBaseUrl } from "./api";
 
 // Ensure API_BASE_URL includes /api/v1 prefix
 const baseUrl = getApiBaseUrl();
-const API_BASE_URL = baseUrl && baseUrl.includes("/api/v1") 
-  ? baseUrl 
-  : baseUrl 
+const API_BASE_URL = baseUrl && baseUrl.includes("/api/v1")
+  ? baseUrl
+  : baseUrl
     ? `${baseUrl}/api/v1`
     : "/api/v1";
 
@@ -126,9 +126,12 @@ export async function getSchoolOtherIncome(params?: {
     }
 
     const json = await response.json();
-    // Backend may return { items, total }; normalize to { data, total_count } for UI
-    if (Array.isArray(json?.items) && typeof json?.total === "number") {
-      return { data: json.items, total_count: json.total };
+    // Backend may return { items, total_count } or { items, total }; normalize to { data, total_count } for UI
+    if (Array.isArray(json?.items)) {
+      return {
+        data: json.items,
+        total_count: typeof json.total_count === "number" ? json.total_count : (typeof json.total === "number" ? json.total : json.items.length)
+      };
     }
     if (Array.isArray(json?.data) && typeof json?.total_count === "number") {
       return { data: json.data, total_count: json.total_count };

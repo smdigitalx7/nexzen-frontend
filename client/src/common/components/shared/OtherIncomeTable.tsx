@@ -3,7 +3,7 @@
  * Displays other income records in a table format (DataTable V2)
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Button } from "@/common/components/ui/button";
@@ -14,6 +14,9 @@ import { createCurrencyColumn } from "@/common/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useAuthStore } from "@/core/auth/authStore";
 import { ROLES } from "@/common/constants";
+import { Eye, Receipt, Info, CreditCard, Clock } from "lucide-react";
+import ViewDialog from "@/common/components/shared/ViewDialog";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 
 interface OtherIncomeRecord {
   other_income_id: number;
@@ -49,6 +52,15 @@ export const OtherIncomeTable: React.FC<OtherIncomeTableProps> = ({
   const { user } = useAuthStore();
   const canAddOtherIncome =
     user?.role === ROLES.ADMIN || user?.role === ROLES.INSTITUTE_ADMIN;
+
+  // View state
+  const [selectedRecord, setSelectedRecord] = useState<OtherIncomeRecord | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+
+  const handleView = useCallback((record: OtherIncomeRecord) => {
+    setSelectedRecord(record);
+    setIsViewOpen(true);
+  }, []);
 
   const queryKey = useMemo(
     () => [`${institutionType}-other-income`],
@@ -92,10 +104,10 @@ export const OtherIncomeTable: React.FC<OtherIncomeTableProps> = ({
       accessorKey: "description",
       header: "Description",
       cell: ({ row }) => {
-        const description = row.getValue("description");
+        const description = row.getValue("description") as string;
         return description ? (
           <Badge variant="secondary" className="max-w-[200px] truncate">
-            {description}
+            {description as React.ReactNode}
           </Badge>
         ) : (
           <span className="text-gray-400">-</span>
@@ -106,7 +118,7 @@ export const OtherIncomeTable: React.FC<OtherIncomeTableProps> = ({
       accessorKey: "payment_method",
       header: "Payment Method",
       cell: ({ row }) => {
-        const method = row.getValue("payment_method");
+        const method = row.getValue("payment_method") as string;
         const colorMap: Record<string, string> = {
           CASH: "bg-green-100 text-green-700",
           UPI: "bg-blue-100 text-blue-700",
@@ -114,7 +126,7 @@ export const OtherIncomeTable: React.FC<OtherIncomeTableProps> = ({
         };
         return (
           <Badge className={colorMap[method] || "bg-gray-100 text-gray-700"}>
-            {method}
+            {method as React.ReactNode}
           </Badge>
         );
       },
@@ -124,6 +136,16 @@ export const OtherIncomeTable: React.FC<OtherIncomeTableProps> = ({
       className: "text-green-600 font-bold",
     }),
   ], []);
+
+  // Action configurations
+  const actions = useMemo<ActionConfig<OtherIncomeRecord>[]>(() => [
+    {
+      id: "view",
+      label: "View",
+      icon: Eye,
+      onClick: handleView,
+    },
+  ], [handleView]);
 
   return (
     <motion.div
@@ -163,9 +185,55 @@ export const OtherIncomeTable: React.FC<OtherIncomeTableProps> = ({
           export={{ enabled: true, filename: "other-income" }}
           onAdd={canAddOtherIncome ? onAddOtherIncome : undefined}
           addButtonText={canAddOtherIncome ? "Add Other Income" : undefined}
+          actions={actions}
+          actionsHeader="Actions"
           emptyMessage="No other income records found"
         />
       )}
+
+      {/* View Details Dialog */}
+      <ViewDialog
+        open={isViewOpen}
+        onOpenChange={setIsViewOpen}
+        title="Other Income Details"
+        subtitle={selectedRecord?.name}
+        icon={<Receipt className="h-5 w-5" />}
+        iconColor="blue"
+        sections={[
+          {
+            title: "General Information",
+            icon: <Info className="h-4 w-4" />,
+            fields: [
+              { label: "Date", value: selectedRecord?.income_date, type: "date" },
+              { label: "Receipt No", value: selectedRecord?.receipt_no },
+              { label: "Name", value: selectedRecord?.name },
+              { label: "Description", value: selectedRecord?.description },
+            ],
+          },
+          {
+            title: "Payment Details",
+            icon: <CreditCard className="h-4 w-4" />,
+            fields: [
+              { label: "Amount", value: selectedRecord?.amount, type: "currency" },
+              {
+                label: "Payment Method",
+                value: selectedRecord?.payment_method,
+                type: "badge",
+                badgeVariant: selectedRecord?.payment_method === "CASH" ? "success" : "info"
+              },
+            ],
+          },
+          {
+            title: "Metadata",
+            icon: <Clock className="h-4 w-4" />,
+            fields: [
+              { label: "Created By", value: selectedRecord?.created_by_name },
+              { label: "Created At", value: selectedRecord?.created_at, type: "date" },
+              { label: "Last Updated At", value: selectedRecord?.updated_at, type: "date" },
+            ],
+          },
+        ]}
+      />
     </motion.div>
   );
 };

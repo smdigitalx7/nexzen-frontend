@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/common/components/ui/dialog';
 import { Loader } from '@/common/components/ui/ProfessionalLoader';
-import { Bus, Calendar, User, Edit, Save, X, Ban } from 'lucide-react';
+import { Bus, Calendar, User, Save, Ban } from 'lucide-react';
 import type { SchoolStudentTransportAssignmentRead, SchoolStudentTransportAssignmentUpdate } from '@/features/school/types';
 import { useUpdateSchoolStudentTransport, useCancelSchoolStudentTransport } from '@/features/school/hooks';
 import type { BusRouteRead } from '@/features/general/types/transport';
@@ -45,17 +45,17 @@ export const TransportViewDialog = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [cancelEndDate, setCancelEndDate] = useState<string>('');
-  
+
   // Update mutation
   const updateMutation = useUpdateSchoolStudentTransport();
   const cancelMutation = useCancelSchoolStudentTransport();
-  
+
   // Form state - only fields that can be updated
   const [formData, setFormData] = useState({
     bus_route_id: 0,
     pickup_point: '',
   });
-  
+
   // Only reset cancelEndDate when sheet opens (not on every viewAssignment refetch) to avoid clearing date picker
   const prevOpenRef = useRef(false);
   useEffect(() => {
@@ -69,24 +69,24 @@ export const TransportViewDialog = ({
     }
     prevOpenRef.current = open;
   }, [viewAssignment, open, defaultEditMode]);
-  
+
   const handleSave = async () => {
     if (!viewAssignment?.transport_assignment_id) return;
-    
+
     try {
       // API only accepts bus_route_id and pickup_point
       const updatePayload: SchoolStudentTransportAssignmentUpdate = {
         bus_route_id: formData.bus_route_id || undefined,
         pickup_point: formData.pickup_point || undefined,
       };
-      
+
       // Remove undefined values
       if (updatePayload.bus_route_id === undefined) delete updatePayload.bus_route_id;
       if (updatePayload.pickup_point === undefined) delete updatePayload.pickup_point;
-      
-      await updateMutation.mutateAsync({ 
-        id: viewAssignment.transport_assignment_id, 
-        payload: updatePayload 
+
+      await updateMutation.mutateAsync({
+        id: viewAssignment.transport_assignment_id,
+        payload: updatePayload
       });
       setIsEditMode(false);
       if (onSuccess) {
@@ -96,7 +96,7 @@ export const TransportViewDialog = ({
       console.error('Failed to update transport assignment:', error);
     }
   };
-  
+
   const handleEditCancel = () => {
     if (viewAssignment) {
       setFormData({
@@ -105,11 +105,12 @@ export const TransportViewDialog = ({
       });
     }
     setIsEditMode(false);
+    onOpenChange(false);
   };
 
   const handleCancelTransport = useCallback(async () => {
     if (!viewAssignment?.transport_assignment_id || !cancelEndDate) return;
-    
+
     try {
       await cancelMutation.mutateAsync({
         transport_assignment_id: viewAssignment.transport_assignment_id,
@@ -165,29 +166,10 @@ export const TransportViewDialog = ({
                       Cancel Transport
                     </Button>
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditMode(true)}
-                    className="gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit
-                  </Button>
                 </div>
               )}
               {isEditMode && (
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEditCancel}
-                    disabled={isSaving}
-                    className="gap-2"
-                  >
-                    <X className="h-4 w-4" />
-                    Cancel
-                  </Button>
                   <Button
                     size="sm"
                     onClick={() => void handleSave()}
@@ -270,9 +252,8 @@ export const TransportViewDialog = ({
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground font-medium mb-1">Status</p>
-                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-                      viewAssignment.is_active && !viewAssignment.end_date ? 'border-transparent bg-primary text-primary-foreground' : 'border-transparent bg-secondary text-secondary-foreground'
-                    }`}>
+                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${viewAssignment.is_active && !viewAssignment.end_date ? 'border-transparent bg-primary text-primary-foreground' : 'border-transparent bg-secondary text-secondary-foreground'
+                      }`}>
                       {viewAssignment.is_active && !viewAssignment.end_date ? 'Active' : 'Inactive'}
                     </span>
                   </div>

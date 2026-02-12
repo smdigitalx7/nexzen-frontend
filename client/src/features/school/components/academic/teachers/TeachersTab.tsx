@@ -59,7 +59,7 @@ export const TeachersTab = () => {
   const { data: allEmployeesData, isLoading: isLoadingEmployees } = useEmployeesByBranch(
     teachersDropdownOpen || activeSubTab === "assignments",
     1,
-    200 // Increased page size to get more employees for lookup
+    100
   );
 
   // ✅ FIX: Handle paginated employee data and direct arrays
