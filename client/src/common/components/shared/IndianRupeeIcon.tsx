@@ -20,8 +20,12 @@ export const IndianRupeeIcon: React.FC<IndianRupeeIconProps> = ({
   return (
     <span 
       className={cn("font-bold inline-flex items-center justify-center", className)}
-      style={{ fontSize: `${size}px`, lineHeight: 1 }}
-      {...(props as any)}
+      style={{ 
+        fontSize: `${size}px`, 
+        lineHeight: 1,
+        ...(props.style || {})
+      }}
+      {...props}
     >
       ₹
     </span>

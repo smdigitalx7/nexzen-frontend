@@ -41,6 +41,8 @@ const checkEnvFile = () => {
     "VITE_LOGO_BRAND",
     "VITE_BG_LOGIN",
     "VITE_BRAND_NAME",
+    "VITE_SCHOOL_ICON_COLOR",
+    "VITE_COLLEGE_ICON_COLOR",
   ];
 
   const missingVars = [];

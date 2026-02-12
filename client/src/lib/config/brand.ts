@@ -97,6 +97,20 @@ export const brandConfig = {
    * Default: true (if not set or set to 'true')
    */
   loginShowTwoLogos: import.meta.env.VITE_BRAND_LOGIN_SHOW_TWO_LOGOS !== 'false',
+
+  /**
+   * School sidebar icon color
+   * Environment variable: VITE_SCHOOL_ICON_COLOR
+   * Default: #f37028
+   */
+  schoolIconColor: import.meta.env.VITE_SCHOOL_ICON_COLOR || '#f37028',
+
+  /**
+   * College sidebar icon color
+   * Environment variable: VITE_COLLEGE_ICON_COLOR
+   * Default: #fe0000
+   */
+  collegeIconColor: import.meta.env.VITE_COLLEGE_ICON_COLOR || '#fe0000',
 } as const;
 
 /**
@@ -185,6 +199,16 @@ export const brand = {
    * Check if login page should show two logos
    */
   shouldShowTwoLogos: () => brandConfig.loginShowTwoLogos,
+
+  /**
+   * Get school sidebar icon color
+   */
+  getSchoolIconColor: () => brandConfig.schoolIconColor,
+
+  /**
+   * Get college sidebar icon color
+   */
+  getCollegeIconColor: () => brandConfig.collegeIconColor,
 };
 
 export default brandConfig;

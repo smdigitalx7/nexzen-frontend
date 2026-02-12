@@ -10,7 +10,7 @@ export interface CollegeEnrollmentsListParams {
   class_id: number;
   group_id: number;
   page?: number;
-  pageSize?: number;
+  page_size?: number;
   course_id?: number;
   /** Full-text search. Optional. */
   search?: string | null;
@@ -47,10 +47,10 @@ export const CollegeEnrollmentsService = {
   },
 
   // GET /api/v1/college/student-enrollments/promotion-eligibility
-  getPromotionEligibility(params?: { search?: string | null; page?: number; pageSize?: number }): Promise<import("../types/promotion").CollegePromotionEligibilityResponse> {
+  getPromotionEligibility(params?: { search?: string | null; page?: number; page_size?: number }): Promise<import("../types/promotion").CollegePromotionEligibilityResponse> {
     const qs = new URLSearchParams();
     if (params?.page != null) qs.append("page", String(params.page));
-    if (params?.pageSize != null) qs.append("pageSize", String(params.pageSize));
+    if (params?.page_size != null) qs.append("page_size", String(params.page_size));
     if (params?.search != null && params.search.trim() !== "") qs.append("search", params.search.trim());
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return Api.get<import("../types/promotion").CollegePromotionEligibilityResponse>(`/college/student-enrollments/promotion-eligibility${suffix}`);

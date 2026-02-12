@@ -18,9 +18,9 @@ import { useSchoolEnrollmentsList } from "@/features/school/hooks/use-school-enr
 import {
   useSchoolClasses,
   useSchoolSections,
-  useSchoolSubjects,
   useSchoolExams, // Fetches exams
 } from "@/features/school/hooks/use-school-dropdowns";
+import { useSchoolClass } from "@/features/school/hooks/use-school-class";
 import { useBulkCreateMultipleStudentsExamMarks } from "@/features/school/hooks/use-school-exam-marks";
 import type {
   CreateBulkMultipleStudentsRequest,
@@ -55,6 +55,9 @@ const AddMarksByClassDialog = ({
   const [marksData, setMarksData] = useState<Record<number, StudentMarksData>>(
     {}
   );
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(50);
 
   const queryClient = useQueryClient();
 
@@ -66,6 +69,7 @@ const AddMarksByClassDialog = ({
       setSelectedExam(null);
       setExamName("");
       setMarksData({});
+      setPage(1);
     }
   }, [isOpen]);
 
@@ -73,8 +77,14 @@ const AddMarksByClassDialog = ({
   useEffect(() => {
     if (selectedClass) {
       setMarksData({});
+      setPage(1);
     }
   }, [selectedClass]);
+
+  // Reset page when section changes
+  useEffect(() => {
+    setPage(1);
+  }, [selectedSection]);
 
   // Fetch dropdown data
   const { data: classesData, isLoading: classesLoading } = useSchoolClasses();
@@ -90,8 +100,8 @@ const AddMarksByClassDialog = ({
     class_id: selectedClass || 0,
     section_id: selectedSection || undefined,
     enabled: Boolean(selectedClass),
-    page: 1,
-    page_size: 1000, // Get all students
+    page,
+    page_size: pageSize,
   });
 
   // Explicitly refetch enrollments whenever class_id or section_id changes
@@ -101,18 +111,17 @@ const AddMarksByClassDialog = ({
         queryKey: schoolKeys.enrollments.list({
           class_id: selectedClass,
           section_id: selectedSection || undefined,
-          page: 1,
-          page_size: 1000,
+          page,
+          page_size: pageSize,
         } as Record<string, unknown>),
       });
       void refetchEnrollments();
     }
-  }, [selectedClass, selectedSection, queryClient, refetchEnrollments]);
+  }, [selectedClass, selectedSection, page, pageSize, queryClient, refetchEnrollments]);
 
-  // Fetch subjects for the class
-  const { data: subjectsData } = useSchoolSubjects(selectedClass || 0, {
-    enabled: Boolean(selectedClass),
-  });
+  // Fetch class details to get full subjects list
+  const { classData } = useSchoolClass(selectedClass);
+  const subjectsFromClass = classData?.subjects || [];
 
   // Set exam name when exam is selected
   useEffect(() => {
@@ -131,7 +140,7 @@ const AddMarksByClassDialog = ({
   // Initialize marks data when students/subjects change (flat enrollments from API)
   const enrollmentsList = enrollmentsData?.enrollments ?? [];
   useEffect(() => {
-    if (!enrollmentsList.length || !subjectsData?.items) {
+    if (!enrollmentsList.length || !subjectsFromClass.length) {
       return;
     }
 
@@ -146,7 +155,7 @@ const AddMarksByClassDialog = ({
         > = existingData?.marks ? { ...existingData.marks } : {};
 
         // Initialize marks for all subjects
-        subjectsData.items.forEach((subject) => {
+        subjectsFromClass.forEach((subject: { subject_id: number; subject_name: string }) => {
           if (!marks[subject.subject_id]) {
             marks[subject.subject_id] = {
               marks_obtained: 0,
@@ -158,7 +167,7 @@ const AddMarksByClassDialog = ({
         // Remove marks for subjects that are no longer in the class
         Object.keys(marks).forEach((subjectIdStr) => {
           const subjectId = Number(subjectIdStr);
-          if (!subjectsData.items.some((s) => s.subject_id === subjectId)) {
+          if (!subjectsFromClass.some((s: { subject_id: number; subject_name: string }) => s.subject_id === subjectId)) {
             delete marks[subjectId];
           }
         });
@@ -174,7 +183,7 @@ const AddMarksByClassDialog = ({
 
       return newMarksData;
     });
-  }, [enrollmentsList, subjectsData?.items]);
+  }, [enrollmentsList, subjectsFromClass]);
 
   // Memoized students list (flat enrollments from API)
   const students = useMemo(() => {
@@ -191,11 +200,11 @@ const AddMarksByClassDialog = ({
 
   // Memoized subjects list
   const subjects = useMemo(() => {
-    if (!subjectsData?.items) return [];
-    return subjectsData.items.sort((a, b) =>
+    if (!subjectsFromClass.length) return [];
+    return [...subjectsFromClass].sort((a, b) =>
       a.subject_name.localeCompare(b.subject_name)
     );
-  }, [subjectsData?.items]);
+  }, [subjectsFromClass]);
 
   // Handle marks change
   const handleMarksChange = useCallback(
@@ -227,6 +236,9 @@ const AddMarksByClassDialog = ({
     },
     []
   );
+
+  const totalPages = enrollmentsData?.total_pages || 1;
+  const totalCount = enrollmentsData?.total_count || 0;
 
   const bulkCreateMutation = useBulkCreateMultipleStudentsExamMarks();
 
@@ -445,6 +457,7 @@ const AddMarksByClassDialog = ({
             !enrollmentsLoading &&
             students.length > 0 &&
             subjects.length > 0 && (
+              <>
               <div className="flex-1 overflow-auto border rounded-lg mt-4 bg-white relative">
                  {/* Table Header */}
                  <div className="sticky top-0 bg-slate-50 border-b z-20 flex min-w-max">
@@ -508,6 +521,38 @@ const AddMarksByClassDialog = ({
                    })}
                  </div>
               </div>
+
+               {/* Pagination Controls */}
+               <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200 mt-auto rounded-b-lg">
+                 <div className="flex items-center gap-2">
+                   <p className="text-sm text-slate-600">
+                     Showing <span className="font-medium">{enrollmentsList.length}</span> students
+                     {totalCount > 0 ? ` of ${totalCount}` : ""}
+                   </p>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setPage((p) => Math.max(1, p - 1))}
+                     disabled={page === 1 || enrollmentsLoading}
+                   >
+                     Previous
+                   </Button>
+                   <div className="flex items-center gap-1 min-w-[5rem] justify-center">
+                     <span className="text-sm font-medium">Page {page} of {totalPages}</span>
+                   </div>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setPage((p) => p + 1)}
+                     disabled={page >= totalPages || enrollmentsLoading}
+                   >
+                     Next
+                   </Button>
+                 </div>
+               </div>
+               </>
             )}
         </div>
       </DialogContent>

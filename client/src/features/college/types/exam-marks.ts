@@ -85,7 +85,7 @@ export interface CollegeExamMarksListParams {
   exam_id: number; // Required
   subject_id: number; // Required
   page?: number;
-  pageSize?: number;
+  page_size?: number;
 }
 
 // Multiple subjects operations

@@ -142,6 +142,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
   // Pagination state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [page_size] = useState(50); // For enrollments
 
   // API hooks
   const { data: groupsData } = useCollegeGroups(selectedClass || undefined);
@@ -162,7 +163,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
       class_id: selectedClass,
       group_id: selectedGroup,
       page: 1,
-      pageSize: 50, // ✅ CRITICAL FIX: Reduced from 100 to 50 for optimal performance
+      page_size: 50, // ✅ CRITICAL FIX: Reduced from 100 to 50 for optimal performance
     };
   }, [selectedClass, selectedGroup]);
 
@@ -211,7 +212,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
       exam_id: selectedExam,
       subject_id: selectedSubject,
       page,
-      pageSize,
+      page_size: pageSize,
     };
 
     return query;

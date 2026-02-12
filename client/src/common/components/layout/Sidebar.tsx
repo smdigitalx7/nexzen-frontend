@@ -272,9 +272,9 @@ const Sidebar = () => {
   const themeColors = useMemo(() => {
     const isSchool = currentBranch?.branch_type === "SCHOOL";
     
-    // Get colors from environment variables with defaults
-    const schoolIconColor = import.meta.env.VITE_SCHOOL_ICON_COLOR || "#f37028";
-    const collegeIconColor = import.meta.env.VITE_COLLEGE_ICON_COLOR || "#fe0000";
+    // Get colors from centralized brand configuration
+    const schoolIconColor = brand.getSchoolIconColor();
+    const collegeIconColor = brand.getCollegeIconColor();
 
     const baseTheme = {
       active: "bg-blue-50 text-blue-700 font-medium",
@@ -326,7 +326,7 @@ const Sidebar = () => {
             className="h-4 w-4 shrink-0 transition-opacity duration-200"
             style={{ 
               color: themeColors.iconColor,
-              opacity: isActive ? 1.5 : 0.5 
+              opacity: isActive ? 1 : 0.5 
             }}
           />
           {sidebarOpen && (
