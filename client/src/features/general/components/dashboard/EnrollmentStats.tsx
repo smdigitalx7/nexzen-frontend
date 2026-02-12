@@ -42,21 +42,17 @@ export const EnrollmentStats = ({ data }: EnrollmentStatsProps) => {
         </div>
         <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400">{confirmed}</span>
       </div>
-      {pending > 0 && (
-        <div className={`${rowClass} border-amber-200/60 bg-amber-500/5 dark:border-amber-800/40 dark:bg-amber-500/10`}>
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <span className="font-medium text-foreground">Pending</span>
-          </div>
-          <span className="font-bold tabular-nums text-amber-700 dark:text-amber-400">{pending}</span>
+      <div className={`${rowClass} border-amber-200/60 bg-amber-500/5 dark:border-amber-800/40 dark:bg-amber-500/10`}>
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <span className="font-medium text-foreground">Pending</span>
         </div>
-      )}
-      {cancelled > 0 && (
-        <div className={`${rowClass} border-red-200/60 bg-red-500/5 dark:border-red-800/40 dark:bg-red-500/10`}>
-          <span className="font-medium text-foreground">Cancelled</span>
-          <span className="font-bold tabular-nums text-red-700 dark:text-red-400">{cancelled}</span>
-        </div>
-      )}
+        <span className="font-bold tabular-nums text-amber-700 dark:text-amber-400">{pending}</span>
+      </div>
+      <div className={`${rowClass} border-red-200/60 bg-red-500/5 dark:border-red-800/40 dark:bg-red-500/10`}>
+        <span className="font-medium text-foreground">Cancelled</span>
+        <span className="font-bold tabular-nums text-red-700 dark:text-red-400">{cancelled}</span>
+      </div>
     </div>
   );
 

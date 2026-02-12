@@ -33,7 +33,7 @@ export const AcademicSummary = ({ data }: AcademicSummaryProps) => {
               Academic Performance
             </h3>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">Exams and pass rates</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Exams overview</p>
         </div>
         <div className="p-6 space-y-4">
           <div className="flex items-center justify-between rounded-xl border border-violet-200/60 bg-violet-500/5 p-4 dark:border-violet-800/40 dark:bg-violet-500/10">
@@ -57,17 +57,7 @@ export const AcademicSummary = ({ data }: AcademicSummaryProps) => {
               </p>
             </div>
           </div>
-          <div className="flex items-center justify-between rounded-xl border border-indigo-200/60 bg-indigo-500/5 p-4 dark:border-indigo-800/40 dark:bg-indigo-500/10">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="h-5 w-5 text-indigo-600" />
-              <div>
-                <p className="text-sm text-muted-foreground">Average Pass Rate</p>
-                <p className="text-xl font-bold text-foreground mt-0.5">
-                  {parseFloat(data.academic.average_pass_rate).toFixed(1)}%
-                </p>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
 
