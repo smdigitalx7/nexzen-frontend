@@ -55,10 +55,23 @@ export const TeachersTab = () => {
   const [subjectsDropdownOpen, setSubjectsDropdownOpen] = useState(false);
 
   // Fetch teachers/employees when dropdown is opened OR when Teacher Assignments tab is active (so export has employee code & phone)
-  const { data: teachersList = [], error, isLoading: isLoadingTeachers } = useTeachersByBranch(teachersDropdownOpen);
-  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useEmployeesByBranch(
-    teachersDropdownOpen || activeSubTab === "assignments"
+  const { data: teachersList = [], error, isLoading: isLoadingTeachers } = useTeachersByBranch(teachersDropdownOpen || activeSubTab === "assignments");
+  const { data: allEmployeesData, isLoading: isLoadingEmployees } = useEmployeesByBranch(
+    teachersDropdownOpen || activeSubTab === "assignments",
+    1,
+    200 // Increased page size to get more employees for lookup
   );
+
+  // ✅ FIX: Handle paginated employee data and direct arrays
+  const allEmployees = useMemo(() => {
+    if (!allEmployeesData) return [];
+    const raw: any = allEmployeesData;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === "object" && Array.isArray(raw.data)) {
+      return raw.data;
+    }
+    return [];
+  }, [allEmployeesData]);
 
   // Create a map of full employee details by employee_id for quick lookup
   const teacherDetailsMap = useMemo(() => {
@@ -94,7 +107,7 @@ export const TeachersTab = () => {
       const timer = setTimeout(() => {
         cleanupDialogState();
       }, 100);
-      
+
       const longTimer = setTimeout(() => {
         cleanupDialogState();
       }, 500);
@@ -257,8 +270,8 @@ export const TeachersTab = () => {
           <div className="space-y-2">
             <Label htmlFor="teacher">Teacher *</Label>
             <ServerCombobox
-              items={Array.isArray(allEmployees) ? allEmployees : []}
-              isLoading={isLoadingEmployees}
+              items={Array.isArray(teachersList) ? teachersList : []}
+              isLoading={isLoadingTeachers}
               value={selectedTeacherId}
               onSelect={setSelectedTeacherId}
               labelKey="employee_name"
@@ -278,8 +291,8 @@ export const TeachersTab = () => {
               isLoading={isLoadingClasses}
               value={selectedClassId}
               onSelect={(val) => {
-                 setSelectedClassId(val);
-                 setSelectedSectionId("");
+                setSelectedClassId(val);
+                setSelectedSectionId("");
               }}
               labelKey="class_name"
               valueKey="class_id"

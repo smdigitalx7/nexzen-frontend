@@ -14,7 +14,7 @@ import {
   useSchoolClasses,
   useSchoolSectionsByClass,
 } from "@/features/school/hooks";
-import { useEmployeesByBranch } from "@/features/general/hooks";
+import { useEmployeesByBranch, useTeachersByBranch } from "@/features/general/hooks";
 import { useToast } from "@/common/hooks/use-toast";
 import { useCanViewUIComponent } from "@/core/permissions";
 import { useEffect, useCallback } from "react";
@@ -63,8 +63,22 @@ export const ClassTeacherTab = () => {
 
   // ✅ OPTIMIZATION: Only fetch employees when teachers dropdown is opened
   // User requirement: Don't call Teachers API - only call when clicking dropdowns
-  const { data: allEmployees = [] } =
-    useEmployeesByBranch(teachersDropdownOpen);
+  const { data: teachersList = [], isLoading: isLoadingTeachers } =
+    useTeachersByBranch(teachersDropdownOpen);
+
+  const { data: allEmployeesData } =
+    useEmployeesByBranch(teachersDropdownOpen, 1, 200);
+
+  // ✅ FIX: Handle paginated employee data and direct arrays
+  const allEmployees = useMemo(() => {
+    if (!allEmployeesData) return [];
+    const raw: any = allEmployeesData;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === "object" && Array.isArray(raw.data)) {
+      return raw.data;
+    }
+    return [];
+  }, [allEmployeesData]);
 
   // ✅ OPTIMIZATION: Only fetch classes when classes dropdown is opened
   // User requirement: Don't call Classes API - only call when clicking dropdowns
@@ -83,7 +97,7 @@ export const ClassTeacherTab = () => {
       const timer = setTimeout(() => {
         cleanupDialogState();
       }, 100);
-      
+
       const longTimer = setTimeout(() => {
         cleanupDialogState();
       }, 500);
@@ -186,7 +200,7 @@ export const ClassTeacherTab = () => {
   const actions: ActionConfig<ClassTeacherData>[] = useMemo(
     () => {
       const acts: ActionConfig<ClassTeacherData>[] = [];
-      
+
       if (canDeleteClassTeacher) {
         acts.push({
           id: "delete",
@@ -240,7 +254,8 @@ export const ClassTeacherTab = () => {
           <div className="space-y-2">
             <Label htmlFor="teacher">Teacher *</Label>
             <ServerCombobox
-              items={Array.isArray(allEmployees) ? allEmployees : []}
+              items={Array.isArray(teachersList) ? teachersList : []}
+              isLoading={isLoadingTeachers}
               value={selectedTeacherId}
               onSelect={setSelectedTeacherId}
               onDropdownOpen={setTeachersDropdownOpen}
@@ -284,8 +299,8 @@ export const ClassTeacherTab = () => {
                 !selectedClassId
                   ? "Select class first"
                   : sections.length === 0
-                  ? "No sections available"
-                  : "Select section"
+                    ? "No sections available"
+                    : "Select section"
               }
               searchPlaceholder="Search section..."
               emptyText="No sections found"

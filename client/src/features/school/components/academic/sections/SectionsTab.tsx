@@ -20,15 +20,14 @@ import type { SchoolSectionRead, SchoolClassRead } from "@/features/school/types
 import { useCanViewUIComponent } from "@/core/permissions";
 
 // Initial form state
-const initialSectionForm = { 
-  section_name: "", 
-  current_enrollment: 0,
+const initialSectionForm = {
+  section_name: "",
   is_active: true
 };
 
 const SectionsTabComponent = () => {
   const { data: classes = [], isLoading: isLoadingClasses } = useSchoolClasses();
-  
+
   // State management
   const [selectedClassId, setSelectedClassId] = useState<number | undefined>(undefined);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -53,10 +52,6 @@ const SectionsTabComponent = () => {
       return false;
     }
 
-    if (form.current_enrollment < 0) {
-      return false;
-    }
-
     return true;
   }, []);
 
@@ -67,10 +62,10 @@ const SectionsTabComponent = () => {
     try {
       await createSection.mutateAsync({
         section_name: newSection.section_name.trim(),
-        current_enrollment: Number(newSection.current_enrollment) || 0,
+        current_enrollment: 0,
         is_active: newSection.is_active,
       });
-      
+
       setNewSection(initialSectionForm);
       setIsAddOpen(false);
       // Toast handled by mutation hook
@@ -85,10 +80,9 @@ const SectionsTabComponent = () => {
     try {
       await updateSection.mutateAsync({
         section_name: editSection.section_name.trim(),
-        current_enrollment: Number(editSection.current_enrollment) || 0,
         is_active: editSection.is_active,
       });
-      
+
       setIsEditOpen(false);
       setSelectedSection(null);
       // Toast handled by mutation hook
@@ -117,7 +111,6 @@ const SectionsTabComponent = () => {
     setSelectedSection(row);
     setEditSection({
       section_name: row.section_name,
-      current_enrollment: row.current_enrollment,
       is_active: !!row.is_active,
     });
     setIsEditOpen(true);
@@ -152,7 +145,7 @@ const SectionsTabComponent = () => {
     } else {
       const classId = parseInt(value);
       if (!isNaN(classId)) {
-    setSelectedClassId(classId);
+        setSelectedClassId(classId);
       }
     }
   }, []);
@@ -196,11 +189,11 @@ const SectionsTabComponent = () => {
   }, []);
 
   // Memoized form update handlers
-  const updateNewSection = useCallback((field: keyof typeof initialSectionForm, value: string | number | boolean) => {
+  const updateNewSection = useCallback((field: keyof typeof initialSectionForm, value: string | boolean) => {
     setNewSection(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  const updateEditSection = useCallback((field: keyof typeof initialSectionForm, value: string | number | boolean) => {
+  const updateEditSection = useCallback((field: keyof typeof initialSectionForm, value: string | boolean) => {
     setEditSection(prev => ({ ...prev, [field]: value }));
   }, []);
 
@@ -230,19 +223,19 @@ const SectionsTabComponent = () => {
         </div>
       ) : (
         <DataTable
-            key={`sections-${selectedClassId}-${dataUpdatedAt ?? Date.now()}`}
-            data={sections}
-            columns={columns}
-            title="Sections"
-            searchKey="section_name"
-            searchPlaceholder="Search sections..."
-            export={{ enabled: true, filename: "sections" }}
-            onAdd={() => setIsAddOpen(true)}
-            addButtonText="Add Section"
-            actions={actions}
-            actionsHeader="Actions"
-            loading={isLoadingSections}
-          />
+          key={`sections-${selectedClassId}-${dataUpdatedAt ?? Date.now()}`}
+          data={sections}
+          columns={columns}
+          title="Sections"
+          searchKey="section_name"
+          searchPlaceholder="Search sections..."
+          export={{ enabled: true, filename: "sections" }}
+          onAdd={() => setIsAddOpen(true)}
+          addButtonText="Add Section"
+          actions={actions}
+          actionsHeader="Actions"
+          loading={isLoadingSections}
+        />
       )}
 
       <FormDialog
@@ -259,28 +252,18 @@ const SectionsTabComponent = () => {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="section_name">Section Name</Label>
-            <Input 
-              id="section_name" 
-              value={newSection.section_name} 
-              onChange={(e) => updateNewSection('section_name', e.target.value)} 
-              placeholder="Enter section name" 
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="current_enrollment">Current Enrollment</Label>
-            <Input 
-              id="current_enrollment" 
-              type="number" 
-              value={newSection.current_enrollment} 
-              onChange={(e) => updateNewSection('current_enrollment', Number(e.target.value))} 
-              placeholder="0" 
+            <Input
+              id="section_name"
+              value={newSection.section_name}
+              onChange={(e) => updateNewSection('section_name', e.target.value)}
+              placeholder="Enter section name"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Switch 
-              id="is_active" 
-              checked={Boolean(newSection.is_active)} 
-              onCheckedChange={(checked) => updateNewSection('is_active', checked)} 
+            <Switch
+              id="is_active"
+              checked={Boolean(newSection.is_active)}
+              onCheckedChange={(checked) => updateNewSection('is_active', checked)}
             />
             <Label htmlFor="is_active">Active</Label>
           </div>
@@ -301,28 +284,18 @@ const SectionsTabComponent = () => {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="edit_section_name">Section Name</Label>
-            <Input 
-              id="edit_section_name" 
-              value={editSection.section_name} 
-              onChange={(e) => updateEditSection('section_name', e.target.value)} 
-              placeholder="Enter section name" 
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit_current_enrollment">Current Enrollment</Label>
-            <Input 
-              id="edit_current_enrollment" 
-              type="number" 
-              value={editSection.current_enrollment} 
-              onChange={(e) => updateEditSection('current_enrollment', Number(e.target.value))} 
-              placeholder="0" 
+            <Input
+              id="edit_section_name"
+              value={editSection.section_name}
+              onChange={(e) => updateEditSection('section_name', e.target.value)}
+              placeholder="Enter section name"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Switch 
-              id="edit_is_active" 
-              checked={Boolean(editSection.is_active)} 
-              onCheckedChange={(checked) => updateEditSection('is_active', checked)} 
+            <Switch
+              id="edit_is_active"
+              checked={Boolean(editSection.is_active)}
+              onCheckedChange={(checked) => updateEditSection('is_active', checked)}
             />
             <Label htmlFor="edit_is_active">Active</Label>
           </div>
