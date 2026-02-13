@@ -38,7 +38,7 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
       icon: Clock,
       color: "yellow" as const,
       description: "Awaiting approval",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -47,7 +47,7 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
       icon: CheckCircle,
       color: "green" as const,
       description: "Successfully approved",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -56,7 +56,7 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
       icon: CheckCircle,
       color: "emerald" as const,
       description: "Fully repaid",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -65,7 +65,7 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
       icon: IndianRupeeIcon,
       color: "indigo" as const,
       description: "All advance amounts",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -74,7 +74,7 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
       icon: TrendingUp,
       color: "teal" as const,
       description: "Amount repaid",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
   ];

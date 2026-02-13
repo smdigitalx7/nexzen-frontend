@@ -43,7 +43,7 @@ export const SchoolTuitionFeeBalanceStatsCards: React.FC<SchoolTuitionFeeBalance
       icon: IndianRupeeIcon,
       color: "green" as const,
       description: "Before concessions",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -52,7 +52,7 @@ export const SchoolTuitionFeeBalanceStatsCards: React.FC<SchoolTuitionFeeBalance
       icon: Percent,
       color: "emerald" as const,
       description: "Total concessions given",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -61,7 +61,7 @@ export const SchoolTuitionFeeBalanceStatsCards: React.FC<SchoolTuitionFeeBalance
       icon: Calculator,
       color: "indigo" as const,
       description: "After concessions",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -88,7 +88,7 @@ export const SchoolTuitionFeeBalanceStatsCards: React.FC<SchoolTuitionFeeBalance
       icon: BookOpen,
       color: "purple" as const,
       description: "Total book fees",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -97,7 +97,7 @@ export const SchoolTuitionFeeBalanceStatsCards: React.FC<SchoolTuitionFeeBalance
       icon: CreditCard,
       color: "cyan" as const,
       description: "Book fees collected",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -106,7 +106,7 @@ export const SchoolTuitionFeeBalanceStatsCards: React.FC<SchoolTuitionFeeBalance
       icon: Clock,
       color: "yellow" as const,
       description: "Pending book payments",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -115,7 +115,7 @@ export const SchoolTuitionFeeBalanceStatsCards: React.FC<SchoolTuitionFeeBalance
       icon: TrendingUp,
       color: (stats.average_payment_completion >= 80 ? "green" : stats.average_payment_completion >= 60 ? "yellow" : "red"),
       description: "Average completion rate",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
   ];

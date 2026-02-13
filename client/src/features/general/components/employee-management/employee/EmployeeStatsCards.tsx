@@ -43,11 +43,6 @@ export const EmployeeStatsCards: React.FC<EmployeeStatsCardsProps> = ({
       description: "Currently active",
       variant: "elevated" as const,
       size: "sm" as const,
-      // trend: {
-      //   value: stats.total_employees > 0 ? Math.round((stats.active_employees / stats.total_employees) * 100) : 0,
-      //   label: "of total employees",
-      //   isPositive: true,
-      // },
     },
     {
       title: "Teaching Staff",
@@ -55,7 +50,7 @@ export const EmployeeStatsCards: React.FC<EmployeeStatsCardsProps> = ({
       icon: GraduationCap,
       color: "purple" as const,
       description: "Teachers and faculty",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -64,7 +59,7 @@ export const EmployeeStatsCards: React.FC<EmployeeStatsCardsProps> = ({
       icon: Briefcase,
       color: "indigo" as const,
       description: "Administrative staff",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -73,7 +68,7 @@ export const EmployeeStatsCards: React.FC<EmployeeStatsCardsProps> = ({
       icon: Building2,
       color: "orange" as const,
       description: "Office personnel",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -82,47 +77,9 @@ export const EmployeeStatsCards: React.FC<EmployeeStatsCardsProps> = ({
       icon: Car,
       color: "cyan" as const,
       description: "Transport drivers",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
-    },
-    // {
-    //   title: "This Month",
-    //   value: stats.employees_joined_this_month,
-    //   icon: Calendar,
-    //   color: "emerald" as const,
-    //   description: "New employees joined",
-    //   variant: "bordered" as const,
-    //   size: "md" as const,
-    //   trend: {
-    //     value: stats.employees_joined_this_year > 0 ? 
-    //       Math.round((stats.employees_joined_this_month / stats.employees_joined_this_year) * 100) : 0,
-    //     label: "of yearly total",
-    //     isPositive: true,
-    //   },
-    // },
-    // {
-    //   title: "This Year",
-    //   value: stats.employees_joined_this_year,
-    //   icon: TrendingUp,
-    //   color: "teal" as const,
-    //   description: "Total joined this year",
-    //   variant: "bordered" as const,
-    //   size: "md" as const,
-    // },
-    // {
-    //   title: "Total Salary Expense",
-    //   value: `₹${(stats.total_salary_expense / 100000).toFixed(1)}L`,
-    //   icon: IndianRupeeIcon,
-    //   color: "rose" as const,
-    //   description: "Monthly salary budget",
-    //   variant: "elevated" as const,
-    //   size: "lg" as const,
-    //   trend: {
-    //     value: stats.total_employees > 0 ? Math.round(stats.total_salary_expense / stats.total_employees) : 0,
-    //     label: "avg per employee",
-    //     isPositive: false,
-    //   },
-    // },
+    }
   ];
 
   return (

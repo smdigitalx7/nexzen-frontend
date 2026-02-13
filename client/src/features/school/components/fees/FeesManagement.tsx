@@ -91,8 +91,6 @@ const FeesManagementComponent = () => {
   const [collectFeeSearchResults, setCollectFeeSearchResults] = useState<any[]>([]);
   const [collectFeeSearchQuery, setCollectFeeSearchQuery] = useState("");
 
-
-
   // ✅ RESET: Reset search state when branch changes or tab changes
   useEffect(() => {
     setCollectFeeSearchResults([]);

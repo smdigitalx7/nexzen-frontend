@@ -58,14 +58,8 @@ export const UserStatsCards: React.FC<UserStatsCardsProps> = ({
       icon: Calendar,
       color: "orange" as const,
       description: "New users created",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "md" as const,
-      // trend: {
-      //   value: stats.users_created_this_year > 0 ? 
-      //     Math.round((stats.users_created_this_month / stats.users_created_this_year) * 100) : 0,
-      //   label: "of yearly total",
-      //   isPositive: true,
-      // },
     },
     {
       title: "This Year",
@@ -73,7 +67,7 @@ export const UserStatsCards: React.FC<UserStatsCardsProps> = ({
       icon: TrendingUp,
       color: "emerald" as const,
       description: "Total created this year",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "md" as const,
     },
   ];

@@ -42,7 +42,7 @@ export const SchoolTransportFeeBalanceStatsCards: React.FC<SchoolTransportFeeBal
       icon: IndianRupeeIcon,
       color: "green" as const,
       description: "Before concessions",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -51,7 +51,7 @@ export const SchoolTransportFeeBalanceStatsCards: React.FC<SchoolTransportFeeBal
       icon: Percent,
       color: "emerald" as const,
       description: "Total concessions given",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -60,7 +60,7 @@ export const SchoolTransportFeeBalanceStatsCards: React.FC<SchoolTransportFeeBal
       icon: Calculator,
       color: "indigo" as const,
       description: "After concessions",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -87,7 +87,7 @@ export const SchoolTransportFeeBalanceStatsCards: React.FC<SchoolTransportFeeBal
       icon: Clock,
       color: "orange" as const,
       description: "Term 1 pending",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -96,7 +96,7 @@ export const SchoolTransportFeeBalanceStatsCards: React.FC<SchoolTransportFeeBal
       icon: CheckCircle,
       color: "green" as const,
       description: "Term 1 completed",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -105,7 +105,7 @@ export const SchoolTransportFeeBalanceStatsCards: React.FC<SchoolTransportFeeBal
       icon: Clock,
       color: "orange" as const,
       description: "Term 2 pending",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -114,7 +114,7 @@ export const SchoolTransportFeeBalanceStatsCards: React.FC<SchoolTransportFeeBal
       icon: TrendingUp,
       color: (stats.average_payment_completion >= 80 ? "green" : stats.average_payment_completion >= 60 ? "yellow" : "red"),
       description: "Average completion rate",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
   ];

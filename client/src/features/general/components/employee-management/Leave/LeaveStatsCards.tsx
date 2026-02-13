@@ -38,14 +38,8 @@ export const LeaveStatsCards: React.FC<LeaveStatsCardsProps> = ({
       icon: Clock,
       color: "yellow" as const,
       description: "Awaiting approval",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
-      // trend: {
-      //   value: stats.total_leave_requests > 0 ? 
-      //     Math.round((stats.pending_requests / stats.total_leave_requests) * 100) : 0,
-      //   label: "of total requests",
-      //   isPositive: false,
-      // },
     },
     {
       title: "Approved Requests",
@@ -53,14 +47,8 @@ export const LeaveStatsCards: React.FC<LeaveStatsCardsProps> = ({
       icon: CheckCircle,
       color: "green" as const,
       description: "Successfully approved",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
-      // trend: {
-      //   value: stats.total_leave_requests > 0 ? 
-      //     Math.round((stats.approved_requests / stats.total_leave_requests) * 100) : 0,
-      //   label: "approval rate",
-      //   isPositive: true,
-      // },
     },
     {
       title: "Rejected Requests",
@@ -68,7 +56,7 @@ export const LeaveStatsCards: React.FC<LeaveStatsCardsProps> = ({
       icon: XCircle,
       color: "red" as const,
       description: "Not approved",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -79,12 +67,6 @@ export const LeaveStatsCards: React.FC<LeaveStatsCardsProps> = ({
       description: "Leaves this month",
       variant: "elevated" as const,
       size: "sm" as const,
-      // trend: {
-      //   value: stats.leaves_this_year > 0 ? 
-      //     Math.round((stats.leaves_this_month / stats.leaves_this_year) * 100) : 0,
-      //   label: "of yearly total",
-      //   isPositive: true,
-      // },
     },
     {
       title: "This Year",
@@ -92,7 +74,7 @@ export const LeaveStatsCards: React.FC<LeaveStatsCardsProps> = ({
       icon: AlertTriangle,
       color: "teal" as const,
       description: "Total leaves this year",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
   ];

@@ -38,7 +38,7 @@ export const AcademicOverviewCards = ({
       icon: GraduationCap,
       color: "green" as const,
       description: "Available subjects",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -47,7 +47,7 @@ export const AcademicOverviewCards = ({
       icon: Layers,
       color: "purple" as const,
       description: "Available sections",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -65,7 +65,7 @@ export const AcademicOverviewCards = ({
       icon: FileText,
       color: "yellow" as const,
       description: "Total tests",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
   ];

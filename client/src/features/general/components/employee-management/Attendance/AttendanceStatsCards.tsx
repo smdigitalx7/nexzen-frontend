@@ -24,15 +24,6 @@ export const AttendanceStatsCards: React.FC<AttendanceStatsCardsProps> = ({
   className,
 }) => {
   const statsCards = [
-    // {
-    //   title: "Total Records",
-    //   value: stats.total_attendance_records,
-    //   icon: Users,
-    //   color: "blue" as const,
-    //   description: "All attendance records",
-    //   variant: "elevated" as const,
-    //   size: "md" as const,
-    // },
     {
       title: "Current Month",
       value: stats.current_month_records,
@@ -48,7 +39,7 @@ export const AttendanceStatsCards: React.FC<AttendanceStatsCardsProps> = ({
       icon: TrendingUp,
       color: (stats.average_attendance_rate >= 90 ? "green" : stats.average_attendance_rate >= 80 ? "yellow" : "red"),
       description: "Overall attendance rate",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
       progressValue: stats.average_attendance_rate,
     },
@@ -58,7 +49,7 @@ export const AttendanceStatsCards: React.FC<AttendanceStatsCardsProps> = ({
       icon: UserX,
       color: "red" as const,
       description: "Total absent days",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
