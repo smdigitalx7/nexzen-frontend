@@ -18,7 +18,7 @@ import {
   PopoverTrigger,
 } from "@/common/components/ui/popover";
 import { useMemo, useState, memo, useCallback } from "react";
-import { Save, Calendar as CalendarIcon, Info } from "lucide-react";
+import { Save, Calendar as CalendarIcon, Info, Banknote, Check } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/common/utils";
 import { HelpTooltip } from "@/common/components/shared/HelpTooltip";
@@ -1123,40 +1123,108 @@ const ReservationFormComponent = ({
           </div>
 
           {/* Fee Information Section */}
-          <div className="space-y-4 ">
-            <h3 className="text-lg font-semibold border-b pb-2">
-              Application Fee Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="application_fee">
-                  Application Fee <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="application_fee"
-                  type="number"
-                  min="1"
-                  value={form.application_fee}
-                  onChange={(e) =>
-                    setForm({ ...form, application_fee: e.target.value })
-                  }
-                  className={cn(
-                    "w-full mb-5",
-                    (!form.application_fee ||
-                      Number(form.application_fee || 0) <= 0) &&
-                    "border-red-500 focus:ring-red-500"
-                  )}
-                  required
-                  placeholder="Enter application fee amount"
-                />
-                {(!form.application_fee ||
-                  Number(form.application_fee || 0) <= 0) && (
-                    <p className="text-sm text-red-500 mt-1">
-                      Application fee is required and must be greater than 0
-                    </p>
-                  )}
+          <div className="space-y-4 p-6 bg-slate-50/50 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-6">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Banknote className="h-5 w-5 text-primary" />
               </div>
-              <div></div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Application Fee Information
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Specify the registration fee for this student reservation.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="application_fee" className="text-sm font-medium flex items-center gap-1">
+                    Application Fee Amount <span className="text-red-500">*</span>
+                    <HelpTooltip content="Non-refundable fee charged for processing the admission application." />
+                  </Label>
+                  <div className="relative group">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium group-focus-within:text-primary transition-colors">
+                      ₹
+                    </span>
+                    <Input
+                      id="application_fee"
+                      type="number"
+                      min="1"
+                      value={form.application_fee}
+                      onChange={(e) =>
+                        setForm({ ...form, application_fee: e.target.value })
+                      }
+                      className={cn(
+                        "pl-8 h-12 text-lg font-semibold transition-all focus:ring-2",
+                        (!form.application_fee ||
+                          Number(form.application_fee || 0) <= 0)
+                          ? "border-red-500 focus:ring-red-100"
+                          : "border-slate-200 focus:ring-primary/20"
+                      )}
+                      required
+                      placeholder="0.00"
+                    />
+                  </div>
+                  {(!form.application_fee ||
+                    Number(form.application_fee || 0) <= 0) && (
+                      <p className="text-xs text-red-500 font-medium flex items-center gap-1 mt-1">
+                        <Info className="h-3 w-3" />
+                        Fee must be greater than 0 to proceed
+                      </p>
+                    )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                    Quick Amounts
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {[500, 1000].map((amount) => (
+                      <Button
+                        key={amount}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setForm({ ...form, application_fee: amount.toString() })}
+                        className={cn(
+                          "flex-1 h-9 border-slate-200 hover:border-primary hover:bg-primary/5 transition-all",
+                          form.application_fee === amount.toString() && "bg-primary/10 border-primary text-primary font-bold ring-1 ring-primary"
+                        )}
+                      >
+                        {form.application_fee === amount.toString() && (
+                          <Check className="h-3 w-3 mr-1" />
+                        )}
+                        ₹{amount}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-center gap-4 bg-white p-4 rounded-lg border border-slate-100">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1">
+                    <div className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center">
+                      <Info className="w-3 h-3 text-blue-600" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-slate-800">Why collect this fee?</p>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      The application fee covers the administrative cost of processing student records,
+                      conducting entrance assessments, and securing a temporary seat.
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-slate-50">
+                  <p className="text-[10px] text-slate-400 font-medium italic">
+                    * This fee is typically handled separately from the main tuition fees.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

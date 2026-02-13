@@ -1,16 +1,16 @@
 import { ConfirmDialog } from "@/common/components/shared";
 import EmployeeFormDialog from "../employee/EmployeeFormDialog";
-import EmployeeDetailDialog from "../employee/EmployeeDetailDialog";
+import EmployeeDetailSheet from "../employee/EmployeeDetailSheet";
 import EmployeeDeleteDialog from "../employee/EmployeeDeleteDialog";
 import AttendanceFormDialog from "../Attendance/AttendanceFormDialog";
 import AttendanceBulkCreateDialog from "../Attendance/AttendanceBulkCreateDialog";
-import { AttendanceViewDialog } from "../Attendance/AttendanceViewDialog";
+import { AttendanceViewSheet } from "../Attendance/AttendanceViewSheet";
 import LeaveFormDialog from "../Leave/LeaveFormDialog";
-import { LeaveViewDialog } from "../Leave/LeaveViewDialog";
+import { LeaveViewSheet } from "../Leave/LeaveViewSheet";
 import LeaveApproveDialog from "../Leave/LeaveApproveDialog";
 import LeaveRejectDialog from "../Leave/LeaveRejectDialog";
 import AdvanceFormDialog from "../Advance/AdvanceFormDialog";
-import { AdvanceViewDialog } from "../Advance/AdvanceViewDialog";
+import { AdvanceViewSheet } from "../Advance/AdvanceViewSheet";
 import AdvanceStatusDialog from "../Advance/AdvanceStatusDialog";
 import AdvanceAmountDialog from "../Advance/AdvanceAmountDialog";
 import { AdvanceVoucherPrintDialog } from "../Advance/AdvanceVoucherPrintDialog";
@@ -32,7 +32,7 @@ interface EmployeeManagementDialogsProps {
   setEmployeeToDelete: (employee: any) => void;
   newStatus: string;
   setNewStatus: (status: string) => void;
-  
+
   // Attendance dialogs
   showAttendanceForm: boolean;
   setShowAttendanceForm: (show: boolean) => void;
@@ -50,7 +50,7 @@ interface EmployeeManagementDialogsProps {
   setShowAttendanceDeleteDialog: (show: boolean) => void;
   attendanceFormData: any;
   setAttendanceFormData: (data: any) => void;
-  
+
   // Leave dialogs
   showLeaveForm: boolean;
   setShowLeaveForm: (show: boolean) => void;
@@ -75,7 +75,7 @@ interface EmployeeManagementDialogsProps {
   setRejectionReason: (reason: string) => void;
   leaveFormData: any;
   setLeaveFormData: (data: any) => void;
-  
+
   // Advance dialogs
   showAdvanceForm: boolean;
   setShowAdvanceForm: (show: boolean) => void;
@@ -100,10 +100,10 @@ interface EmployeeManagementDialogsProps {
   setAdvanceStatusReason: (reason: string) => void;
   advanceFormData: any;
   setAdvanceFormData: (data: any) => void;
-  
+
   // Data
   employees: any[];
-  
+
   // Handlers
   handleCreateEmployee: (data: any) => void | Promise<void>;
   handleUpdateEmployee: (id: number, data: any) => void | Promise<void>;
@@ -123,7 +123,7 @@ interface EmployeeManagementDialogsProps {
   handleUpdateAttendance: (employeeId: number, month: number, year: number) => void | Promise<void>;
   handleUpdateAttendanceBulk: (data: { total_working_days: number; month: number; year: number }) => void | Promise<void>;
   handleDeleteAttendance: (id: number) => void | Promise<void>;
-  
+
   // Loading states
   createEmployeePending?: boolean;
   updateEmployeePending?: boolean;
@@ -146,7 +146,7 @@ export const EmployeeManagementDialogs = ({
   setEmployeeToDelete,
   newStatus,
   setNewStatus,
-  
+
   // Attendance dialogs
   showAttendanceForm,
   setShowAttendanceForm,
@@ -164,7 +164,7 @@ export const EmployeeManagementDialogs = ({
   setShowAttendanceDeleteDialog,
   attendanceFormData,
   setAttendanceFormData,
-  
+
   // Leave dialogs
   showLeaveForm,
   setShowLeaveForm,
@@ -189,7 +189,7 @@ export const EmployeeManagementDialogs = ({
   setRejectionReason,
   leaveFormData,
   setLeaveFormData,
-  
+
   // Advance dialogs
   showAdvanceForm,
   setShowAdvanceForm,
@@ -214,10 +214,10 @@ export const EmployeeManagementDialogs = ({
   setAdvanceStatusReason,
   advanceFormData,
   setAdvanceFormData,
-  
+
   // Data
   employees,
-  
+
   // Handlers
   handleCreateEmployee,
   handleUpdateEmployee,
@@ -244,14 +244,14 @@ export const EmployeeManagementDialogs = ({
 }: EmployeeManagementDialogsProps) => {
   return (
     <>
-      {/* Attendance View Dialog */}
-      <AttendanceViewDialog
+      {/* Attendance View Sheet */}
+      <AttendanceViewSheet
         open={showAttendanceViewDialog}
         onOpenChange={setShowAttendanceViewDialog}
         attendance={attendanceToView}
         employee={attendanceToView ? employees.find((e: any) => e.employee_id === attendanceToView.employee_id) : null}
       />
-      
+
       {/* Attendance Delete Confirm Dialog */}
       <ConfirmDialog
         open={showAttendanceDeleteDialog}
@@ -266,35 +266,35 @@ export const EmployeeManagementDialogs = ({
           setAttendanceToDelete(null as any);
         }}
       />
-      
-      {/* Leave View Dialog */}
-      <LeaveViewDialog
+
+      {/* Leave View Sheet */}
+      <LeaveViewSheet
         open={showLeaveViewDialog}
         onOpenChange={setShowLeaveViewDialog}
         leave={leaveToView}
         employee={leaveToView ? employees.find((e: any) => e.employee_id === leaveToView.employee_id) : null}
         onApprove={(id) => {
-          // ✅ CRITICAL: Close view dialog immediately (critical for smooth transition)
+          // ✅ CRITICAL: Close view sheet immediately
           setShowLeaveViewDialog(false);
-          
-          // ✅ DEFER: Set leave data and open approve dialog (non-critical, defer to next tick)
+
+          // ✅ DEFER: Set leave data and open approve dialog
           setTimeout(() => {
             setLeaveToApprove({ ...leaveToView, leave_id: id });
             setShowLeaveApproveDialog(true);
           }, 0);
         }}
         onReject={(id) => {
-          // ✅ CRITICAL: Close view dialog immediately (critical for smooth transition)
+          // ✅ CRITICAL: Close view sheet immediately
           setShowLeaveViewDialog(false);
-          
-          // ✅ DEFER: Set leave data and open reject dialog (non-critical, defer to next tick)
+
+          // ✅ DEFER: Set leave data and open reject dialog
           setTimeout(() => {
             setLeaveToReject({ ...leaveToView, leave_id: id });
             setShowLeaveRejectDialog(true);
           }, 0);
         }}
       />
-      
+
       {/* Leave Form Dialog */}
       <LeaveFormDialog
         open={showLeaveForm}
@@ -321,7 +321,7 @@ export const EmployeeManagementDialogs = ({
         }}
         leaveStatus={leaveToApprove?.leave_status}
       />
-      
+
       {/* Leave Approve Dialog */}
       <LeaveApproveDialog
         open={showLeaveApproveDialog}
@@ -333,7 +333,7 @@ export const EmployeeManagementDialogs = ({
         }}
         isLoading={approveLeavePending}
       />
-      
+
       {/* Leave Reject Dialog */}
       <LeaveRejectDialog
         open={showLeaveRejectDialog}
@@ -347,7 +347,7 @@ export const EmployeeManagementDialogs = ({
         }}
         isLoading={rejectLeavePending}
       />
-      
+
       {/* Leave Delete Confirm Dialog */}
       <ConfirmDialog
         open={showLeaveDeleteDialog}
@@ -365,7 +365,7 @@ export const EmployeeManagementDialogs = ({
           }
         }}
       />
-      
+
       {/* Advance Form Dialog */}
       <AdvanceFormDialog
         open={showAdvanceForm}
@@ -385,7 +385,7 @@ export const EmployeeManagementDialogs = ({
           } else {
             try {
               const createdAdvance = await handleCreateAdvance(advanceFormData);
-              
+
               // Show voucher print dialog after successful creation
               if (createdAdvance) {
                 setAdvanceForVoucher(createdAdvance);
@@ -401,18 +401,18 @@ export const EmployeeManagementDialogs = ({
         isUpdatePending={false}
         advanceStatus={advanceToUpdate?.status}
       />
-      
-      {/* Advance View Dialog */}
-      <AdvanceViewDialog
+
+      {/* Advance View Sheet */}
+      <AdvanceViewSheet
         open={showAdvanceViewDialog}
         onOpenChange={setShowAdvanceViewDialog}
         advance={advanceToView}
         employee={advanceToView ? employees.find((e: any) => e.employee_id === advanceToView.employee_id) : null}
         onChangeStatus={(id) => {
-          // ✅ CRITICAL: Close view dialog immediately (critical for smooth transition)
+          // ✅ CRITICAL: Close view sheet immediately
           setShowAdvanceViewDialog(false);
-          
-          // ✅ DEFER: Set advance data and open status dialog (non-critical, defer to next tick)
+
+          // ✅ DEFER: Set advance data and open status dialog
           setTimeout(() => {
             setAdvanceToUpdate(advanceToView);
             setAdvanceStatus(advanceToView?.status || "");
@@ -420,27 +420,27 @@ export const EmployeeManagementDialogs = ({
           }, 0);
         }}
         onUpdateAmount={(id) => {
-          // ✅ CRITICAL: Close view dialog immediately (critical for smooth transition)
+          // ✅ CRITICAL: Close view sheet immediately
           setShowAdvanceViewDialog(false);
-          
-          // ✅ DEFER: Set advance data and open amount dialog (non-critical, defer to next tick)
+
+          // ✅ DEFER: Set advance data and open amount dialog
           setTimeout(() => {
             setAdvanceToUpdate(advanceToView);
             setShowAdvanceAmountDialog(true);
           }, 0);
         }}
         onPrintVoucher={(advance) => {
-          // ✅ CRITICAL: Close view dialog immediately (critical for smooth transition)
+          // ✅ CRITICAL: Close view sheet immediately
           setShowAdvanceViewDialog(false);
-          
-          // ✅ DEFER: Set advance data and open voucher dialog (non-critical, defer to next tick)
+
+          // ✅ DEFER: Set advance data and open voucher dialog
           setTimeout(() => {
             setAdvanceForVoucher(advance);
             setShowAdvanceVoucherDialog(true);
           }, 0);
         }}
       />
-      
+
       {/* Advance Status Dialog */}
       <AdvanceStatusDialog
         open={showAdvanceStatusDialog}
@@ -456,7 +456,7 @@ export const EmployeeManagementDialogs = ({
           }
         }}
       />
-      
+
       {/* Advance Amount Dialog */}
       <AdvanceAmountDialog
         open={showAdvanceAmountDialog}
@@ -468,7 +468,7 @@ export const EmployeeManagementDialogs = ({
           }
         }}
       />
-      
+
       {/* Advance Voucher Print Dialog */}
       <AdvanceVoucherPrintDialog
         open={showAdvanceVoucherDialog}
@@ -483,7 +483,7 @@ export const EmployeeManagementDialogs = ({
           if (advanceForVoucher) {
             const { user, currentBranch } = useAuthStore.getState();
             const selectedEmployee = employees.find((e: any) => e.employee_id === advanceForVoucher.employee_id);
-            
+
             if (selectedEmployee && currentBranch && user) {
               await generateAdvanceVoucherPDF({
                 advance: advanceForVoucher,
@@ -496,7 +496,7 @@ export const EmployeeManagementDialogs = ({
           }
         }}
       />
-      
+
       {/* Employee Form Dialog */}
       <EmployeeFormDialog
         open={showEmployeeForm}
@@ -551,9 +551,9 @@ export const EmployeeManagementDialogs = ({
         isCreatePending={createEmployeePending}
         isUpdatePending={updateEmployeePending}
       />
-      
-      {/* Employee Detail Dialog */}
-      <EmployeeDetailDialog
+
+      {/* Employee Detail Sheet */}
+      <EmployeeDetailSheet
         open={showEmployeeDetail}
         onOpenChange={setShowEmployeeDetail}
         employee={selectedEmployee}
@@ -582,7 +582,7 @@ export const EmployeeManagementDialogs = ({
           }).format(amount);
         }}
       />
-      
+
       {/* Employee Delete Dialog */}
       <EmployeeDeleteDialog
         open={showDeleteEmployeeDialog}
@@ -630,7 +630,7 @@ export const EmployeeManagementDialogs = ({
               const date = new Date(dateStr);
               const month = date.getMonth() + 1;
               const year = date.getFullYear();
-              
+
               await handleUpdateAttendance(
                 attendanceFormData.employee_id,
                 month,
@@ -645,7 +645,7 @@ export const EmployeeManagementDialogs = ({
               const date = new Date(dateStr);
               const month = date.getMonth() + 1;
               const year = date.getFullYear();
-              
+
               const createData = {
                 employee_id: attendanceFormData.employee_id,
                 total_working_days: attendanceFormData.total_working_days,
