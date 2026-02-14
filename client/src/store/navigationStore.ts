@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist, subscribeWithSelector } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
+import { create } from "zustand";
+import { persist, subscribeWithSelector } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
 
 export interface NavigationHistory {
   module: string;
@@ -12,43 +12,48 @@ export interface NavigationPreferences {
   sidebarCollapsed: boolean;
   sidebarPinned: boolean;
   showModuleIcons: boolean;
-  theme: 'light' | 'dark' | 'system';
+  theme: "light" | "dark" | "system";
 }
 
 interface NavigationState {
   // Core navigation state
   sidebarOpen: boolean;
   activeModule: string;
-  
+  pendingRoutePath: string | null;
+  pendingRouteStartedAt: number | null;
+
   // Navigation history
   history: NavigationHistory[];
   maxHistorySize: number;
-  
+
   // Navigation preferences
   preferences: NavigationPreferences;
-  
+
   // Computed selectors
   getCurrentPath: () => string;
   getPreviousModule: () => string | null;
   canGoBack: () => boolean;
   getModuleHistory: (module: string) => NavigationHistory[];
   isSidebarCollapsed: () => boolean;
-  
+
   // Actions
   setSidebarOpen: (open: boolean) => void;
   setActiveModule: (module: string, path?: string) => void;
   toggleSidebar: () => void;
-  
+  startRouteTransition: (path: string) => void;
+  finishRouteTransition: (path?: string) => void;
+  clearRouteTransition: () => void;
+
   // History management
   addToHistory: (module: string, path?: string) => void;
   goBack: () => boolean;
   clearHistory: () => void;
   removeFromHistory: (index: number) => void;
-  
+
   // Preferences
   updatePreferences: (preferences: Partial<NavigationPreferences>) => void;
   resetPreferences: () => void;
-  
+
   // Sidebar management
   toggleSidebarCollapse: () => void;
   toggleSidebarPin: () => void;
@@ -62,20 +67,24 @@ export const useNavigationStore = create<NavigationState>()(
       immer((set, get) => ({
         // Initial state
         sidebarOpen: true,
-        activeModule: 'dashboard',
+        activeModule: "dashboard",
+        pendingRoutePath: null,
+        pendingRouteStartedAt: null,
         history: [],
         maxHistorySize: 50,
         preferences: {
           sidebarCollapsed: false,
           sidebarPinned: false,
           showModuleIcons: true,
-          theme: 'system',
+          theme: "system",
         },
 
         // Computed selectors
         getCurrentPath: () => {
           const { activeModule, history } = get();
-          const currentEntry = history.find(entry => entry.module === activeModule);
+          const currentEntry = history.find(
+            (entry) => entry.module === activeModule
+          );
           return currentEntry?.path || `/${activeModule}`;
         },
 
@@ -92,7 +101,9 @@ export const useNavigationStore = create<NavigationState>()(
 
         getModuleHistory: (module: string) => {
           const { history } = get();
-          return history.filter((entry: NavigationHistory) => entry.module === module);
+          return history.filter(
+            (entry: NavigationHistory) => entry.module === module
+          );
         },
 
         isSidebarCollapsed: () => {
@@ -111,15 +122,38 @@ export const useNavigationStore = create<NavigationState>()(
           set((state) => {
             state.activeModule = module;
           });
-          
+
           // Add to history
           get().addToHistory(module, path);
         },
 
-
         toggleSidebar: () => {
           set((state) => {
             state.sidebarOpen = !state.sidebarOpen;
+          });
+        },
+
+        startRouteTransition: (path) => {
+          set((state) => {
+            state.pendingRoutePath = path;
+            state.pendingRouteStartedAt = Date.now();
+          });
+        },
+
+        finishRouteTransition: (path) => {
+          set((state) => {
+            if (!state.pendingRoutePath) return;
+            if (!path || state.pendingRoutePath === path) {
+              state.pendingRoutePath = null;
+              state.pendingRouteStartedAt = null;
+            }
+          });
+        },
+
+        clearRouteTransition: () => {
+          set((state) => {
+            state.pendingRoutePath = null;
+            state.pendingRouteStartedAt = null;
           });
         },
 
@@ -133,8 +167,10 @@ export const useNavigationStore = create<NavigationState>()(
             };
 
             // Remove duplicate entries for the same module
-            state.history = state.history.filter((entry: NavigationHistory) => entry.module !== module);
-            
+            state.history = state.history.filter(
+              (entry: NavigationHistory) => entry.module !== module
+            );
+
             // Add new entry
             state.history.push(newEntry);
 
@@ -152,7 +188,7 @@ export const useNavigationStore = create<NavigationState>()(
           set((state) => {
             // Remove current entry
             state.history.pop();
-            
+
             // Set previous module as active
             const previousEntry = state.history[state.history.length - 1];
             if (previousEntry) {
@@ -190,7 +226,7 @@ export const useNavigationStore = create<NavigationState>()(
               sidebarCollapsed: false,
               sidebarPinned: false,
               showModuleIcons: true,
-              theme: 'system',
+              theme: "system",
             };
           });
         },
@@ -198,7 +234,8 @@ export const useNavigationStore = create<NavigationState>()(
         // Sidebar management
         toggleSidebarCollapse: () => {
           set((state) => {
-            state.preferences.sidebarCollapsed = !state.preferences.sidebarCollapsed;
+            state.preferences.sidebarCollapsed =
+              !state.preferences.sidebarCollapsed;
           });
         },
 
@@ -238,7 +275,7 @@ export const useNavigationStore = create<NavigationState>()(
                 sidebarCollapsed: false,
                 sidebarPinned: false,
                 showModuleIcons: true,
-                theme: 'system',
+                theme: "system",
               },
             };
           }
@@ -272,8 +309,10 @@ export const useNavigationHistory = () => {
   const addToHistory = useNavigationStore((state) => state.addToHistory);
   const goBack = useNavigationStore((state) => state.goBack);
   const clearHistory = useNavigationStore((state) => state.clearHistory);
-  const getModuleHistory = useNavigationStore((state) => state.getModuleHistory);
-  
+  const getModuleHistory = useNavigationStore(
+    (state) => state.getModuleHistory
+  );
+
   return {
     history,
     addToHistory,
@@ -286,9 +325,13 @@ export const useNavigationHistory = () => {
 // Preferences hooks
 export const useNavigationPreferences = () => {
   const preferences = useNavigationStore((state) => state.preferences);
-  const updatePreferences = useNavigationStore((state) => state.updatePreferences);
-  const resetPreferences = useNavigationStore((state) => state.resetPreferences);
-  
+  const updatePreferences = useNavigationStore(
+    (state) => state.updatePreferences
+  );
+  const resetPreferences = useNavigationStore(
+    (state) => state.resetPreferences
+  );
+
   return {
     preferences,
     updatePreferences,
