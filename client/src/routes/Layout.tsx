@@ -3,6 +3,7 @@ import { Header, Sidebar } from "@/common/components/layout";
 import { useNavigationStore } from "@/store/navigationStore";
 import { cn } from "@/common/utils";
 import { RouteSuspense } from "@/common/components/shared/RouteSuspense";
+import { GlobalProgress } from "@/common/components/shared/GlobalProgress";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,7 +17,8 @@ export function Layout({ children }: LayoutProps) {
   const { sidebarOpen } = useNavigationStore();
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden text-slate-900">
+      <GlobalProgress />
       <Sidebar />
       <div
         className={cn(

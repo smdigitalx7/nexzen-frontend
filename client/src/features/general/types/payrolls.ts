@@ -102,6 +102,8 @@ export interface RecentPayroll {
 }
 
 export interface PayrollPreview {
+  employee_id?: number;
+  employee_name?: string;
   gross_pay: number;
   previous_balance: number;
   lop: number;

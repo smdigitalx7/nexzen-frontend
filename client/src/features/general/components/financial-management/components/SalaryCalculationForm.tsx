@@ -483,7 +483,7 @@ export const SalaryCalculationForm = ({
                   <div>
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Employee</p>
                     <h3 className="text-lg font-bold text-gray-900">
-                      {employees.find(e => e.employee_id === initialEmployeeId)?.employee_name || "Loading..."}
+                      {previewData?.employee_name || employees.find(e => e.employee_id === initialEmployeeId)?.employee_name || "Loading..."}
                     </h3>
                   </div>
                   <div className="text-right">
@@ -675,7 +675,7 @@ export const SalaryCalculationForm = ({
                       <div>
                           <p className="text-slate-400 text-xs uppercase tracking-wider font-semibold mb-1">Net Payable To</p>
                           <p className="text-lg font-medium text-white">
-                              {employees.find(e => e.employee_id === Number(formData.employee_id))?.employee_name || "Employee"}
+                              {previewData?.employee_name || employees.find(e => e.employee_id === Number(formData.employee_id))?.employee_name || "Employee"}
                           </p>
                       </div>
                       <div className="text-right">
@@ -844,7 +844,7 @@ export const SalaryCalculationForm = ({
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Employee:</span>
                   <span className="font-medium">
-                    {employees.find(
+                    {previewData?.employee_name || employees.find(
                       (emp) =>
                         emp.employee_id === pendingPayrollData.employee_id
                     )?.employee_name || `ID: ${pendingPayrollData.employee_id}`}

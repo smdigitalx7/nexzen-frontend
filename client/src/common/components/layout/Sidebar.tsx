@@ -1,5 +1,5 @@
-import { useMemo, startTransition, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import React, { useMemo, startTransition, useState } from "react";
+import { Link, useLocation, useNavigate, useNavigation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -57,8 +57,17 @@ const Sidebar = () => {
   const [showIssueReportDialog, setShowIssueReportDialog] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, currentBranch, logoutAsync } = useAuthStore();
-  const { sidebarOpen, setActiveModule, toggleSidebar } = useNavigationStore();
+  const navigation = useNavigation();
+  
+  // ✅ PERF: Use atomic selectors to avoid sidebar re-renders on unrelated auth/nav store changes
+  const user = useAuthStore((s) => s.user);
+  const currentBranch = useAuthStore((s) => s.currentBranch);
+  const logoutAsync = useAuthStore((s) => s.logoutAsync);
+  
+  const sidebarOpen = useNavigationStore((s) => s.sidebarOpen);
+  const setActiveModule = useNavigationStore((s) => s.setActiveModule);
+  const toggleSidebar = useNavigationStore((s) => s.toggleSidebar);
+  
   const queryClient = useQueryClient();
 
   // Sidebar renders based on user role and current branch
@@ -285,14 +294,25 @@ const Sidebar = () => {
     return baseTheme;
   }, [currentBranch?.branch_type]);
 
-  const NavItem = ({
-    item,
-    isActive,
-  }: {
-    item: NavigationItem;
-    isActive: boolean;
-  }) => {
-    const NavItemContent = (
+  // ✅ PERF: Extracted NavItem to top-level and memoized it
+// This prevents NavItem from being redefined on every Sidebar render,
+// and React.memo ensures it only re-renders when its own props change.
+const NavItem = React.memo(({
+  item,
+  isActive,
+  sidebarOpen,
+  themeColors,
+  handleItemClick,
+  navigate
+}: {
+  item: NavigationItem;
+  isActive: boolean;
+  sidebarOpen: boolean;
+  themeColors: any;
+  handleItemClick: (href: string, title: string) => void;
+  navigate: (path: string) => void;
+}) => {
+  const NavItemContent = (
     <Link
       to={item.href}
       onClick={(e) => {
@@ -307,10 +327,9 @@ const Sidebar = () => {
           JSON.stringify(navData)
         );
         handleItemClick(item.href, item.title);
-        // Wrap navigation in startTransition so lazy route components don't suspend during sync input
-        startTransition(() => {
-          navigate(item.href);
-        });
+        // Navigation is now an "urgent" update. This ensures that the RouteSuspense 
+        // fallback (skeleton) appears immediately when the route changes.
+        navigate(item.href);
       }}
     >
       <div
@@ -377,7 +396,7 @@ const Sidebar = () => {
       </TooltipContent>
     </Tooltip>
   );
-};
+});
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -429,28 +448,31 @@ const Sidebar = () => {
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="p-4 space-y-4">
           {/* Dashboard - Outside of sections */}
-          <div>
-            <NavItem
-              item={{
-                title: "Dashboard",
-                href: "/",
-                icon: LayoutDashboard,
-                description: "Overview and analytics",
-              }}
-              isActive={location.pathname === "/"}
-            />
-          </div>
+          {(() => {
+            const pendingPath = navigation.location?.pathname;
+            const currentPath = location.pathname;
+            const isDashboardActive = (pendingPath || currentPath) === "/";
+            
+            return (
+              <div>
+                <NavItem
+                  item={{
+                    title: "Dashboard",
+                    href: "/",
+                    icon: LayoutDashboard,
+                    description: "Overview and analytics",
+                  }}
+                  isActive={isDashboardActive}
+                  sidebarOpen={sidebarOpen}
+                  themeColors={themeColors}
+                  handleItemClick={handleItemClick}
+                  navigate={navigate}
+                />
+              </div>
+            );
+          })()}
 
           {/* Schema-specific Modules */}
-          {(() => {
-            // console.log("🎨 Rendering Schema Modules:", {
-            //   hasCurrentBranch: !!currentBranch,
-            //   schemaModulesLength: schemaModules.length,
-            //   schemaModules: schemaModules.map((m) => m.title),
-            //   willRender: currentBranch && schemaModules.length > 0,
-            // });
-            return null;
-          })()}
           {currentBranch && schemaModules.length > 0 && (
             <div>
               {sidebarOpen && (
@@ -469,26 +491,29 @@ const Sidebar = () => {
                 </div>
               )}
               <div className={cn("space-y-1", !sidebarOpen && "space-y-2")}>
-                {schemaModules.map((item: NavigationItem) => (
-                  <NavItem
-                    key={item.href}
-                    item={item}
-                    isActive={location.pathname === item.href}
-                  />
-                ))}
+                {schemaModules.map((item: NavigationItem) => {
+                  const pendingPath = navigation.location?.pathname;
+                  const currentPath = location.pathname;
+                  // Senior Pattern: Check both current and pending (loading) path for instant highlight
+                  const isActive = (pendingPath || currentPath).startsWith(item.href);
+                  
+                  return (
+                    <NavItem
+                      key={item.href}
+                      item={item}
+                      isActive={isActive}
+                      sidebarOpen={sidebarOpen}
+                      themeColors={themeColors}
+                      handleItemClick={handleItemClick}
+                      navigate={navigate}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* General/Public Modules - Only for ADMIN and INSTITUTE_ADMIN */}
-          {(() => {
-            // console.log("🎨 Rendering General Modules:", {
-            //   generalModulesLength: generalModules.length,
-            //   generalModules: generalModules.map((m) => m.title),
-            //   willRender: generalModules.length > 0,
-            // });
-            return null;
-          })()}
+          {/* General/Public Modules */}
           {generalModules.length > 0 && (
             <div>
               {sidebarOpen && (
@@ -505,13 +530,23 @@ const Sidebar = () => {
                 </div>
               )}
               <div className={cn("space-y-1", !sidebarOpen && "space-y-2")}>
-                {generalModules.map((item: NavigationItem) => (
-                  <NavItem
-                    key={item.href}
-                    item={item}
-                    isActive={location.pathname === item.href}
-                  />
-                ))}
+                {generalModules.map((item: NavigationItem) => {
+                  const pendingPath = navigation.location?.pathname;
+                  const currentPath = location.pathname;
+                  const isActive = (pendingPath || currentPath).startsWith(item.href);
+                  
+                  return (
+                    <NavItem
+                      key={item.href}
+                      item={item}
+                      isActive={isActive}
+                      sidebarOpen={sidebarOpen}
+                      themeColors={themeColors}
+                      handleItemClick={handleItemClick}
+                      navigate={navigate}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
