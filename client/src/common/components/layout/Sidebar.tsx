@@ -42,6 +42,7 @@ import {
   TooltipTrigger,
 } from "@/common/components/ui/tooltip";
 import IssueReportDialog from "@/features/general/components/Support/IssueReportDialog";
+import { prefetchRouteComponent } from "@/routes/route-config";
 
 interface NavigationItem {
   title: string;
@@ -315,6 +316,9 @@ const NavItem = React.memo(({
   const NavItemContent = (
     <Link
       to={item.href}
+      onMouseEnter={() => prefetchRouteComponent(item.href)}
+      onFocus={() => prefetchRouteComponent(item.href)}
+      onPointerDown={() => prefetchRouteComponent(item.href)}
       onClick={(e) => {
         e.preventDefault();
         // Mark navigation as from sidebar with the target path and timestamp

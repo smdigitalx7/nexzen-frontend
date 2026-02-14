@@ -270,3 +270,57 @@ export const routes: RouteConfig[] = [
   },
 ];
 
+/**
+ * Sidebar navigation performance helper.
+ *
+ * Preloads route chunks before the actual click navigation happens.
+ * This removes the "first click waits for chunk download/parse" UX lag.
+ */
+const routePrefetchers: Record<string, () => Promise<unknown>> = {
+  // General
+  "/users": () => import("@/features/general/pages/UserManagementPage"),
+  "/employees": () => import("@/features/general/pages/EmployeeManagementPage"),
+  "/payroll": () => import("@/features/general/pages/PayrollManagementPage"),
+  "/transport": () => import("@/features/general/pages/TransportManagementPage"),
+  "/audit-log": () => import("@/features/general/pages/AuditLog"),
+  "/support": () => import("@/features/general/pages/SupportPage"),
+
+  // School
+  "/school/academic": () => import("@/features/school/pages/SchoolAcademicPage"),
+  "/school/reservations/new": () => import("@/features/school/pages/SchoolReservationPage"),
+  "/school/admissions": () => import("@/features/school/pages/SchoolAdmissionsPage"),
+  "/school/students": () => import("@/features/school/pages/SchoolStudentsPage"),
+  "/school/attendance": () => import("@/features/school/pages/SchoolAttendancePage"),
+  "/school/marks": () => import("@/features/school/pages/SchoolMarksPage"),
+  "/school/fees": () => import("@/features/school/pages/SchoolFeesPage"),
+  "/school/financial-reports": () => import("@/features/school/pages/SchoolReportsPage"),
+  "/school/announcements": () =>
+    import("@/features/general/components/Announcemnts/AnnouncementsManagement"),
+
+  // College
+  "/college/academic": () => import("@/features/college/pages/CollegeAcademicPage"),
+  "/college/reservations/new": () => import("@/features/college/pages/CollegeReservationPage"),
+  "/college/admissions": () => import("@/features/college/pages/CollegeAdmissionsPage"),
+  "/college/students": () => import("@/features/college/pages/CollegeStudentsPage"),
+  "/college/attendance": () => import("@/features/college/pages/CollegeAttendancePage"),
+  "/college/marks": () => import("@/features/college/pages/CollegeMarksPage"),
+  "/college/fees": () => import("@/features/college/pages/CollegeFeesPage"),
+  "/college/financial-reports": () => import("@/features/college/pages/CollegeReportsPage"),
+  "/college/announcements": () =>
+    import("@/features/general/components/Announcemnts/AnnouncementsManagement"),
+};
+
+const prefetchedRoutes = new Set<string>();
+
+export const prefetchRouteComponent = (path: string) => {
+  if (!path || prefetchedRoutes.has(path)) return;
+
+  const prefetcher = routePrefetchers[path];
+  if (!prefetcher) return;
+
+  prefetchedRoutes.add(path);
+  prefetcher().catch(() => {
+    // Allow retry if prefetch failed (e.g. temporary network issue)
+    prefetchedRoutes.delete(path);
+  });
+};
