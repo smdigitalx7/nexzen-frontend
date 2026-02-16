@@ -71,6 +71,8 @@ import {
 } from "@/common/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { ActivitySummary } from "@/features/general/types/audit-logs";
+import type { UserWithRolesAndBranches } from "@/features/general/types/users";
+
 
 // Summary Tab Component
 function SummaryTab() {
@@ -78,15 +80,24 @@ function SummaryTab() {
   const [limit, setLimit] = useState<number>(100);
   const [userId, setUserId] = useState<number | null>(null);
 
-  const { data: usersWithRoles = [], isLoading: usersLoading } = useUsersWithRolesAndBranches();
+  const { data: rawUsersData, isLoading: usersLoading } = useUsersWithRolesAndBranches();
+  
+  const usersWithRoles = useMemo(() => {
+    if (!rawUsersData) return [];
+    if (Array.isArray(rawUsersData)) return rawUsersData;
+    if (rawUsersData.data && Array.isArray(rawUsersData.data)) return rawUsersData.data;
+    return [];
+  }, [rawUsersData]);
+
   const { exportToExcel, isExporting, exportProgress } = useExcelExport();
 
   // Filter to only show users with ADMIN, ACCOUNTANT, or ACADEMIC roles
   const allowedRoles = ["ADMIN", "ACCOUNTANT", "ACADEMIC"];
-  const users = usersWithRoles.filter(user =>
+  const users = usersWithRoles.filter((user: UserWithRolesAndBranches) =>
     user.roles && user.roles.length > 0 &&
-    user.roles.some(role => allowedRoles.includes(role.role_name))
+    user.roles.some((role: any) => allowedRoles.includes(role.role_name))
   );
+
   const {
     data: activitySummaries = [],
     isLoading,
