@@ -2,334 +2,319 @@ import React from "react";
 import { Badge } from "@/common/components/ui/badge";
 import { Button } from "@/common/components/ui/button";
 import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-    SheetFooter
-} from "@/common/components/ui/sheet";
-import { useCanViewUIComponent } from "@/core/permissions";
-import { Calendar, User, FileText, Clock, CheckCircle, XCircle, X, Printer, IndianRupee, Landmark } from "lucide-react";
+  User,
+  FileText,
+  CheckCircle,
+  IndianRupee,
+  Landmark,
+  History,
+  Printer,
+} from "lucide-react";
 import { cn } from "@/common/utils";
+import { useCanViewUIComponent } from "@/core/permissions";
+import { FormSheet } from "@/common/components/shared";
 
 interface AdvanceViewSheetProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    advance: any;
-    employee: any;
-    onChangeStatus?: (id: number) => void;
-    onUpdateAmount?: (id: number) => void;
-    onPrintVoucher?: (advance: any) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  advance: any;
+  employee: any;
+  onChangeStatus?: (id: number) => void;
+  onUpdateAmount?: (id: number) => void;
+  onPrintVoucher?: (advance: any) => void;
 }
 
 export const AdvanceViewSheet = ({
-    open,
-    onOpenChange,
-    advance,
-    employee,
-    onChangeStatus,
-    onUpdateAmount,
-    onPrintVoucher
+  open,
+  onOpenChange,
+  advance,
+  employee,
+  onChangeStatus,
+  onUpdateAmount,
+  onPrintVoucher,
 }: AdvanceViewSheetProps) => {
-    const canChangeStatus = useCanViewUIComponent("employee_advances", "button", "advance-change-status");
-    const canUpdateAmount = useCanViewUIComponent("employee_advances", "button", "advance-update-amount");
+  const canChangeStatus = useCanViewUIComponent(
+    "employee_advances",
+    "button",
+    "advance-change-status"
+  );
+  const canUpdateAmount = useCanViewUIComponent(
+    "employee_advances",
+    "button",
+    "advance-update-amount"
+  );
 
-    if (!advance) return null;
+  if (!advance) return null;
 
-    const getStatusColor = (status: string) => {
-        switch (status?.toUpperCase()) {
-            case "REQUESTED":
-                return "bg-yellow-100 text-yellow-800 border-yellow-200";
-            case "APPROVED":
-                return "bg-green-100 text-green-800 border-green-200";
-            case "ACTIVE":
-                return "bg-blue-100 text-blue-800 border-blue-200";
-            case "REJECTED":
-                return "bg-red-100 text-red-800 border-red-200";
-            case "CANCELLED":
-                return "bg-gray-100 text-gray-800 border-gray-200";
-            case "REPAID":
-                return "bg-emerald-100 text-emerald-800 border-emerald-200";
-            default:
-                return "bg-gray-100 text-gray-800 border-gray-200";
-        }
-    };
+  const getStatusColor = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case "REQUESTED":
+        return "bg-amber-50 text-amber-700 border-amber-200";
+      case "APPROVED":
+      case "ACTIVE":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "REJECTED":
+      case "CANCELLED":
+        return "bg-red-50 text-red-700 border-red-200";
+      case "REPAID":
+        return "bg-blue-50 text-blue-700 border-blue-200";
+      default:
+        return "bg-slate-50 text-slate-600 border-slate-200";
+    }
+  };
 
-    return (
-        <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent
-                side="right"
-                className="bg-white !w-full sm:!max-w-[600px] flex flex-col p-0 shadow-2xl"
+  const principal = advance.advance_amount || 0;
+  const repaid = advance.total_repayment_amount || 0;
+  const outstanding = advance.remaining_balance ?? principal;
+  const progress = principal > 0 ? Math.round((repaid / principal) * 100) : 0;
+
+  return (
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Advance details"
+      description="View advance and repayment summary."
+      size="large"
+      showFooter={false}
+    >
+      <div className="space-y-6 pb-2">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-200">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+              <IndianRupee className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Advance #{advance.advance_id}
+              </h2>
+              <p className="text-sm text-slate-500 mt-0.5">
+                {new Date(advance.advance_date).toLocaleDateString(undefined, {
+                  dateStyle: "medium",
+                })}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {onPrintVoucher && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPrintVoucher(advance)}
+                className="border-slate-200 text-slate-700 hover:bg-slate-50"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Print
+              </Button>
+            )}
+            <Badge
+              className={cn(
+                "border text-xs font-medium",
+                getStatusColor(advance.status)
+              )}
             >
-                <SheetHeader className="px-6 py-5 border-b bg-slate-50/80 dark:bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
-                                <IndianRupee className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <SheetTitle className="text-xl font-bold tracking-tight">Advance Details</SheetTitle>
-                                <SheetDescription className="text-sm font-medium text-muted-foreground mt-0.5">
-                                    Salary advance request and repayment overview
-                                </SheetDescription>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {onPrintVoucher && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => onPrintVoucher(advance)}
-                                    className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-700 font-bold"
-                                >
-                                    <Printer className="h-4 w-4 mr-1.5" />
-                                    Print
-                                </Button>
-                            )}
-                        </div>
+              {advance.status}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Employee */}
+        <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/50">
+          <div className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-500">
+            <User className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-900 truncate">
+              {advance.employee_name || employee?.employee_name || "Employee"}
+            </p>
+            <p className="text-xs text-slate-500">
+              {advance.employee_code || employee?.employee_code || "—"} ·{" "}
+              {advance.designation || employee?.designation || "—"}
+            </p>
+          </div>
+        </div>
+
+        {/* Amounts */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-xs font-medium text-slate-500 mb-1">Principal</p>
+            <p className="text-lg font-semibold text-slate-900">
+              ₹{principal.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+            <p className="text-xs font-medium text-emerald-700 mb-1">Repaid</p>
+            <p className="text-lg font-semibold text-emerald-800">
+              ₹{repaid.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-xs font-medium text-slate-500 mb-1">Outstanding</p>
+            <p className="text-lg font-semibold text-slate-900">
+              ₹{outstanding.toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs font-medium text-slate-600">
+            <span>Repayment progress</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                progress >= 100 ? "bg-emerald-500" : "bg-slate-400"
+              )}
+              style={{ width: `${Math.min(progress, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Repayments */}
+        {advance.repayments && advance.repayments.length > 0 && (
+          <section className="rounded-xl border border-slate-200 overflow-hidden">
+            <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2 p-4 border-b border-slate-100 bg-slate-50/50">
+              <History className="h-4 w-4 text-slate-500" />
+              Repayment history
+            </h3>
+            <div className="divide-y divide-slate-100">
+              {advance.repayments.map((repayment: any) => (
+                <div
+                  key={repayment.repayment_id}
+                  className="flex items-center justify-between p-4 hover:bg-slate-50/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                      <CheckCircle className="h-4 w-4" />
                     </div>
-                </SheetHeader>
-
-                <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-hide">
-                    <div className="space-y-6">
-                        {/* Employee Card */}
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary shadow-sm border border-slate-200 dark:border-slate-700">
-                                    <User className="h-6 w-6" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 leading-none">
-                                        {advance.employee_name || employee?.employee_name || "Employee Profile"}
-                                    </h3>
-                                    <div className="flex items-center gap-2 mt-1.5">
-                                        <p className="text-sm text-primary font-semibold uppercase tracking-wider">
-                                            {advance.employee_code || employee?.employee_code || "EMP"}
-                                        </p>
-                                        {(advance.designation || employee?.designation) && (
-                                            <>
-                                                <span className="h-1 w-1 rounded-full bg-slate-300" />
-                                                <p className="text-xs font-medium text-slate-500">{advance.designation || employee?.designation}</p>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Top Stats */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Advance Status</label>
-                                <Badge className={cn("px-2.5 py-0.5 rounded-full font-bold text-[10px] shadow-none", getStatusColor(advance.status))}>
-                                    {advance.status}
-                                </Badge>
-                                <IndianRupee className="absolute -right-4 -bottom-4 h-16 w-16 text-slate-50 -rotate-12" />
-                            </div>
-                            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Advance Amount</label>
-                                <div className="text-2xl font-black text-green-600">
-                                    ₹{advance.advance_amount?.toLocaleString() || '0'}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Payment Info */}
-                        <div className="p-1">
-                            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-[0.1em] mb-4 flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
-                                Payment & Balance
-                            </h4>
-                            <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-6 border border-slate-100 shadow-sm">
-                                <div className="grid grid-cols-2 gap-8 relative">
-                                    <div className="absolute left-1/2 top-4 bottom-4 w-px bg-slate-200 hidden sm:block" />
-                                    <div>
-                                        <div className="text-xs font-bold text-slate-400 uppercase mb-2">Amount Paid</div>
-                                        <div className="text-xl font-black text-blue-600">
-                                            ₹{advance.total_repayment_amount?.toLocaleString() || '0'}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="text-xs font-bold text-slate-400 uppercase mb-2">Remaining Balance</div>
-                                        <div className="text-xl font-black text-red-600">
-                                            ₹{(advance.remaining_balance ?? advance.advance_amount)?.toLocaleString() || '0'}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mt-8 pt-6 border-t border-slate-200/50">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Repayment Progress</span>
-                                        <span className="text-xs font-black text-slate-700">
-                                            {Math.round(((advance.total_repayment_amount || 0) / (advance.advance_amount || 1)) * 100)}%
-                                        </span>
-                                    </div>
-                                    <div className="h-2.5 w-full bg-white rounded-full overflow-hidden border border-slate-100">
-                                        <div
-                                            className="h-full bg-blue-500 transition-all duration-500"
-                                            style={{ width: `${Math.round(((advance.total_repayment_amount || 0) / (advance.advance_amount || 1)) * 100)}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Repayment History */}
-                        {advance.repayments && advance.repayments.length > 0 && (
-                            <div className="p-1">
-                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-[0.1em] mb-4 flex items-center gap-2">
-                                    <Landmark className="h-4 w-4" />
-                                    Repayment History
-                                </h4>
-                                <div className="space-y-3">
-                                    {advance.repayments.map((repayment: any) => (
-                                        <div key={repayment.repayment_id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-                                                    <CheckCircle className="h-4 w-4" />
-                                                </div>
-                                                <div>
-                                                    <div className="text-sm font-bold text-slate-900">₹{repayment.repaid_amount?.toLocaleString()}</div>
-                                                    <div className="text-[10px] font-medium text-slate-400 flex items-center gap-1 mt-0.5">
-                                                        <Calendar className="h-3 w-3" />
-                                                        {new Date(repayment.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
-                                                        <span className="h-1 w-1 rounded-full bg-slate-200" />
-                                                        {repayment.payment_mode || 'Manual'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
-                                                Received By
-                                                <div className="text-slate-600 normal-case mt-0.5">{repayment.created_by_name || 'Admin'}</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">
+                        {new Date(repayment.created_at).toLocaleDateString(
+                          undefined,
+                          { dateStyle: "medium" }
                         )}
-
-                        {/* Request Details */}
-                        <div className="p-1">
-                            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-[0.1em] mb-4 flex items-center gap-2">
-                                <FileText className="h-4 w-4" />
-                                Request Details
-                            </h4>
-                            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Request Date</label>
-                                        <p className="text-sm font-bold text-slate-900 mt-1 flex items-center gap-2">
-                                            <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                                            {new Date(advance.advance_date).toLocaleDateString(undefined, { dateStyle: 'long' })}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Created By</label>
-                                        <p className="text-sm font-bold text-slate-900 mt-1 flex items-center gap-2">
-                                            <User className="h-3.5 w-3.5 text-slate-400" />
-                                            {advance.created_by_name || 'Admin'}
-                                        </p>
-                                    </div>
-                                </div>
-                                {advance.request_reason && (
-                                    <div className="pt-4 border-t border-slate-50">
-                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Reason for Advance</label>
-                                        <p className="text-sm font-medium text-slate-700 leading-relaxed mt-2 whitespace-pre-wrap italic">
-                                            "{advance.request_reason}"
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Audit Info */}
-                        {(advance.approved_by_name || advance.reason || advance.rejection_reason || advance.status === "REJECTED" || advance.status === "CANCELLED") && (
-                            <div className="p-1">
-                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-[0.1em] mb-4 flex items-center gap-2">
-                                    {advance.status === "REJECTED" || advance.status === "CANCELLED" ? (
-                                        <XCircle className="h-4 w-4 text-red-500" />
-                                    ) : (
-                                        <CheckCircle className="h-4 w-4 text-green-500" />
-                                    )}
-                                    Audit & Action Info
-                                </h4>
-                                <div className={cn(
-                                    "p-5 rounded-2xl border",
-                                    advance.status === "REJECTED" || advance.status === "CANCELLED"
-                                        ? "bg-red-50/30 border-red-100/50"
-                                        : "bg-slate-50/50 border-slate-100"
-                                )}>
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
-                                        {advance.approved_by_name && (
-                                            <div>
-                                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Approved By</label>
-                                                <p className="text-sm font-bold text-slate-900 mt-1">{advance.approved_by_name}</p>
-                                            </div>
-                                        )}
-                                        {advance.approved_at && (
-                                            <div>
-                                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Approved At</label>
-                                                <p className="text-sm font-bold text-slate-900 mt-1">
-                                                    {new Date(advance.approved_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {(advance.reason || advance.rejection_reason) && (
-                                        <div className="pt-4 border-t border-slate-200/30">
-                                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                                                {advance.status === "REJECTED" ? "Rejection Reason" : "Notes"}
-                                            </label>
-                                            <p className={cn(
-                                                "text-sm font-medium mt-2 italic leading-relaxed whitespace-pre-wrap",
-                                                advance.status === "REJECTED" ? "text-red-700" : "text-slate-700"
-                                            )}>
-                                                {advance.reason || advance.rejection_reason}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {repayment.payment_mode || "Manual"}
+                      </p>
                     </div>
+                  </div>
+                  <p className="text-sm font-semibold text-emerald-700">
+                    + ₹{repayment.repaid_amount?.toLocaleString()}
+                  </p>
                 </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-                <SheetFooter className="px-6 py-5 border-t bg-slate-50/80 backdrop-blur-sm sticky bottom-0 z-10">
-                    <div className="flex items-center justify-between w-full gap-3">
-                        <div className="flex items-center gap-2">
-                            {onChangeStatus && canChangeStatus && (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => onChangeStatus(advance.advance_id)}
-                                    className="h-10 px-4 font-bold border-2 hover:bg-slate-100"
-                                >
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Change Status
-                                </Button>
-                            )}
-                            {onUpdateAmount && canUpdateAmount && (
-                                <Button
-                                    variant="default"
-                                    onClick={() => onUpdateAmount(advance.advance_id)}
-                                    className="h-10 px-4 font-bold bg-primary hover:bg-primary/90 text-white shadow-sm"
-                                >
-                                    <Landmark className="h-4 w-4 mr-2" />
-                                    Update Payment
-                                </Button>
-                            )}
-                        </div>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className="font-bold text-slate-500 hover:text-slate-900"
-                            onClick={() => onOpenChange(false)}
-                        >
-                            Close
-                        </Button>
-                    </div>
-                </SheetFooter>
-            </SheetContent>
-        </Sheet>
-    );
+        {/* Submission & approval */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <section className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+            <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2 mb-3">
+              <FileText className="h-4 w-4 text-slate-500" />
+              Submission
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Submitted</span>
+                <span className="font-medium text-slate-900">
+                  {new Date(advance.advance_date).toLocaleDateString(undefined, {
+                    dateStyle: "medium",
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Created by</span>
+                <span className="font-medium text-slate-900">
+                  {advance.created_by_name || "—"}
+                </span>
+              </div>
+              {advance.request_reason && (
+                <p className="text-slate-600 pt-2 border-t border-slate-200 italic">
+                  "{advance.request_reason}"
+                </p>
+              )}
+            </div>
+          </section>
+          {(advance.approved_by_name ||
+            advance.reason ||
+            advance.rejection_reason ||
+            advance.status === "REJECTED" ||
+            advance.status === "CANCELLED") && (
+            <section
+              className={cn(
+                "rounded-xl border p-4",
+                advance.status === "REJECTED" || advance.status === "CANCELLED"
+                  ? "bg-red-50/50 border-red-200"
+                  : "bg-slate-50/50 border-slate-200"
+              )}
+            >
+              <h3 className="text-sm font-semibold text-slate-800 mb-3">
+                Approver
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Reviewed by</span>
+                  <span className="font-medium text-slate-900">
+                    {advance.approved_by_name || "—"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Date</span>
+                  <span className="font-medium text-slate-900">
+                    {advance.approved_at
+                      ? new Date(advance.approved_at).toLocaleDateString(
+                          undefined,
+                          { dateStyle: "medium" }
+                        )
+                      : "—"}
+                  </span>
+                </div>
+                {(advance.reason || advance.rejection_reason) && (
+                  <p
+                    className={cn(
+                      "pt-2 border-t italic",
+                      advance.status === "REJECTED" ||
+                        advance.status === "CANCELLED"
+                        ? "border-red-200 text-red-700"
+                        : "border-slate-200 text-slate-600"
+                    )}
+                  >
+                    "{advance.reason || advance.rejection_reason}"
+                  </p>
+                )}
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-200">
+          {onChangeStatus && canChangeStatus && (
+            <Button
+              variant="outline"
+              onClick={() => onChangeStatus(advance.advance_id)}
+              className="border-slate-200 text-slate-700 hover:bg-slate-50"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Update status
+            </Button>
+          )}
+          {onUpdateAmount && canUpdateAmount && (
+            <Button
+              onClick={() => onUpdateAmount(advance.advance_id)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Landmark className="h-4 w-4 mr-2" />
+              Record repayment
+            </Button>
+          )}
+        </div>
+      </div>
+    </FormSheet>
+  );
 };

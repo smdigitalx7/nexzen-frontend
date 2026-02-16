@@ -25,6 +25,8 @@ import {
   useUpdateIndividualAttendance,
   useDeleteAttendance,
   useAttendanceByBranch,
+  useCreateBulkAttendance,
+  useUpdateBulkAttendance,
   employeeAttendanceKeys,
 } from "@/features/general/hooks/useEmployeeAttendance";
 import { EmployeeAttendanceService } from "@/features/general/services/employee-attendance.service";
@@ -159,6 +161,8 @@ export const useEmployeeManagement = (
   // Data hooks - API calls are made per tab, not based on sidebar navigation
   // Only fetch data when the respective tab is active to prevent unnecessary requests and UI freezes
   // Note: Employees are needed for dialogs across multiple tabs, so enabled when any relevant tab is active
+
+
   const {
     data: employeesData,
     isLoading,
@@ -236,6 +240,8 @@ export const useEmployeeManagement = (
   const updateAttendanceMutation = useUpdateAttendance();
   const updateIndividualAttendanceMutation = useUpdateIndividualAttendance();
   const deleteAttendanceMutation = useDeleteAttendance();
+  const createBulkAttendanceMutation = useCreateBulkAttendance();
+  const updateBulkAttendanceMutation = useUpdateBulkAttendance();
 
   const createLeaveMutation = useCreateEmployeeLeave();
   const updateLeaveMutation = useUpdateEmployeeLeave();
@@ -338,6 +344,23 @@ export const useEmployeeManagement = (
     advance_amount: 0,
     request_reason: "",
   });
+
+  // ✅ FIX: Fetch full employee details
+  // Fetch full details for the selected employee when opening the detail sheet or edit form
+  // This ensures we have the latest data including fields not present in the list view
+  const { data: fullEmployeeDetails, isLoading: isEmployeeDetailsLoading } = useEmployee(
+    selectedEmployee?.employee_id || 0
+  );
+
+  // Update selectedEmployee with full details when they are loaded
+  useEffect(() => {
+    if (fullEmployeeDetails && selectedEmployee?.employee_id === fullEmployeeDetails.employee_id) {
+        // Only update if the data is actually different/more complete to avoid loops
+        if (JSON.stringify(selectedEmployee) !== JSON.stringify(fullEmployeeDetails)) {
+             setSelectedEmployee(fullEmployeeDetails as EmployeeRead);
+        }
+    }
+  }, [fullEmployeeDetails, selectedEmployee]);
 
   // ✅ FIX: Memoize expensive data transformations
   // Flatten and enrich attendance data with employee names
@@ -554,14 +577,7 @@ export const useEmployeeManagement = (
     cleanupDialogState();
 
     try {
-      // RUN IN BACKGROUND
-      EmployeeAttendanceService.create(data).then(() => {
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            queryClient.refetchQueries({ queryKey: employeeAttendanceKeys.all });
-          }, 300);
-        });
-      });
+      createAttendanceMutation.mutate(data);
     } catch (error) {
       console.error("Error creating attendance:", error);
     }
@@ -578,15 +594,10 @@ export const useEmployeeManagement = (
     cleanupDialogState();
 
     try {
-      // RUN IN BACKGROUND
-      EmployeeAttendanceService.createBulk(data).then(() => {
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            queryClient.refetchQueries({ queryKey: employeeAttendanceKeys.all });
-          }, 300);
-        });
-      }).finally(() => {
-        setIsBulkCreatingAttendance(false);
+      createBulkAttendanceMutation.mutate(data, {
+        onSettled: () => {
+          setIsBulkCreatingAttendance(false);
+        }
       });
     } catch (error) {
       console.error("Error creating bulk attendance:", error);
@@ -635,14 +646,7 @@ export const useEmployeeManagement = (
     cleanupDialogState();
 
     try {
-      // RUN IN BACKGROUND
-      EmployeeAttendanceService.updateBulk(data).then(() => {
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            queryClient.refetchQueries({ queryKey: employeeAttendanceKeys.all });
-          }, 300);
-        });
-      });
+      updateBulkAttendanceMutation.mutate(data);
     } catch (error) {
       console.error("Error updating attendance bulk:", error);
     }

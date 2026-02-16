@@ -33,6 +33,7 @@ export interface DataTableProviderProps<TData> {
   
   // Selection callback
   onSelectionChange?: (rows: TData[]) => void;
+  onFilterChange?: (filters: FilterState) => void;
   getRowId?: (row: TData) => string | number;
 }
 
@@ -49,6 +50,7 @@ export function DataTableProvider<TData>({
   onPageChange,
   onPageSizeChange,
   onSelectionChange,
+  onFilterChange,
   getRowId,
 }: DataTableProviderProps<TData>) {
   // Search state
@@ -82,25 +84,30 @@ export function DataTableProvider<TData>({
 
   // Set individual filter
   const setFilter = useCallback((key: string, value: string | null) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setFilters((prev) => {
+      const nextFilters = { ...prev, [key]: value };
+      onFilterChange?.(nextFilters);
+      return nextFilters;
+    });
     // Reset to first page when filter changes
     if (pagination === "client") {
       setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
     } else if (onPageChange) {
       onPageChange(1);
     }
-  }, [pagination, onPageChange]);
+  }, [pagination, onPageChange, onFilterChange]);
 
   // Reset all filters
   const resetFilters = useCallback(() => {
     setFilters({});
     setSearchTerm("");
+    onFilterChange?.({});
     if (pagination === "client") {
       setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
     } else if (onPageChange) {
       onPageChange(1);
     }
-  }, [pagination, onPageChange]);
+  }, [pagination, onPageChange, onFilterChange]);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {

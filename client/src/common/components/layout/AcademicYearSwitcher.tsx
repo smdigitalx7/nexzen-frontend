@@ -13,6 +13,7 @@ import { Badge } from "@/common/components/ui/badge";
 import { useAuthStore, type AcademicYear } from "@/core/auth/authStore";
 import { useAcademicYears } from "@/features/general/hooks/useAcademicYear";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
+import { getCookie } from "@/common/utils/cookie";
 
 const AcademicYearSwitcher = () => {
   const {
@@ -62,6 +63,27 @@ const AcademicYearSwitcher = () => {
       setAcademicYears(transformedData);
     }
 
+    // CRITICAL: Sync displayed academic year with cookie (X-Academic-Year-ID).
+    // Backend sets this cookie; API calls use it. If we don't sync, the dropdown can show
+    // a stale persisted value (e.g. 2025-2026) while the cookie is 2026-2027.
+    const cookieIdRaw = getCookie("X-Academic-Year-ID");
+    const cookieId =
+      cookieIdRaw != null && cookieIdRaw !== ""
+        ? Number.parseInt(cookieIdRaw, 10)
+        : null;
+    const yearFromCookie =
+      Number.isNaN(cookieId) || cookieId == null
+        ? null
+        : academicYearsData.find(
+            (y: { academic_year_id: number }) => y.academic_year_id === cookieId
+          );
+
+    if (yearFromCookie) {
+      setAcademicYear(yearFromCookie.year_name);
+      return;
+    }
+
+    // Fallback: no cookie or ID not in list — use active year when store has no year
     const activeYear =
       academicYearsData.find((y: any) => y.is_active) || academicYearsData[0];
     if (!academicYear && activeYear) {

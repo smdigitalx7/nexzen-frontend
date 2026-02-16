@@ -167,6 +167,7 @@ function DataTableComponent<TData>({
   onPageChange,
   onPageSizeChange,
   onSelectionChange,
+  onFilterChange,
   getRowId,
   ...rest
 }: DataTableProps<TData>) {
@@ -183,6 +184,7 @@ function DataTableComponent<TData>({
       onPageChange={onPageChange}
       onPageSizeChange={onPageSizeChange}
       onSelectionChange={onSelectionChange}
+      onFilterChange={onFilterChange}
       getRowId={getRowId}
     >
       <DataTableInner data={data} {...rest} />

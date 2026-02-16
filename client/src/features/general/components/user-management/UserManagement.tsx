@@ -1,15 +1,19 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ColumnDef } from '@tanstack/react-table';
-import { Trash2, Shield, ShieldX, Eye, Edit, Copy, RefreshCw, EyeOff, User, Mail, Phone, Building, Key, CheckCircle2 } from 'lucide-react';
+import { Trash2, Shield, ShieldX, Eye, Edit, Copy, RefreshCw, EyeOff, User, Mail, Phone, Building, Key, CheckCircle2, Power } from 'lucide-react';
+import { cn } from '@/common/utils';
 import { Badge } from '@/common/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/common/components/ui/avatar';
 import { Button } from '@/common/components/ui/button';
-import { FormDialog, ConfirmDialog } from '@/common/components/shared';
+import { FormDialog, ConfirmDialog, FormSheet } from '@/common/components/shared';
+import { FilterState } from '@/common/components/shared/DataTable/types';
 import { Input } from '@/common/components/ui/input';
 import { Label } from '@/common/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
 import { Checkbox } from '@/common/components/ui/checkbox';
+import { Switch } from '@/common/components/ui/switch';
+import { CircleOff } from 'lucide-react';
 import { Card, CardContent } from '@/common/components/ui/card';
 import { DataTable } from '@/common/components/shared/DataTable';
 import { useToast } from '@/common/hooks/use-toast';
@@ -19,7 +23,7 @@ import {
   createBadgeColumn,
   createDateColumn
 } from "@/common/utils/factory/columnFactories";
-import { useUsersWithRolesAndBranches, useCreateUser, useUpdateUser, useDeleteUser, useUserDashboard, useRevokeUserAccess, useCreateUserAccess, useUser } from '@/features/general/hooks/useUsers';
+import { useUsersWithRolesAndBranches, useCreateUser, useUpdateUser, useDeleteUser, useUserDashboard, useRevokeUserAccess, useCreateUserAccess, useUser, useUpdateUserStatus } from '@/features/general/hooks/useUsers';
 import { useRoles } from '@/features/general/hooks/useRoles';
 import { useBranches } from '@/features/general/hooks/useBranches';
 import { UserWithRolesAndBranches, UserCreate, UserUpdate, BranchRoleAssignment, UserWithAccesses } from '@/features/general/types/users';
@@ -27,14 +31,28 @@ import { BranchRead } from '@/features/general/types/branches';
 import { UserStatsCards } from './UserStatsCards';
 
 const UserManagement = () => {
+  // Component state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [isActiveFilter, setIsActiveFilter] = useState<boolean | null>(null);
+
   // API hooks - Now using clean architecture directly
-  const { data: users = [], isLoading, error } = useUsersWithRolesAndBranches();
+  const { data: paginatedUsers, isLoading, error } = useUsersWithRolesAndBranches({
+    page,
+    page_size: pageSize,
+    is_active: isActiveFilter
+  });
+
+  const users = useMemo(() => paginatedUsers?.data || [], [paginatedUsers]);
+  const totalCount = paginatedUsers?.total_count || 0;
+
   const { data: roles = [], isLoading: rolesLoading } = useRoles();
   const { data: branches = [], isLoading: branchesLoading } = useBranches();
   const { data: dashboardStats, isLoading: dashboardLoading } = useUserDashboard();
   const branchesArray = branches;
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
+  const updateUserStatusMutation = useUpdateUserStatus();
   const deleteUserMutation = useDeleteUser();
   const revokeAccessMutation = useRevokeUserAccess();
   const createAccessMutation = useCreateUserAccess();
@@ -437,13 +455,52 @@ const UserManagement = () => {
   };
 
 
+  const handleToggleStatus = (user: UserWithRolesAndBranches, is_active: boolean) => {
+    updateUserStatusMutation.mutate({ 
+      id: user.user_id, 
+      is_active
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Status Updated",
+          description: `${user.full_name} is now ${is_active ? 'active' : 'inactive'}.`,
+          variant: "success",
+        });
+      },
+      onError: (error: any) => {
+        const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while updating status.';
+        toast({
+          title: "Update Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    });
+  };
+
   const columns: ColumnDef<UserWithRolesAndBranches>[] = useMemo(() => ([
     createAvatarColumn<UserWithRolesAndBranches>('full_name', 'email', { header: 'Full Name' }),
     createTextColumn<UserWithRolesAndBranches>('email', { header: 'Email' }),
     createTextColumn<UserWithRolesAndBranches>('mobile_no', { header: 'Mobile', fallback: 'N/A' }),
-    createBadgeColumn<UserWithRolesAndBranches>('is_active', { header: 'Status', variant: 'outline' }),
+    {
+      accessorKey: 'is_active',
+      header: 'Status',
+      cell: ({ row }) => (
+        <Badge 
+          variant={row.original.is_active ? "success" : "secondary"} 
+          className={cn(
+            "text-[10px] font-bold min-w-[70px] justify-center py-1 rounded-full border-none shadow-none",
+            row.original.is_active 
+              ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" 
+              : "bg-slate-100 text-slate-600 hover:bg-slate-100"
+          )}
+        >
+          {row.original.is_active ? "ACTIVE" : "INACTIVE"}
+        </Badge>
+      )
+    },
     createDateColumn<UserWithRolesAndBranches>('created_at', { header: 'Created' })
-  ]), []);
+  ]), [handleToggleStatus]);
 
   // ✅ MIGRATED: Use DataTable V2 actions format
   const actions = useMemo(() => [
@@ -458,6 +515,13 @@ const UserManagement = () => {
       label: 'Edit', 
       icon: Edit, 
       onClick: (row: UserWithRolesAndBranches) => handleEditUser(row)
+    },
+    { 
+      id: 'status', 
+      label: (row: UserWithRolesAndBranches) => row.is_active ? 'Deactivate' : 'Activate', 
+      icon: Power, 
+      className: (row: UserWithRolesAndBranches) => row.is_active ? 'text-red-500 hover:text-red-600' : 'text-emerald-500 hover:text-emerald-600',
+      onClick: (row: UserWithRolesAndBranches) => handleToggleStatus(row, !row.is_active)
     },
     { 
       id: 'access', 
@@ -523,26 +587,50 @@ const UserManagement = () => {
           columns={columns}
           title="Users"
           loading={isLoading}
-          pagination="client"
+          pagination="server"
+          totalCount={totalCount}
+          currentPage={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
           searchKey="full_name"
           searchPlaceholder="Search users by name..."
           actions={actions}
           onAdd={handleAddUser}
           addButtonText="Add User"
           export={{ enabled: true, filename: 'users' }}
+          filters={[
+            {
+              key: 'is_active',
+              label: 'Status',
+              type: 'select',
+              options: [
+                { label: 'All', value: 'null' },
+                { label: 'Active', value: 'true' },
+                { label: 'Inactive', value: 'false' },
+              ],
+            },
+          ]}
+          onFilterChange={(filters: FilterState) => {
+            const status = filters.is_active;
+            if (status === 'true') setIsActiveFilter(true);
+            else if (status === 'false') setIsActiveFilter(false);
+            else setIsActiveFilter(null);
+            setPage(1); // Reset to first page on filter change
+          }}
         />
       )}
 
-      {/* Add/Edit User Form Dialog */}
-      <FormDialog
+      {/* Add/Edit User Form Sheet */}
+      <FormSheet
         open={showUserForm}
         onOpenChange={setShowUserForm}
         title={isEditing ? "Edit User" : "Add New User"}
         description={isEditing ? "Update user information" : "Create a new user account for your institute"}
-        size="LARGE"
+        size="large"
         isLoading={createUserMutation.isPending || updateUserMutation.isPending}
         onSave={handleSave}
-        saveText={isEditing ? "Update" : "Add"}
+        saveText={isEditing ? "Update User" : "Add User"}
         cancelText="Cancel"
       >
         {formError && (
@@ -618,7 +706,10 @@ const UserManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="role">Primary Role *</Label>
-                  <Select value={selectedRole?.toString() || ""} onValueChange={(value) => setSelectedRole(parseInt(value))}>
+                  <Select 
+                    value={selectedRole ? selectedRole.toString() : ""} 
+                    onValueChange={(value) => setSelectedRole(value ? parseInt(value) : null)}
+                  >
                     <SelectTrigger id="role">
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
@@ -639,7 +730,10 @@ const UserManagement = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="branch">Base Branch *</Label>
-                  <Select value={selectedBranch?.toString() || ""} onValueChange={(value) => setSelectedBranch(parseInt(value))}>
+                  <Select 
+                    value={selectedBranch ? selectedBranch.toString() : ""} 
+                    onValueChange={(value) => setSelectedBranch(value ? parseInt(value) : null)}
+                  >
                     <SelectTrigger id="branch">
                       <SelectValue placeholder="Select a branch" />
                     </SelectTrigger>
@@ -677,10 +771,10 @@ const UserManagement = () => {
                   <h3 className="text-sm font-semibold text-gray-900">Security Credentials</h3>
                   <Button 
                     type="button" 
-                    variant="link" 
+                    variant="ghost" 
                     size="sm" 
                     onClick={generatePassword}
-                    className="h-auto p-0 text-blue-600 hover:text-blue-700 font-bold text-xs"
+                    className="h-auto p-0 text-blue-600 hover:text-blue-700 font-bold text-xs border-transparent shadow-none hover:bg-transparent"
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
                     Generate Password
@@ -760,73 +854,118 @@ const UserManagement = () => {
             )}
         </form>
 
-      </FormDialog>
+      </FormSheet>
 
-      {/* User Detail Dialog */}
-      <FormDialog
+      {/* User Detail Sheet */}
+      <FormSheet
         open={showDetail}
         onOpenChange={setShowDetail}
         title="User Profile"
         description="Detailed account information and branch accesses"
-        size="MEDIUM"
+        size="large"
         showFooter={false}
       >
         {selectedUser && (
           <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-14 w-14">
-                <AvatarFallback className="text-xl font-bold bg-neutral-100 text-neutral-600">
-                  {selectedUser.full_name.split(' ').map((n: string) => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-              <div className="space-y-0.5">
-                <h3 className="text-lg font-semibold">{selectedUser.full_name}</h3>
-                <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+            <div className="flex items-center justify-between bg-neutral-50 p-4 rounded-xl border border-neutral-100">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16 ring-4 ring-white shadow-sm">
+                  <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                    {selectedUser.full_name.split(' ').map((n: string) => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold text-neutral-900">{selectedUser.full_name}</h3>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="h-3.5 w-3.5" />
+                    {selectedUser.email}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center gap-3 bg-white p-2 rounded-lg border shadow-sm">
+                  <span className="text-xs font-semibold text-neutral-500">Status</span>
+                  <Switch 
+                    checked={selectedUser.is_active}
+                    onCheckedChange={(checked) => handleToggleStatus(selectedUser, checked)}
+                    disabled={updateUserMutation.isPending}
+                  />
+                </div>
+                <Badge variant={selectedUser.is_active ? "success" : "secondary" as any} className="text-[10px] font-bold">
+                  {selectedUser.is_active ? 'ACTIVE' : 'INACTIVE'}
+                </Badge>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm border-t pt-4">
-              <div className="space-y-1">
-                <Label className="text-muted-foreground font-normal">Mobile Number</Label>
-                <p className="font-medium">{selectedUser.mobile_no || 'N/A'}</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-muted-foreground font-normal">Account Status</Label>
-                <div>
-                  <Badge variant={selectedUser.is_active ? "success" : "secondary" as any} className="text-[10px] font-bold">
-                    {selectedUser.is_active ? 'ACTIVE' : 'INACTIVE'}
-                  </Badge>
+            <div className="grid grid-cols-2 gap-6 p-1">
+              <div className="space-y-1.5 p-3 rounded-lg border bg-white/50">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                  <Label className="font-medium text-xs">Mobile Number</Label>
                 </div>
+                <p className="font-semibold text-sm pl-6">{selectedUser.mobile_no || 'N/A'}</p>
               </div>
-              <div className="space-y-1">
-                <Label className="text-muted-foreground font-normal">Created On</Label>
-                <p className="font-medium">{new Date(selectedUser.created_at).toLocaleDateString()}</p>
+              <div className="space-y-1.5 p-3 rounded-lg border bg-white/50">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Building className="h-4 w-4" />
+                  <Label className="font-medium text-xs">Created On</Label>
+                </div>
+                <p className="font-semibold text-sm pl-6">{new Date(selectedUser.created_at).toLocaleDateString()}</p>
               </div>
             </div>
             
             {detailedUser && ('accesses' in detailedUser && detailedUser.accesses && detailedUser.accesses.length > 0) && (
-              <div className="space-y-3 pt-2 border-t">
-                <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Branch Accesses</h4>
-                <div className="grid gap-2">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <h4 className="text-sm font-bold uppercase text-muted-foreground tracking-wider">Branch Accesses</h4>
+                  <Badge variant="outline" className="bg-neutral-50">{detailedUser.accesses.length} Units</Badge>
+                </div>
+                <div className="grid gap-3">
                   {detailedUser.accesses.map((access, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-md border">
-                      <div>
-                        <p className="text-sm font-semibold">{access.branch_name}</p>
-                        <p className="text-[11px] text-muted-foreground uppercase font-medium">{access.role_name}</p>
+                    <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-xl border border-neutral-100 shadow-sm hover:border-primary/20 transition-all">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-neutral-100 flex items-center justify-center">
+                          <Building className="h-5 w-5 text-neutral-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-neutral-900">{access.branch_name}</p>
+                          <p className="text-xs font-semibold text-primary uppercase mt-0.5">{access.role_name}</p>
+                        </div>
                       </div>
-                      {access.is_default && (
-                        <Badge variant="outline" className="text-[9px] bg-white border-neutral-300 font-bold">
-                          DEFAULT
+                      <div className="flex items-center gap-2">
+                        {access.is_default && (
+                          <Badge className="text-[9px] bg-neutral-900 hover:bg-neutral-800 text-white font-bold border-none">
+                            PRIMARY
+                          </Badge>
+                        )}
+                        <Badge variant={access.is_active ? "success" : "outline"} className="text-[9px] font-bold">
+                          {access.is_active ? 'ACTIVE' : 'LOCKED'}
                         </Badge>
-                      )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+
+            {!isEditing && (
+              <div className="pt-4 mt-auto">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-center gap-2 font-bold"
+                  onClick={() => {
+                    setShowDetail(false);
+                    handleEditUser(selectedUser);
+                  }}
+                >
+                  <Edit className="h-4 w-4" />
+                  Modify User Credentials
+                </Button>
+              </div>
+            )}
           </div>
         )}
-      </FormDialog>
+      </FormSheet>
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
@@ -842,14 +981,13 @@ const UserManagement = () => {
       />
 
 
-      {/* Add Access Dialog */}
-      <FormDialog
+      {/* Branch Access Management Sheet */}
+      <FormSheet
         open={showAccessDialog}
         onOpenChange={setShowAccessDialog}
         title="Branch Access Management"
         description={`Configure permissions for ${selectedUser?.full_name}`}
-        size="MEDIUM"
-        overlayClassName="bg-black/20 backdrop-blur-[1px]"
+        size="large"
         isLoading={createAccessMutation.isPending}
         onSave={() => {
           const form = document.getElementById('access-form') as HTMLFormElement;
@@ -909,8 +1047,8 @@ const UserManagement = () => {
             <div className="space-y-1.5">
               <Label htmlFor="access-branch">Target Branch *</Label>
               <Select 
-                value={accessFormData.branch_id?.toString() || ""} 
-                onValueChange={(value) => setAccessFormData(prev => ({ ...prev, branch_id: parseInt(value) }))}
+                value={accessFormData.branch_id > 0 ? accessFormData.branch_id.toString() : ""} 
+                onValueChange={(value) => setAccessFormData(prev => ({ ...prev, branch_id: value ? parseInt(value) : 0 }))}
               >
                 <SelectTrigger id="access-branch">
                   <SelectValue placeholder="Select branch" />
@@ -931,8 +1069,8 @@ const UserManagement = () => {
             <div className="space-y-1.5">
               <Label htmlFor="access-role">Authority Role *</Label>
               <Select 
-                value={accessFormData.role_id?.toString() || ""} 
-                onValueChange={(value) => setAccessFormData(prev => ({ ...prev, role_id: parseInt(value) }))}
+                value={accessFormData.role_id > 0 ? accessFormData.role_id.toString() : ""} 
+                onValueChange={(value) => setAccessFormData(prev => ({ ...prev, role_id: value ? parseInt(value) : 0 }))}
               >
                 <SelectTrigger id="access-role">
                   <SelectValue placeholder="Select role" />
@@ -983,7 +1121,7 @@ const UserManagement = () => {
             </div>
           </div>
         </form>
-      </FormDialog>
+      </FormSheet>
 
       {/* Revoke Access from Access Dialog Confirmation */}
       <FormDialog

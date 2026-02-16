@@ -48,10 +48,11 @@ export interface SortingState {
  */
 export interface ActionConfig<TData> {
   id: string;
-  label: string;
+  label: string | ((row: TData) => string);
   icon: React.ComponentType<{ className?: string }>;
   onClick: (row: TData) => void;
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost";
+  className?: string | ((row: TData) => string);
   show?: (row: TData) => boolean;
   disabled?: (row: TData) => boolean;
   /**
@@ -114,6 +115,7 @@ export interface DataTableProps<TData> {
   // Selection
   selectable?: boolean;
   onSelectionChange?: (rows: TData[]) => void;
+  onFilterChange?: (filters: FilterState) => void;
   getRowId?: (row: TData) => string | number;
   
   // Styling

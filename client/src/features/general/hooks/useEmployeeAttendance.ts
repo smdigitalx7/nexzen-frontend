@@ -108,3 +108,27 @@ export const useDeleteAttendance = () => {
     },
   }, "Attendance record deleted successfully");
 };
+
+export const useCreateBulkAttendance = () => {
+  const { invalidateEntity } = useGlobalRefetch();
+  
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: { total_working_days: number; month: number; year: number }) => 
+      EmployeeAttendanceService.createBulk(payload),
+    onSuccess: () => {
+      invalidateEntity("employeeAttendances");
+    },
+  }, "Bulk attendance records created successfully");
+};
+
+export const useUpdateBulkAttendance = () => {
+  const { invalidateEntity } = useGlobalRefetch();
+  
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: { total_working_days: number; month: number; year: number }) => 
+      EmployeeAttendanceService.updateBulk(payload),
+    onSuccess: () => {
+      invalidateEntity("employeeAttendances");
+    },
+  }, "Bulk attendance records updated successfully");
+};

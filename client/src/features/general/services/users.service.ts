@@ -1,5 +1,5 @@
 ﻿import { Api } from "@/core/api";
-import type { UserRead, UserCreate, UserUpdate, UserWithRolesAndBranches, UserWithAccesses, UserDashboardStats } from "@/features/general/types/users";
+import type { UserRead, UserCreate, UserUpdate, UserWithRolesAndBranches, UserWithAccesses, UserDashboardStats, PaginatedUsersWithRolesAndBranches } from "@/features/general/types/users";
 
 /**
  * UsersService - Handles all user-related API operations
@@ -26,19 +26,20 @@ export const UsersService = {
 
   /**
    * Get all users in the institute
-   * @param params - Optional pagination parameters
+   * @param params - Optional pagination and filter parameters
    * @returns Promise<UserRead[]> - List of all users
    */
-  list(params?: { page?: number; page_size?: number }): Promise<UserRead[]> {
+  list(params?: { page?: number; page_size?: number; is_active?: boolean | null }): Promise<UserRead[]> {
     return Api.get<UserRead[]>("/users", params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
   /**
    * Get all users with their roles and branches
-   * @returns Promise<UserWithRolesAndBranches[]> - List of all users with detailed role and branch information
+   * @param params - Optional pagination and filter parameters
+   * @returns Promise<PaginatedUsersWithRolesAndBranches> - Paginated list of users with detailed role and branch information
    */
-  listWithRolesAndBranches(): Promise<UserWithRolesAndBranches[]> {
-    return Api.get<UserWithRolesAndBranches[]>("/users/roles-and-branches");
+  listWithRolesAndBranches(params?: { page?: number; page_size?: number; is_active?: boolean | null }): Promise<PaginatedUsersWithRolesAndBranches> {
+    return Api.get<PaginatedUsersWithRolesAndBranches>("/users/roles-and-branches", params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
   /**
@@ -67,6 +68,16 @@ export const UsersService = {
    */
   update(id: number, payload: UserUpdate): Promise<UserRead> {
     return Api.put<UserRead>(`/users/${id}`, payload);
+  },
+
+  /**
+   * Update user status
+   * @param id - User ID
+   * @param is_active - User status
+   * @returns Promise<UserRead> - Updated user details
+   */
+  updateStatus(id: number, is_active: boolean): Promise<UserRead> {
+    return Api.patch<UserRead>(`/users/${id}/status`, { is_active });
   },
 
   /**

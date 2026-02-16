@@ -131,6 +131,8 @@ function DataTableCoreComponent<TData>({
                 {visibleActions.map((action) => {
                   const Icon = action.icon;
                   const isDisabled = action.disabled?.(row.original) ?? false;
+                  const actionLabel = typeof action.label === "function" ? action.label(row.original) : action.label;
+                  const actionClassName = typeof action.className === "function" ? action.className(row.original) : action.className;
                   const showLabel = action.showLabel ?? false;
 
                   const button = (
@@ -143,15 +145,16 @@ function DataTableCoreComponent<TData>({
                         "h-8",
                         showLabel 
                           ? "px-3 gap-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-700" 
-                          : "px-2"
+                          : "px-2",
+                        actionClassName
                       )}
-                      aria-label={action.label}
+                      aria-label={actionLabel}
                     >
                       <Icon className={cn("h-4 w-4", showLabel && "text-blue-600")} />
                       {showLabel ? (
-                        <span className="text-sm font-medium">{action.label}</span>
+                        <span className="text-sm font-medium">{actionLabel}</span>
                       ) : (
-                        <span className="sr-only">{action.label}</span>
+                        <span className="sr-only">{actionLabel}</span>
                       )}
                     </Button>
                   );
@@ -166,7 +169,7 @@ function DataTableCoreComponent<TData>({
                             <div>{button}</div>
                           </TooltipTrigger>
                           <TooltipContent side="top" align="center">
-                            {action.label}
+                            {actionLabel}
                           </TooltipContent>
                         </Tooltip>
                       )}

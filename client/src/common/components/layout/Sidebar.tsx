@@ -610,7 +610,10 @@ const Sidebar = () => {
                         side="top"
                         className="bg-slate-900 border-slate-800 text-slate-50 font-medium shadow-xl px-3 py-1.5 text-xs"
                       >
-                        Application Version
+                        <div>
+                          <p className="text-[11px]"><span className="text-emerald-400">✦</span> Deployed On </p>
+                          <p className="text-[10px] text-slate-400">{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        </div>
                       </TooltipContent>
                     </Tooltip>
                     <span className="text-slate-300">|</span>

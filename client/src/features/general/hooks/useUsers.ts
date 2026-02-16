@@ -38,12 +38,12 @@ export const useUser = (id: number) => {
   });
 };
 
-export const useUsersWithRolesAndBranches = () => {
+export const useUsersWithRolesAndBranches = (params?: { page?: number; page_size?: number; is_active?: boolean | null }) => {
   return useQuery({
-    queryKey: userKeys.rolesAndBranches(),
-    queryFn: () => UsersService.listWithRolesAndBranches(),
-    staleTime: 5 * 60 * 1000, // 5 minutes - user roles/branches don't change frequently
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    queryKey: userKeys.list(params || {}),
+    queryFn: () => UsersService.listWithRolesAndBranches(params),
+    staleTime: 5 * 60 * 1000, 
+    gcTime: 10 * 60 * 1000,
   });
 };
 
@@ -86,6 +86,20 @@ export const useUpdateUser = () => {
       void qc.refetchQueries({ queryKey: userKeys.rolesAndBranches(), type: 'active' });
     },
   }, "User updated successfully");
+};
+
+export const useUpdateUserStatus = () => {
+  const { invalidateEntity } = useGlobalRefetch();
+  const qc = useQueryClient();
+  
+  return useMutationWithSuccessToast({
+    mutationFn: ({ id, is_active }: { id: number; is_active: boolean }) => 
+      UsersService.updateStatus(id, is_active),
+    onSuccess: () => {
+      invalidateEntity("users");
+      void qc.refetchQueries({ queryKey: userKeys.all, type: 'active' });
+    },
+  }, "Status updated successfully");
 };
 
 export const useDeleteUser = () => {

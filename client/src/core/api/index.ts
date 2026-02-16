@@ -581,6 +581,11 @@ export async function api<T = unknown>({
       // ✅ FIX: Properly type error responses
       let message = res.statusText || "Request failed";
 
+      // THE CORE FIX: Catch success: false even if status is 200
+      if (res.ok && data && typeof data === 'object' && (data as any).success === false) {
+        throw new ApiError((data as any).message || (data as any).detail || "Operation unsuccessful", res.status, data);
+      }
+
       if (isJson && isApiErrorResponse(data)) {
         // Extract message from API error response
         if (typeof data.detail === "string") {

@@ -66,6 +66,14 @@ export interface UserWithRolesAndBranches extends UserRead {
   branches: BranchInfo[];
 }
 
+export interface PaginatedUsersWithRolesAndBranches {
+  data: UserWithRolesAndBranches[];
+  total_count: number;
+  total_pages: number;
+  current_page: number;
+  page_size: number;
+}
+
 // New interface that matches the API response structure
 export interface UserWithAccesses extends UserRead {
   accesses: UserAccess[];
