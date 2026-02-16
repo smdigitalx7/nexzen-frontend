@@ -400,7 +400,7 @@ export const PromotionDropoutTab = () => {
                </Select>
              </div>
  
-             <div className="flex items-center space-x-2">
+             {/* <div className="flex items-center space-x-2">
                <Checkbox 
                  id="require_fees" 
                  checked={requireFeesPaid} 
@@ -409,7 +409,7 @@ export const PromotionDropoutTab = () => {
                <Label htmlFor="require_fees" className="text-sm cursor-pointer">
                  Require all pending fees to be paid for promotion
                </Label>
-             </div>
+             </div> */}
  
              <Alert variant="destructive" className="bg-amber-50 border-amber-200">
                <AlertTriangle className="h-4 w-4 text-amber-600" />
