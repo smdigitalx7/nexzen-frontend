@@ -36,7 +36,7 @@ import {
   CheckCircle,
   Eye,
 } from "lucide-react";
-import { useCollegeReservationsList, useUpdateCollegeReservation, useUpdateCollegeReservationStatus, useCreateCollegeStudent } from "@/features/college/hooks";
+import { useCollegeReservationsList, useUpdateCollegeReservation, useUpdateCollegeReservationStatus } from "@/features/college/hooks";
 import { CollegeReservationsService, CollegeStudentsService } from "@/features/college/services";
 import { toast } from "@/common/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,9 +48,16 @@ import { DataTable } from "@/common/components/shared/DataTable";
 import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { startTransition } from "react";
 import { collegeKeys } from "@/features/college/hooks/query-keys";
+import {
+  extractApiErrorMessage,
+  isApiFailurePayload,
+} from "@/common/types/api";
 
 // Use the actual API types instead of custom interface
 import type { CollegeReservationMinimalRead, CollegeReservationRead } from "@/features/college/types";
+
+const ENROLLMENT_ERROR_FALLBACK =
+  "Failed to enroll student. Please try again.";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
 const formatDate = (dateString: string | null | undefined): string => {
@@ -837,8 +844,6 @@ const ConfirmedReservationsTabComponent = () => {
     return reservationsData.reservations;
   }, [reservationsData]);
 
-  // Initialize mutation hooks
-  const createStudentMutation = useCreateCollegeStudent();
   const updateReservationMutation = useUpdateCollegeReservation(selectedReservation?.reservation_id ?? 0);
   const updateStatusMutation = useUpdateCollegeReservationStatus(selectedReservation?.reservation_id ?? 0);
 
@@ -1091,33 +1096,40 @@ const ConfirmedReservationsTabComponent = () => {
         reservation_date: selectedReservation.reservation_date,
       };
 
-      const response = await createStudentMutation.mutateAsync(studentData) as any;
-      
-      // Check if the operation was successful (StudentCreationResult structure)
-      if (response?.success === false) {
-        const errorMessage = response?.message || "Failed to enroll student. Please try again.";
-        console.error("Student response:", response);
+      const response = await CollegeStudentsService.create(studentData);
+
+      if (isApiFailurePayload(response)) {
         toast({
           title: "Enrollment Failed",
-          description: errorMessage,
+          description: extractApiErrorMessage(
+            response,
+            ENROLLMENT_ERROR_FALLBACK
+          ),
           variant: "destructive",
         });
-        throw new Error(errorMessage);
+        return;
       }
 
-      const raw = response as { data?: { student_id?: number; admission_no?: string }; student_id?: number; admission_no?: string };
+      const raw = response as {
+        data?: { student_id?: number; admission_no?: string };
+        student_id?: number;
+        admission_no?: string;
+        message?: string;
+      };
       const studentId = raw?.data?.student_id ?? raw?.student_id;
       const admissionNo = raw?.data?.admission_no ?? raw?.admission_no;
 
       if (studentId == null || studentId === 0) {
         console.error("Student response:", response);
         toast({
-          title: "Enrollment Error",
-          description:
-            "Student created but student_id not received from server.",
+          title: "Enrollment Failed",
+          description: extractApiErrorMessage(
+            response,
+            ENROLLMENT_ERROR_FALLBACK
+          ),
           variant: "destructive",
         });
-        throw new Error("Student created but no student_id received");
+        return;
       }
 
       setCreatedStudentId(studentId);
@@ -1185,16 +1197,15 @@ const ConfirmedReservationsTabComponent = () => {
         description: admissionNo ? `Student enrolled with admission number ${admissionNo}` : "Student enrolled successfully.",
         variant: "success",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Enrollment failed:", error);
       toast({
         title: "Enrollment Failed",
-        description:
-          error?.message || "Failed to enroll student. Please try again.",
+        description: extractApiErrorMessage(error, ENROLLMENT_ERROR_FALLBACK),
         variant: "destructive",
       });
     }
-  }, [selectedReservation, createStudentMutation, queryClient]);
+  }, [selectedReservation, queryClient]);
 
   const handlePaymentProcess = useCallback(async () => {
     if (createdStudentId == null || createdStudentId === 0) return;

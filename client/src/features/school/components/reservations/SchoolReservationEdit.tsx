@@ -45,6 +45,7 @@ const FormField = memo(
     value,
     onChange,
     placeholder,
+    disabled = false,
   }: {
     id: string;
     label: string;
@@ -52,6 +53,7 @@ const FormField = memo(
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
+    disabled?: boolean;
   }) => (
     <div>
       <Label htmlFor={id}>{label}</Label>
@@ -61,6 +63,7 @@ const FormField = memo(
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        disabled={disabled}
       />
     </div>
   )
@@ -331,6 +334,7 @@ const FeesSection = memo(
           type="number"
           value={form.tuition_fee || "0"}
           onChange={(value) => setForm({ ...form, tuition_fee: value })}
+          disabled
         />
         <FormField
           id="book_fee"
@@ -338,9 +342,10 @@ const FeesSection = memo(
           type="number"
           value={form.book_fee || "0"}
           onChange={(value) => setForm({ ...form, book_fee: value })}
+          disabled
         />
       </div>
-      {(classFee != null || transportFee != null) && (
+      {/* {(classFee != null || transportFee != null) && (
         <div className="text-xs text-muted-foreground mt-2">
           {classFee != null && (
             <div>
@@ -353,7 +358,7 @@ const FeesSection = memo(
             </div>
           )}
         </div>
-      )}
+      )} */}
     </div>
   )
 );

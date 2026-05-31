@@ -5,7 +5,12 @@ import type {
   LoginResponse,
   ApiValidationError,
 } from "@/common/types/api";
-import { ApiError, isApiErrorResponse, isValidationErrorResponse } from "@/common/types/api";
+import {
+  ApiError,
+  extractApiErrorMessage,
+  isApiErrorResponse,
+  isValidationErrorResponse,
+} from "@/common/types/api";
 import { registerAbortController } from "./request-cancellation";
 import { getApiBaseUrl } from "./api";
 
@@ -577,14 +582,23 @@ export async function api<T = unknown>({
     // For 403 errors, don't attempt refresh - it's a permission issue, not authentication
     // Just let the error propagate normally
 
+    // Treat success:false as an error even when HTTP status is 2xx
+    if (
+      data &&
+      typeof data === "object" &&
+      "success" in (data as object) &&
+      (data as { success?: unknown }).success === false
+    ) {
+      throw new ApiError(
+        extractApiErrorMessage(data, "Operation unsuccessful"),
+        res.status,
+        data
+      );
+    }
+
     if (!res.ok) {
       // ✅ FIX: Properly type error responses
       let message = res.statusText || "Request failed";
-
-      // THE CORE FIX: Catch success: false even if status is 200
-      if (res.ok && data && typeof data === 'object' && (data as any).success === false) {
-        throw new ApiError((data as any).message || (data as any).detail || "Operation unsuccessful", res.status, data);
-      }
 
       if (isJson && isApiErrorResponse(data)) {
         // Extract message from API error response
@@ -636,7 +650,9 @@ export async function api<T = unknown>({
       } else if (res.status === 429) {
         message = "Too many requests. Please try again later.";
       } else if (res.status >= 500) {
-        message = "Server error. Please try again later.";
+        if (message === res.statusText || message === "Request failed") {
+          message = "Server error. Please try again later.";
+        }
       }
 
       // ✅ FIX: Use proper ApiError class instead of extending Error with any

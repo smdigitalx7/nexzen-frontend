@@ -4,6 +4,7 @@ import * as React from "react";
 import { BaseDropdown } from "../BaseDropdown";
 import { useQuery } from "@tanstack/react-query";
 import { TransportService } from "@/features/general/services/transport.service";
+import { extractApiErrorMessage } from "@/common/types/api";
 
 export interface BusRouteOption {
   bus_route_id: number;
@@ -76,6 +77,11 @@ export function BusRouteDropdown({
     return option.route_name;
   }, []);
 
+  const errorMessage = React.useMemo(
+    () => (error ? extractApiErrorMessage(error) : undefined),
+    [error]
+  );
+
   return (
     <BaseDropdown<BusRouteOption>
       value={value}
@@ -93,7 +99,7 @@ export function BusRouteDropdown({
       renderOption={renderOption}
       noOptionsText="No bus routes available"
       loadingText="Loading routes..."
-      errorText="Failed to load bus routes"
+      errorText={errorMessage}
       onRetry={() => refetch()}
       emptyValue={emptyValue}
       emptyValueLabel={emptyValueLabel}

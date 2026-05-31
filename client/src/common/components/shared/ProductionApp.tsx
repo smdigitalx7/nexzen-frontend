@@ -18,6 +18,7 @@ const configUtils = {};
 import { productionUtils } from "@/common/utils/performance/production-optimizations";
 import { useAuthStore } from "@/core/auth/authStore";
 import { useIdleTimeout } from "@/common/hooks/useIdleTimeout";
+import { IDLE_TIMEOUT_MS, IDLE_WARNING_MS } from "@/common/constants/auth/session";
 import { IdleTimeoutWarningDialog } from "./IdleTimeoutWarningDialog";
 
 // Loading and error fallbacks are handled by ProductionErrorBoundary
@@ -30,10 +31,10 @@ interface ProductionAppProps {
 export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
   const user = useAuthStore((s) => s.user);
 
-  // Setup idle timeout (5 mins total, 1 min warning)
+  // Setup idle timeout (30 mins total, 5 min warning)
   const { isWarning, remainingTime, resetTimer, logout } = useIdleTimeout(
-    5 * 60 * 1000,
-    60 * 1000
+    IDLE_TIMEOUT_MS,
+    IDLE_WARNING_MS
   );
 
   // Initialize production utilities

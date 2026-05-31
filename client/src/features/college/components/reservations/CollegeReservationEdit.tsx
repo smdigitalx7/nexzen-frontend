@@ -145,19 +145,19 @@ export default function CollegeReservationEdit({ form, setForm, classFee, transp
           </div>
           <div>
             <Label htmlFor="tuition_fee">Tuition Fee</Label>
-            <Input id="tuition_fee" type="number" value={form.tuition_fee || "0"} onChange={(e) => setForm({ ...form, tuition_fee: e.target.value })} />
+            <Input id="tuition_fee" type="number" value={form.tuition_fee || "0"} onChange={(e) => setForm({ ...form, tuition_fee: e.target.value })} disabled />
           </div>
           <div>
             <Label htmlFor="book_fee">Book Fee</Label>
-            <Input id="book_fee" type="number" value={form.book_fee || "0"} onChange={(e) => setForm({ ...form, book_fee: e.target.value })} />
+            <Input id="book_fee" type="number" value={form.book_fee || "0"} onChange={(e) => setForm({ ...form, book_fee: e.target.value })} disabled />
           </div>
         </div>
-        {(classFee != null || transportFee != null) && (
+        {/* {(classFee != null || transportFee != null) && (
           <div className="text-xs text-muted-foreground mt-2">
             {classFee != null && <div>Class Tuition (ref): ₹{Number(classFee || 0).toLocaleString()}</div>}
             {transportFee != null && <div>Transport (ref): ₹{Number(transportFee || 0).toLocaleString()}</div>}
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Transport Section */}

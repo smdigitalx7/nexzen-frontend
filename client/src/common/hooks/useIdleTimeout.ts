@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuthStore } from "@/core/auth/authStore";
+import { IDLE_TIMEOUT_MS, IDLE_WARNING_MS } from "@/common/constants/auth/session";
 
 /**
  * useIdleTimeout Hook
@@ -10,12 +11,12 @@ import { useAuthStore } from "@/core/auth/authStore";
  * - Warning dialog trigger: Notifies when the user is about to be logged out.
  * - Automatic logout: Performs actual logout when the time is up.
  * 
- * @param timeoutMs Total time in milliseconds before automatic logout (default 5 mins)
- * @param warningMs Time in milliseconds before logout to show warning (default 1 min)
+ * @param timeoutMs Total time in milliseconds before automatic logout (default 30 mins)
+ * @param warningMs Time in milliseconds before logout to show warning (default 5 mins)
  */
 export function useIdleTimeout(
-  timeoutMs: number = 5 * 60 * 1000,
-  warningMs: number = 60 * 1000
+  timeoutMs: number = IDLE_TIMEOUT_MS,
+  warningMs: number = IDLE_WARNING_MS
 ) {
   const [isIdle, setIsIdle] = useState(false);
   const [isWarning, setIsWarning] = useState(false);
