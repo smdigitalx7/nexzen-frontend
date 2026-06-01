@@ -9,12 +9,13 @@ import type {
   CollegeStudentTransportPaymentSummary,
   ExpectedTransportPaymentsResponse,
 } from "@/features/college/types/transport-fee-balances";
+import { ApiError } from "@/common/types/api";
 
 export interface StudentFeeDetails {
   enrollment: CollegeEnrollmentWithStudentDetails;
   tuitionBalance: CollegeTuitionFeeBalanceRead | null;
   transportBalance?: CollegeStudentTransportPaymentSummary | null;
-  transportExpectedPayments?: ExpectedTransportPaymentsResponse;
+  transportExpectedPayments?: ExpectedTransportPaymentsResponse | null;
   transportSummary?: CollegeStudentTransportPaymentSummary | null;
 }
 
@@ -32,7 +33,13 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
 
   const tuitionQuery = useQuery({
     queryKey: collegeKeys.tuition.detail(enrollmentId ?? 0),
-    queryFn: () => CollegeTuitionBalancesService.getById(enrollmentId!),
+    queryFn: () =>
+      CollegeTuitionBalancesService.getById(enrollmentId!).catch((err) => {
+        if (err instanceof ApiError && err.status === 404) {
+          return null;
+        }
+        throw err;
+      }),
     enabled: !!enrollmentId,
     staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });
@@ -42,7 +49,12 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
     queryFn: () =>
       CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(
         enrollmentId!
-      ),
+      ).catch((err) => {
+        if (err instanceof ApiError && err.status === 404) {
+          return null;
+        }
+        throw err;
+      }),
     enabled: !!enrollmentId,
     staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });
@@ -52,7 +64,12 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
     queryFn: () =>
       CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(
         enrollmentId!
-      ),
+      ).catch((err) => {
+        if (err instanceof ApiError && err.status === 404) {
+          return null;
+        }
+        throw err;
+      }),
     enabled: !!enrollmentId,
     staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });

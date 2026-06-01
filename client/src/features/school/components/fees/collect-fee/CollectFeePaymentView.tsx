@@ -31,6 +31,8 @@ export const SchoolCollectFeePaymentView = ({
     await updateTuitionBalance.mutateAsync({ book_fee: amount });
   };
 
+  const hasTransport = transportBalance !== null;
+
   const feeCategories = useMemo(() => {
     const categories: {
       BOOK_FEE: FeeItemShape[];
@@ -108,6 +110,7 @@ export const SchoolCollectFeePaymentView = ({
       onPaymentComplete={onPaymentComplete}
       onUpdateBookFee={handleUpdateBookFee}
       onCancel={onCancel}
+      hasTransport={hasTransport}
     />
   );
 };

@@ -4,6 +4,7 @@ import { SchoolTuitionFeeBalancesService } from "@/features/school/services/tuit
 import { SchoolTransportFeeBalancesService } from "@/features/school/services/transport-fee-balances.service";
 import { schoolKeys } from "./query-keys";
 import type { SchoolEnrollmentWithStudentDetails } from "@/features/school/types/enrollments";
+import { ApiError } from "@/common/types/api";
 
 export interface StudentFeeDetails {
   enrollment: SchoolEnrollmentWithStudentDetails;
@@ -27,7 +28,13 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
   // 2. Fetch Tuition Balance (Dependent on Enrollment)
   const tuitionQuery = useQuery({
     queryKey: schoolKeys.tuition.detail(enrollmentId || 0),
-    queryFn: () => SchoolTuitionFeeBalancesService.getById(enrollmentId!),
+    queryFn: () =>
+      SchoolTuitionFeeBalancesService.getById(enrollmentId!).catch((err) => {
+        if (err instanceof ApiError && err.status === 404) {
+          return null;
+        }
+        throw err;
+      }),
     enabled: !!enrollmentId,
     staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });
@@ -35,7 +42,13 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
   // 3. Fetch Transport Balance (Dependent on Enrollment)
   const transportQuery = useQuery({
     queryKey: schoolKeys.transport.detail(enrollmentId || 0),
-    queryFn: () => SchoolTransportFeeBalancesService.getById(enrollmentId!),
+    queryFn: () =>
+      SchoolTransportFeeBalancesService.getById(enrollmentId!).catch((err) => {
+        if (err instanceof ApiError && err.status === 404) {
+          return null;
+        }
+        throw err;
+      }),
     enabled: !!enrollmentId,
     staleTime: 0, // ✅ FIX: Always consider data stale to ensure refetch after payment
   });
@@ -44,11 +57,14 @@ export const useStudentFeeDetails = (admissionNo: string | null) => {
   const isError = enrollmentQuery.isError || tuitionQuery.isError || transportQuery.isError;
   
   // Combined Data
-  const data: StudentFeeDetails | null = enrollment && tuitionQuery.data && transportQuery.data ? {
-      enrollment: enrollment,
-      tuitionBalance: tuitionQuery.data,
-      transportBalance: transportQuery.data
-  } : null;
+  const data: StudentFeeDetails | null =
+    enrollment && tuitionQuery.data !== undefined && transportQuery.data !== undefined
+      ? {
+          enrollment: enrollment,
+          tuitionBalance: tuitionQuery.data,
+          transportBalance: transportQuery.data,
+        }
+      : null;
 
   // ✅ FIX: Track data update timestamp for forcing re-renders
   const dataUpdatedAt = Math.max(

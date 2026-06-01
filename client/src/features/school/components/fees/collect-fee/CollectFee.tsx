@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
+import { AlertCircle } from "lucide-react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { CollectFeeSearch } from "./CollectFeeSearch";
@@ -44,7 +45,13 @@ export const CollectFee = ({
   const admissionNoFromUrl = searchParams.get("admission_no");
 
   // Use the custom hook to fetch student fee details
-  const { data: selectedStudent, refetch: refetchFeeDetails, dataUpdatedAt } = useStudentFeeDetails(selectedAdmissionNo);
+  const {
+    data: selectedStudent,
+    refetch: refetchFeeDetails,
+    dataUpdatedAt,
+    isError,
+    error,
+  } = useStudentFeeDetails(selectedAdmissionNo);
 
   // Update URL with admission number
   const updateUrlWithAdmission = useCallback((admissionNo: string) => {
@@ -221,7 +228,35 @@ export const CollectFee = ({
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            {selectedStudent ? (
+            {isError ? (
+              <div className="flex flex-col items-center justify-center p-8 bg-red-50/50 dark:bg-red-950/10 rounded-xl border border-red-200 dark:border-red-900/30 text-center space-y-4">
+                <AlertCircle className="h-10 w-10 text-red-500" />
+                <div>
+                  <h3 className="text-lg font-semibold text-red-900 dark:text-red-200">
+                    Failed to Load Fee Details
+                  </h3>
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-1 max-w-md">
+                    {error instanceof Error ? error.message : "An unexpected error occurred while fetching the fee details. Please try again."}
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleFormClose()}
+                    className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    onClick={() => {
+                      refetchFeeDetails();
+                    }}
+                    className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            ) : selectedStudent ? (
               <SchoolCollectFeePaymentView
                 key={`payment-${selectedAdmissionNo}-${dataUpdatedAt ?? Date.now()}`}
                 studentDetails={selectedStudent}

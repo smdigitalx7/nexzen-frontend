@@ -73,6 +73,7 @@ export interface CollectFeePaymentViewProps {
   onPaymentComplete: (data: MultiplePaymentData) => Promise<{ blobUrl?: string; receiptNo?: string } | void>;
   onUpdateBookFee?: (amount: number) => Promise<void>;
   onCancel: () => void;
+  hasTransport?: boolean;
 }
 
 /* Single colour for all cards. Selected = full green border, pending (not selected) = light red left border. */
@@ -90,6 +91,7 @@ export function CollectFeePaymentView({
   onPaymentComplete,
   onUpdateBookFee,
   onCancel,
+  hasTransport = true,
 }: CollectFeePaymentViewProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -324,8 +326,12 @@ export function CollectFeePaymentView({
                 <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted/50">
                   <CheckCircle className="h-5 w-5 text-muted-foreground/60" />
                 </div>
-                <p className="mt-1.5 text-sm font-medium text-muted-foreground">All clear</p>
-                <p className="text-xs text-muted-foreground/80">No outstanding dues</p>
+                <p className="mt-1.5 text-sm font-medium text-muted-foreground">
+                  {_type === "TRANSPORT_FEE" ? "No Transport fee No Dues.." : "All clear"}
+                </p>
+                <p className="text-xs text-muted-foreground/80">
+                  {_type === "TRANSPORT_FEE" ? "No transport fee. No dues." : "No outstanding dues"}
+                </p>
               </div>
             </div>
           ) : (
@@ -581,8 +587,8 @@ export function CollectFeePaymentView({
             )}
           </div>
 
-          {/* Tuition and Transport: side by side */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Tuition and Transport: side by side if transport is enabled */}
+          <div className={hasTransport ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : "space-y-4"}>
             {renderCategorySection(
               "Tuition fee",
               <Building2 className="h-5 w-5" />,
@@ -590,7 +596,7 @@ export function CollectFeePaymentView({
               "TUITION_FEE",
               isBookFeePending
             )}
-            {renderCategorySection(
+            {hasTransport && renderCategorySection(
               "Transport fee",
               <Bus className="h-5 w-5" />,
               feeCategories.TRANSPORT_FEE,
