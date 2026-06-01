@@ -416,14 +416,12 @@ const AllReservationsTableComponent = ({
         label: "View",
         icon: Eye,
         onClick: (row: Reservation) => onView(row),
-        show: (row: Reservation) => isApplicationFeePaid(row),
       },
       {
         id: "edit",
         label: "Edit",
         icon: Edit,
         onClick: (row: Reservation) => onEdit(row),
-        show: (row: Reservation) => isApplicationFeePaid(row),
       },
       {
         id: "delete",

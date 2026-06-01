@@ -248,14 +248,12 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
       label: "View",
       icon: Eye,
       onClick: onView,
-      show: (row: ReservationForAllReservations) => isApplicationFeePaid(row),
     },
     {
       id: "edit",
       label: "Edit",
       icon: Edit,
       onClick: onEdit,
-      show: (row: ReservationForAllReservations) => isApplicationFeePaid(row),
     },
     {
       id: "pay-fee",
