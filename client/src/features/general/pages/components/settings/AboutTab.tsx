@@ -10,6 +10,20 @@ import { useState } from "react";
 import { Separator } from "@/common/components/ui/separator";
 import IssueReportDialog from "../../../components/Support/IssueReportDialog";
 
+const getDeploymentDate = (version: string) => {
+  const match = version.match(/v\d+\.\d+\.(\d{2})(\d{2})/);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    const currentYear = new Date().getFullYear();
+    const date = new Date(currentYear, month, day);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+  }
+  return new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
 const AboutTab = () => {
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
@@ -33,11 +47,19 @@ const AboutTab = () => {
 
       <div className="space-y-8 max-w-3xl">
         {/* Version Info */}
-        <div className="flex items-center gap-2 bg-muted/50 backdrop-blur-sm px-4 py-2 rounded-md border w-fit">
-          <Tag className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">
-            Version {__BUILD_DATE__ || "1.0.0"}
-          </span>
+        <div className="flex flex-col gap-1.5 bg-muted/50 backdrop-blur-sm px-4 py-3 rounded-md border w-fit">
+          <div className="flex items-center gap-2">
+            <Tag className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">
+              Version {__BUILD_DATE__ || "1.0.0"}
+            </span>
+          </div>
+          {__BUILD_DATE__ && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-6">
+              <span className="text-emerald-500 font-bold">✦</span>
+              <span>Deployed On: {getDeploymentDate(__BUILD_DATE__)}</span>
+            </div>
+          )}
         </div>
 
         {/* Support & Help */}

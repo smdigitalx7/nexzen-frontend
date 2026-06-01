@@ -54,6 +54,20 @@ interface NavigationItem {
   children?: NavigationItem[];
 }
 
+const getDeploymentDate = (version: string) => {
+  const match = version.match(/v\d+\.\d+\.(\d{2})(\d{2})/);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    const currentYear = new Date().getFullYear();
+    const date = new Date(currentYear, month, day);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+  }
+  return new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
 const Sidebar = () => {
   const [showIssueReportDialog, setShowIssueReportDialog] = useState(false);
   const location = useLocation();
@@ -612,7 +626,7 @@ const Sidebar = () => {
                       >
                         <div>
                           <p className="text-[11px]"><span className="text-emerald-400">✦</span> Deployed On </p>
-                          <p className="text-[10px] text-slate-400">{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                          <p className="text-[10px] text-slate-400">{getDeploymentDate(__BUILD_DATE__)}</p>
                         </div>
                       </TooltipContent>
                     </Tooltip>
