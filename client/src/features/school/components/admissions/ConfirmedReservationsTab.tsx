@@ -1,4 +1,4 @@
-﻿ import { useState, useMemo, useCallback, memo, useEffect } from "react";
+ import { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
@@ -34,6 +34,8 @@ import {
   GraduationCap,
   Edit,
   CheckCircle,
+  Info,
+  AlertTriangle,
 } from "lucide-react";
 import {
   useSchoolReservationsList,
@@ -621,22 +623,51 @@ const AdmissionFeeSection = memo(
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <Input
-              id="admission-fee-input"
-              name="admission_fee"
-              type="number"
-              value={admissionFee}
-              onChange={(e) => onAdmissionFeeChange(Number(e.target.value))}
-              placeholder="Enter admission fee"
-              className="text-xl font-bold h-12 bg-white dark:bg-slate-950 border-green-300 focus:border-green-500"
-            />
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <Input
+                id="admission-fee-input"
+                name="admission_fee"
+                type="number"
+                value={admissionFee === 0 ? "" : admissionFee}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onAdmissionFeeChange(val === "" ? 0 : Number(val));
+                }}
+                placeholder="Enter admission fee"
+                className="text-xl font-bold h-12 bg-white dark:bg-slate-950 border-green-300 focus:border-green-500"
+              />
+            </div>
+            <div className="flex gap-2">
+              {[1000, 2000, 3000].map((amt) => (
+                <Button
+                  key={amt}
+                  type="button"
+                  variant={admissionFee === amt ? "default" : "outline"}
+                  onClick={() => onAdmissionFeeChange(amt)}
+                  className={`h-12 px-4 font-bold border-green-300 transition-all duration-200 ${
+                    admissionFee === amt
+                      ? "bg-green-600 hover:bg-green-700 text-white shadow-md scale-105"
+                      : "hover:bg-green-50 dark:hover:bg-green-950/30 text-green-700 hover:text-green-800"
+                  }`}
+                >
+                  ₹{amt.toLocaleString()}
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">Default Amount</p>
-            <p className="text-lg font-bold text-green-600">₹3,000</p>
-          </div>
+          {admissionFee > 0 ? (
+            <p className="text-sm font-semibold text-green-800 dark:text-green-200 bg-green-100/50 dark:bg-green-900/30 p-2.5 rounded border border-green-200 dark:border-green-800/50 flex items-center gap-2">
+              <Info className="h-4 w-4 text-green-600 shrink-0" />
+              Confirming admission fee collection of ₹{admissionFee.toLocaleString()}
+            </p>
+          ) : (
+            <p className="text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 p-2.5 rounded border border-red-200 dark:border-red-900/30 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+              Please enter a valid admission fee to enroll the student.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -815,7 +846,7 @@ const ConfirmedReservationsTabComponent = () => {
         await SchoolReservationsService.getById(reservationId);
       setSelectedReservation(reservationDetails as unknown as Reservation);
       setEditForm(reservationDetails as unknown as Reservation);
-      setAdmissionFee(3000);
+      setAdmissionFee(0);
       setIsEditMode(false);
       setShowDetailsDialog(true);
     } catch (error) {
@@ -1388,6 +1419,7 @@ const ConfirmedReservationsTabComponent = () => {
                 {!editForm?.is_enrolled && (
                   <Button
                     onClick={handleEnrollConfirm}
+                    disabled={!admissionFee || admissionFee <= 0 || isNaN(admissionFee)}
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
                   >
                     <UserCheck className="h-4 w-4" />
