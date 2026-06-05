@@ -457,7 +457,7 @@ const Sidebar = () => {
                 </div>
                 <div className="flex flex-col flex-1 min-w-0 justify-center">
                   <span
-                    className="font-bold text-base text-slate-800 leading-tight line-clamp-2"
+                    className="font-bold text-lg text-slate-800 leading-tight tracking-tight line-clamp-2"
                     title={currentBranch?.branch_name || brand.getName()}
                   >
                     {(() => {
