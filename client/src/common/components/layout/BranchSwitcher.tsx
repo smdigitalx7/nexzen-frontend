@@ -74,7 +74,11 @@ const BranchSwitcher = () => {
         </Button>
       </DropdownMenuTrigger>
       <AnimatePresence>
-        <DropdownMenuContent align="center" className="w-[270px]" asChild>
+        <DropdownMenuContent
+          align="center"
+          className="w-[var(--radix-dropdown-menu-trigger-width)]"
+          asChild
+        >
           <motion.div
             initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -89,19 +93,25 @@ const BranchSwitcher = () => {
                 className="hover-elevate"
                 data-testid={`menuitem-branch-${branch.branch_id}`}
               >
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 flex items-center justify-center overflow-hidden">
+                <div className="flex items-center gap-2 w-full min-w-0">
+                  <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center overflow-hidden">
                     <img
                       src={getLogoByBranchType(branch.branch_type)}
                       alt={getLogoAltByBranchType(branch.branch_type)}
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <span className="truncate" title={branch.branch_name}>
+                  <span
+                    className="truncate flex-1 min-w-0"
+                    title={branch.branch_name}
+                  >
                     {branch.branch_name}
                   </span>
                   {branch.branch_type && (
-                    <Badge variant="secondary" className="ml-auto text-xs">
+                    <Badge
+                      variant="secondary"
+                      className="flex-shrink-0 ml-auto text-xs"
+                    >
                       {branch.branch_type}
                     </Badge>
                   )}

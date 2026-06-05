@@ -62,10 +62,18 @@ const getDeploymentDate = (version: string) => {
     const currentYear = new Date().getFullYear();
     const date = new Date(currentYear, month, day);
     if (!isNaN(date.getTime())) {
-      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      return date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
     }
   }
-  return new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date().toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 const Sidebar = () => {
@@ -436,39 +444,42 @@ const Sidebar = () => {
         )}
       >
         {/* Logo Section */}
-        <div className="p-4 border-b border-slate-200/80 bg-white/50 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
+        <div className="px-3.5 py-4 border-b border-slate-200/80 bg-white/50 backdrop-blur-sm">
+          <div className={cn("flex items-center", sidebarOpen ? "justify-between gap-2.5" : "justify-center")}>
             {sidebarOpen ? (
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 ">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="w-12 h-12 flex-shrink-0">
                   <img
                     src={getLogoByBranchType(currentBranch?.branch_type)}
                     alt={getLogoAltByBranchType(currentBranch?.branch_type)}
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div className="flex flex-col">
-                  <span className="font-bold max-w-[100px] text-lg  bg-clip-text text-gray-800/90 leading-tight">
-                    {currentBranch?.branch_name || brand.getName()}
+                <div className="flex flex-col flex-1 min-w-0 justify-center">
+                  <span
+                    className="font-bold text-base text-slate-800 leading-tight line-clamp-2"
+                    title={currentBranch?.branch_name || brand.getName()}
+                  >
+                    {(() => {
+                      const name = currentBranch?.branch_name || brand.getName();
+                      if (!name) return "";
+                      const words = name.trim().split(/\s+/);
+                      return words.length <= 2 ? name : words.slice(0, 2).join(" ");
+                    })()}
                   </span>
-                  {/* <span className="text-xs text-slate-500 font-medium capitalize">
-                  {currentBranch?.branch_type || "Education"}
-                </span> */}
                 </div>
               </div>
-            ) : (
-              <div />
-            )}
+            ) : null}
 
             {/* Toggle Button */}
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleSidebar}
-              className="hover-elevate hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 rounded-lg"
+              className="h-8 w-8 hover-elevate hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 rounded-lg shrink-0"
               data-testid="button-sidebar-toggle"
             >
-              <Menu className="h-6 w-6 text-slate-600 hover:text-slate-900 transition-colors" />
+              <Menu className="h-5 w-5 text-slate-600 hover:text-slate-900 transition-colors" />
             </Button>
           </div>
         </div>
@@ -625,8 +636,13 @@ const Sidebar = () => {
                         className="bg-slate-900 border-slate-800 text-slate-50 font-medium shadow-xl px-3 py-1.5 text-xs"
                       >
                         <div>
-                          <p className="text-[11px]"><span className="text-emerald-400">✦</span> Deployed On </p>
-                          <p className="text-[10px] text-slate-400">{getDeploymentDate(__BUILD_DATE__)}</p>
+                          <p className="text-[11px]">
+                            <span className="text-emerald-400">✦</span> Deployed
+                            On{" "}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {getDeploymentDate(__BUILD_DATE__)}
+                          </p>
                         </div>
                       </TooltipContent>
                     </Tooltip>

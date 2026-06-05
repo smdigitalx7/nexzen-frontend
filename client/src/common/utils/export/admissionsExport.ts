@@ -380,6 +380,43 @@ export async function exportSingleAdmissionToExcel(
   window.URL.revokeObjectURL(url);
 }
 
+async function compressLogo(
+  dataUrl: string,
+  maxDim: number = 300
+): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        }
+      } else {
+        if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/png"));
+      } else {
+        resolve(dataUrl);
+      }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 /**
  * Export school admission form to PDF with professional black & white format
  */
@@ -387,7 +424,12 @@ export async function exportSchoolAdmissionFormToPDF(
   admission: SchoolAdmissionDetails
 ) {
   const { jsPDF } = await import("jspdf");
-  const doc = new jsPDF();
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+    compress: true,
+  });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 12;
   let yPos = 15;
@@ -402,6 +444,9 @@ export async function exportSchoolAdmissionFormToPDF(
       reader.onloadend = () => resolve(reader.result as string);
       reader.readAsDataURL(blob);
     });
+    if (logoDataUrl) {
+      logoDataUrl = await compressLogo(logoDataUrl, 250);
+    }
   } catch (error) {
     // Logo not loaded, continuing without logo
   }
@@ -409,15 +454,12 @@ export async function exportSchoolAdmissionFormToPDF(
   // Header with Logo and School Name
   yPos += 5;
 
-  // Set header text position for vertical alignment
-  const headerYPos = yPos + 2;
   const headerFontSize = 20;
 
-  // Left-align logo if present - align vertically with header text
   if (logoDataUrl) {
-    const logoWidth = 25;
-    const logoHeight = 25;
-    const logoYPos = headerYPos - logoHeight / 2;
+    const logoWidth = 22;
+    const logoHeight = 22;
+    const logoYPos = yPos;
     doc.addImage(
       logoDataUrl,
       "PNG",
@@ -426,24 +468,40 @@ export async function exportSchoolAdmissionFormToPDF(
       logoWidth,
       logoHeight
     );
+
+    // Left-align the school name next to the logo to prevent overlap
+    doc.setFontSize(headerFontSize);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      String(admission.branch_name || brand.getDefaultSchoolName()),
+      margin + 2 + logoWidth + 5,
+      yPos + 8
+    );
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("STUDENT ADMISSION FORM", margin + 2 + logoWidth + 5, yPos + 14);
+
+    yPos += logoHeight + 5;
+  } else {
+    const headerYPos = yPos + 2;
+    doc.setFontSize(headerFontSize);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      String(admission.branch_name || brand.getDefaultSchoolName()),
+      pageWidth / 2,
+      headerYPos,
+      { align: "center" }
+    );
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("STUDENT ADMISSION FORM", pageWidth / 2, headerYPos + 6, {
+      align: "center",
+    });
+    yPos = headerYPos + 18;
   }
 
-  doc.setFontSize(headerFontSize);
-  doc.setFont("helvetica", "bold");
-  doc.text(
-    String(admission.branch_name || brand.getDefaultSchoolName()),
-    pageWidth / 2,
-    headerYPos,
-    { align: "center" }
-  );
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text("STUDENT ADMISSION FORM", pageWidth / 2, headerYPos + 6, {
-    align: "center",
-  });
-
-  yPos = headerYPos + 18;
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 7;
 
@@ -467,11 +525,15 @@ export async function exportSchoolAdmissionFormToPDF(
   );
   yPos += 8;
 
-  // Two-column layout for clean design
+  // Two-column layout constants for clean grid alignment
   const col1 = margin;
   const col2 = pageWidth / 2;
-  const labelWidth = 40;
-  const valueSpacing = 5; // Spacing between label and value
+  const col1LabelWidth = 22;
+  const col2LabelWidth = 26;
+  const col1ValX = col1 + col1LabelWidth;
+  const col2ValX = col2 + col2LabelWidth;
+  const col1MaxValWidth = col2 - col1ValX - 13;
+  const col2MaxValWidth = pageWidth - margin - col2ValX - 9;
   const lineHeight = 5.5; // Increased line height for better readability
 
   // STUDENT DETAILS
@@ -486,23 +548,38 @@ export async function exportSchoolAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Name:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.student_name || ""), col1 + labelWidth, yPos);
+  const studentNameFormatted =
+    doc.splitTextToSize(
+      String(admission.student_name || ""),
+      col1MaxValWidth
+    )[0] || "";
+  doc.text(studentNameFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Class:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.class_name || ""), col2 + labelWidth, yPos);
+  const classNameFormatted =
+    doc.splitTextToSize(
+      String(admission.class_name || ""),
+      col2MaxValWidth
+    )[0] || "";
+  doc.text(classNameFormatted, col2ValX, yPos);
   yPos += lineHeight;
 
   doc.setFont("helvetica", "bold");
   doc.text("Gender:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.gender || ""), col1 + labelWidth, yPos);
+  const genderFormatted =
+    doc.splitTextToSize(String(admission.gender || ""), col1MaxValWidth)[0] ||
+    "";
+  doc.text(genderFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Date of Birth:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.dob || ""), col2 + labelWidth, yPos);
+  const dobFormatted =
+    doc.splitTextToSize(String(admission.dob || ""), col2MaxValWidth)[0] || "";
+  doc.text(dobFormatted, col2ValX, yPos);
   yPos += 8;
 
   // FATHER/GUARDIAN
@@ -517,39 +594,43 @@ export async function exportSchoolAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Name:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    String(admission.father_or_guardian_name || ""),
-    col1 + labelWidth,
-    yPos
-  );
+  const fatherNameFormatted =
+    doc.splitTextToSize(
+      String(admission.father_or_guardian_name || ""),
+      col1MaxValWidth
+    )[0] || "";
+  doc.text(fatherNameFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Occupation:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    String(admission.father_or_guardian_occupation || ""),
-    col2 + labelWidth,
-    yPos
-  );
+  const fatherOccFormatted =
+    doc.splitTextToSize(
+      String(admission.father_or_guardian_occupation || ""),
+      col2MaxValWidth
+    )[0] || "";
+  doc.text(fatherOccFormatted, col2ValX, yPos);
   yPos += lineHeight;
 
   doc.setFont("helvetica", "bold");
   doc.text("Aadhar:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    String(admission.father_or_guardian_aadhar_no || ""),
-    col1 + labelWidth,
-    yPos
-  );
+  const fatherAadharFormatted =
+    doc.splitTextToSize(
+      String(admission.father_or_guardian_aadhar_no || ""),
+      col1MaxValWidth
+    )[0] || "";
+  doc.text(fatherAadharFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Mobile:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    String(admission.father_or_guardian_mobile || ""),
-    col2 + labelWidth,
-    yPos
-  );
+  const fatherMobileFormatted =
+    doc.splitTextToSize(
+      String(admission.father_or_guardian_mobile || ""),
+      col2MaxValWidth
+    )[0] || "";
+  doc.text(fatherMobileFormatted, col2ValX, yPos);
   yPos += 8;
 
   // MOTHER/GUARDIAN
@@ -564,39 +645,43 @@ export async function exportSchoolAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Name:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    String(admission.mother_or_guardian_name || ""),
-    col1 + labelWidth,
-    yPos
-  );
+  const motherNameFormatted =
+    doc.splitTextToSize(
+      String(admission.mother_or_guardian_name || ""),
+      col1MaxValWidth
+    )[0] || "";
+  doc.text(motherNameFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Occupation:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    String(admission.mother_or_guardian_occupation || ""),
-    col2 + labelWidth,
-    yPos
-  );
+  const motherOccFormatted =
+    doc.splitTextToSize(
+      String(admission.mother_or_guardian_occupation || ""),
+      col2MaxValWidth
+    )[0] || "";
+  doc.text(motherOccFormatted, col2ValX, yPos);
   yPos += lineHeight;
 
   doc.setFont("helvetica", "bold");
   doc.text("Aadhar:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    String(admission.mother_or_guardian_aadhar_no || ""),
-    col1 + labelWidth,
-    yPos
-  );
+  const motherAadharFormatted =
+    doc.splitTextToSize(
+      String(admission.mother_or_guardian_aadhar_no || ""),
+      col1MaxValWidth
+    )[0] || "";
+  doc.text(motherAadharFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Mobile:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    String(admission.mother_or_guardian_mobile || ""),
-    col2 + labelWidth,
-    yPos
-  );
+  const motherMobileFormatted =
+    doc.splitTextToSize(
+      String(admission.mother_or_guardian_mobile || ""),
+      col2MaxValWidth
+    )[0] || "";
+  doc.text(motherMobileFormatted, col2ValX, yPos);
   yPos += 8;
 
   // ADDRESS
@@ -613,18 +698,18 @@ export async function exportSchoolAdmissionFormToPDF(
   doc.setFont("helvetica", "normal");
   const presentLines = doc.splitTextToSize(
     String(admission.present_address || ""),
-    75
+    col1MaxValWidth
   );
-  doc.text(presentLines, col1 + labelWidth, yPos);
+  doc.text(presentLines, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Permanent:", col2, yPos);
   doc.setFont("helvetica", "normal");
   const permanentLines = doc.splitTextToSize(
     String(admission.permanent_address || ""),
-    75
+    col2MaxValWidth
   );
-  doc.text(permanentLines, col2 + labelWidth, yPos);
+  doc.text(permanentLines, col2ValX, yPos);
   yPos += Math.max(presentLines.length, permanentLines.length) * 4.5 + 6;
 
   // FEE STRUCTURE - Clean Table
@@ -794,7 +879,12 @@ export async function exportCollegeAdmissionFormToPDF(
   admission: CollegeAdmissionDetails
 ) {
   const { jsPDF } = await import("jspdf");
-  const doc = new jsPDF();
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+    compress: true,
+  });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 12;
   let yPos = 15;
@@ -809,6 +899,9 @@ export async function exportCollegeAdmissionFormToPDF(
       reader.onloadend = () => resolve(reader.result as string);
       reader.readAsDataURL(blob);
     });
+    if (logoDataUrl) {
+      logoDataUrl = await compressLogo(logoDataUrl, 250);
+    }
   } catch (error) {
     // Logo not loaded, continuing without logo
   }
@@ -816,15 +909,12 @@ export async function exportCollegeAdmissionFormToPDF(
   // Header with Logo and College Name
   yPos += 5;
 
-  // Set header text position for vertical alignment
-  const headerYPos = yPos + 2;
   const headerFontSize = 20;
 
-  // Left-align logo if present - align vertically with header text
   if (logoDataUrl) {
-    const logoWidth = 25;
-    const logoHeight = 25;
-    const logoYPos = headerYPos - logoHeight / 2;
+    const logoWidth = 22;
+    const logoHeight = 22;
+    const logoYPos = yPos;
     doc.addImage(
       logoDataUrl,
       "PNG",
@@ -833,24 +923,40 @@ export async function exportCollegeAdmissionFormToPDF(
       logoWidth,
       logoHeight
     );
+
+    // Left-align the college name next to the logo to prevent overlap
+    doc.setFontSize(headerFontSize);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      String(admission.branch_name || brand.getDefaultCollegeName()),
+      margin + 2 + logoWidth + 5,
+      yPos + 8
+    );
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("STUDENT ADMISSION FORM", margin + 2 + logoWidth + 5, yPos + 14);
+
+    yPos += logoHeight + 5;
+  } else {
+    const headerYPos = yPos + 2;
+    doc.setFontSize(headerFontSize);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      String(admission.branch_name || brand.getDefaultCollegeName()),
+      pageWidth / 2,
+      headerYPos,
+      { align: "center" }
+    );
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("STUDENT ADMISSION FORM", pageWidth / 2, headerYPos + 6, {
+      align: "center",
+    });
+    yPos = headerYPos + 18;
   }
 
-  doc.setFontSize(headerFontSize);
-  doc.setFont("helvetica", "bold");
-  doc.text(
-    String(admission.branch_name || brand.getDefaultCollegeName()),
-    pageWidth / 2,
-    headerYPos,
-    { align: "center" }
-  );
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text("STUDENT ADMISSION FORM", pageWidth / 2, headerYPos + 6, {
-    align: "center",
-  });
-
-  yPos = headerYPos + 18;
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 7;
 
@@ -866,10 +972,15 @@ export async function exportCollegeAdmissionFormToPDF(
   );
   yPos += 6;
 
-  // Two-column layout for compact design
+  // Two-column layout constants for clean grid alignment
   const col1 = margin;
   const col2 = pageWidth / 2;
-  const labelWidth = 38;
+  const col1LabelWidth = 22;
+  const col2LabelWidth = 26;
+  const col1ValX = col1 + col1LabelWidth;
+  const col2ValX = col2 + col2LabelWidth;
+  const col1MaxValWidth = col2 - col1ValX - 13;
+  const col2MaxValWidth = pageWidth - margin - col2ValX - 9;
   const lineHeight = 4.5;
 
   // STUDENT DETAILS
@@ -884,7 +995,12 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Name:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(admission.student_name || "N/A", col1 + labelWidth, yPos);
+  const studentNameFormatted =
+    doc.splitTextToSize(
+      String(admission.student_name || "N/A"),
+      col1MaxValWidth
+    )[0] || "";
+  doc.text(studentNameFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Group/Course:", col2, yPos);
@@ -893,18 +1009,28 @@ export async function exportCollegeAdmissionFormToPDF(
     admission.group_name && admission.course_name
       ? `${admission.group_name} - ${admission.course_name}`
       : admission.group_name || admission.course_name || "N/A";
-  doc.text(groupCourse, col2 + 25, yPos);
+  const groupCourseFormatted =
+    doc.splitTextToSize(String(groupCourse), col2MaxValWidth)[0] || "";
+  doc.text(groupCourseFormatted, col2ValX, yPos);
   yPos += lineHeight;
 
   doc.setFont("helvetica", "bold");
   doc.text("Gender:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(admission.gender || "N/A", col1 + labelWidth, yPos);
+  const genderFormatted =
+    doc.splitTextToSize(
+      String(admission.gender || "N/A"),
+      col1MaxValWidth
+    )[0] || "";
+  doc.text(genderFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Date of Birth:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(admission.dob || "N/A", col2 + 25, yPos);
+  const dobFormatted =
+    doc.splitTextToSize(String(admission.dob || "N/A"), col2MaxValWidth)[0] ||
+    "";
+  doc.text(dobFormatted, col2ValX, yPos);
   yPos += 6;
 
   // FATHER/GUARDIAN
@@ -919,27 +1045,43 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Name:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(admission.father_or_guardian_name || "N/A", col1 + labelWidth, yPos);
+  const fatherNameFormatted =
+    doc.splitTextToSize(
+      String(admission.father_or_guardian_name || "N/A"),
+      col1MaxValWidth
+    )[0] || "";
+  doc.text(fatherNameFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Occupation:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(admission.father_or_guardian_occupation || "N/A", col2 + 25, yPos);
+  const fatherOccFormatted =
+    doc.splitTextToSize(
+      String(admission.father_or_guardian_occupation || "N/A"),
+      col2MaxValWidth
+    )[0] || "";
+  doc.text(fatherOccFormatted, col2ValX, yPos);
   yPos += lineHeight;
 
   doc.setFont("helvetica", "bold");
   doc.text("Aadhar:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    admission.father_or_guardian_aadhar_no || "N/A",
-    col1 + labelWidth,
-    yPos
-  );
+  const fatherAadharFormatted =
+    doc.splitTextToSize(
+      String(admission.father_or_guardian_aadhar_no || "N/A"),
+      col1MaxValWidth
+    )[0] || "";
+  doc.text(fatherAadharFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Mobile:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(admission.father_or_guardian_mobile || "N/A", col2 + 25, yPos);
+  const fatherMobileFormatted =
+    doc.splitTextToSize(
+      String(admission.father_or_guardian_mobile || "N/A"),
+      col2MaxValWidth
+    )[0] || "";
+  doc.text(fatherMobileFormatted, col2ValX, yPos);
   yPos += 6;
 
   // MOTHER/GUARDIAN
@@ -954,27 +1096,43 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Name:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(admission.mother_or_guardian_name || "N/A", col1 + labelWidth, yPos);
+  const motherNameFormatted =
+    doc.splitTextToSize(
+      String(admission.mother_or_guardian_name || "N/A"),
+      col1MaxValWidth
+    )[0] || "";
+  doc.text(motherNameFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Occupation:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(admission.mother_or_guardian_occupation || "N/A", col2 + 25, yPos);
+  const motherOccFormatted =
+    doc.splitTextToSize(
+      String(admission.mother_or_guardian_occupation || "N/A"),
+      col2MaxValWidth
+    )[0] || "";
+  doc.text(motherOccFormatted, col2ValX, yPos);
   yPos += lineHeight;
 
   doc.setFont("helvetica", "bold");
   doc.text("Aadhar:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    admission.mother_or_guardian_aadhar_no || "N/A",
-    col1 + labelWidth,
-    yPos
-  );
+  const motherAadharFormatted =
+    doc.splitTextToSize(
+      String(admission.mother_or_guardian_aadhar_no || "N/A"),
+      col1MaxValWidth
+    )[0] || "";
+  doc.text(motherAadharFormatted, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Mobile:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(admission.mother_or_guardian_mobile || "N/A", col2 + 25, yPos);
+  const motherMobileFormatted =
+    doc.splitTextToSize(
+      String(admission.mother_or_guardian_mobile || "N/A"),
+      col2MaxValWidth
+    )[0] || "";
+  doc.text(motherMobileFormatted, col2ValX, yPos);
   yPos += 6;
 
   // ADDRESS
@@ -991,18 +1149,18 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.setFont("helvetica", "normal");
   const presentLines = doc.splitTextToSize(
     admission.present_address || "N/A",
-    75
+    col1MaxValWidth
   );
-  doc.text(presentLines, col1 + labelWidth, yPos);
+  doc.text(presentLines, col1ValX, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Permanent:", col2, yPos);
   doc.setFont("helvetica", "normal");
   const permanentLines = doc.splitTextToSize(
     admission.permanent_address || "N/A",
-    75
+    col2MaxValWidth
   );
-  doc.text(permanentLines, col2 + 25, yPos);
+  doc.text(permanentLines, col2ValX, yPos);
   yPos += Math.max(presentLines.length, permanentLines.length) * 4 + 4;
 
   // FEE STRUCTURE - Compact Table

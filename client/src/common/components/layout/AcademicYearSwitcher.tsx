@@ -124,36 +124,42 @@ const AcademicYearSwitcher = () => {
         </Button>
       </DropdownMenuTrigger>
       <AnimatePresence>
-        <DropdownMenuContent align="center" className="w-[220px]" asChild>
+        <DropdownMenuContent
+          align="center"
+          className="w-[var(--radix-dropdown-menu-trigger-width)]"
+          asChild
+        >
           <motion.div
             initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -10, opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            {academicYears
-              .map((year) => (
-                <DropdownMenuItem
-                  key={year.academic_year_id}
-                  disabled={isAcademicYearSwitching}
-                  onClick={() => void handleAcademicYearSwitch(year)}
-                  className="hover-elevate"
-                  data-testid={`menuitem-academic-year-${year.academic_year_id}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span className="truncate" title={year.year_name}>
-                      {year.year_name}
-                    </span>
-                    <Badge 
-                      variant={year.is_active ? "success" : "secondary"} 
-                      className="ml-auto text-[10px] px-1.5 py-0 h-4 uppercase tracking-wider font-bold"
-                    >
-                      {year.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                </DropdownMenuItem>
-              ))}
+            {academicYears.map((year) => (
+              <DropdownMenuItem
+                key={year.academic_year_id}
+                disabled={isAcademicYearSwitching}
+                onClick={() => void handleAcademicYearSwitch(year)}
+                className="hover-elevate"
+                data-testid={`menuitem-academic-year-${year.academic_year_id}`}
+              >
+                <div className="flex items-center gap-2 w-full min-w-0">
+                  <Calendar className="h-4 w-4 flex-shrink-0" />
+                  <span
+                    className="truncate flex-1 min-w-0"
+                    title={year.year_name}
+                  >
+                    {year.year_name}
+                  </span>
+                  <Badge
+                    variant={year.is_active ? "success" : "secondary"}
+                    className="flex-shrink-0 ml-auto text-[10px] px-1.5 py-0 h-4 uppercase tracking-wider font-bold"
+                  >
+                    {year.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+              </DropdownMenuItem>
+            ))}
           </motion.div>
         </DropdownMenuContent>
       </AnimatePresence>
