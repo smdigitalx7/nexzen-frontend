@@ -19,6 +19,7 @@ const assets = [
   'Akshara-logo.png',
   'Akshara-headname.png',
   'Akshara-loginbg.jpg',
+  'akshara-main.jpg',
 ];
 
 console.log('📦 Setting up Akshara assets...\n');

@@ -85,11 +85,12 @@ const checkEnvFile = () => {
 
   // Determine required assets based on brand
   let requiredAssets = [];
-  if (brandName.toLowerCase() === "akshara") {
+  if (brandName.toLowerCase().includes("akshara")) {
     requiredAssets = [
       "Akshara-logo.png",
       "Akshara-headname.png",
       "Akshara-loginbg.jpg",
+      "akshara-main.jpg",
     ];
   } else if (brandName.toLowerCase() === "velonex") {
     // Velonex uses different asset names based on env file
