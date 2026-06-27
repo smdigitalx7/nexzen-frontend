@@ -1,4 +1,4 @@
-﻿import * as React from "react"
+import * as React from "react"
 
 import { cn } from "@/common/utils"
 
@@ -11,7 +11,7 @@ export interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
   ({ className, striped = false, hoverable = true, bordered = false, responsive = true, ...props }, ref) => (
-    <div className={cn("relative w-full", responsive && "overflow-auto scrollbar-hide")}>
+    <div className={cn("relative w-full", responsive && "overflow-auto scrollbar-thin")}>
       <table
         ref={ref}
         className={cn(

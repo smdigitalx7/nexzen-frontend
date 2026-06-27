@@ -1,10 +1,12 @@
-﻿import { TabSwitcher, MonthYearFilter } from "@/common/components/shared";
+import { TabSwitcher, MonthYearFilter } from "@/common/components/shared";
 import { EmployeeTable } from "./EmployeeTable";
 import { AttendanceTable } from "./AttendanceTable";
 import { LeavesTable } from "./LeavesTable";
 import { AdvancesTable } from "../Advance/AdvancesTable";
 import { Users, Calendar, FileText } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
+import { EsslDashboard } from "@/modules/attendance/biometric/components/EsslDashboard";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/common/components/ui/tabs";
 import type { TabItem } from "@/common/components/shared/TabSwitcher";
 import type { LucideIcon } from "lucide-react";
 import type { EmployeeLeaveRead } from "@/features/general/types/employee-leave";
@@ -257,7 +259,52 @@ export const EmployeeManagementTabs = ({
       value: "attendance",
       label: "Attendance",
       icon: Calendar,
-      content: (
+      content: import.meta.env.VITE_FEATURE_BIOMETRIC === "true" ? (
+        <div className="space-y-6">
+          <Tabs defaultValue="essl" className="w-full">
+            <TabsList className="bg-slate-100 p-1 rounded-lg dark:bg-slate-800">
+              <TabsTrigger value="essl">eSSL Biometric Console</TabsTrigger>
+              <TabsTrigger value="manual">Monthly Payroll Logs</TabsTrigger>
+            </TabsList>
+            <TabsContent value="essl" className="mt-4">
+              <EsslDashboard />
+            </TabsContent>
+            <TabsContent value="manual" className="mt-4">
+              <AttendanceTable
+                attendance={attendance}
+                isLoading={attendanceLoading}
+                onAddAttendance={onAddAttendance}
+                onBulkCreateAttendance={onBulkCreateAttendance}
+                onEditAttendance={onEditAttendance}
+                onDeleteAttendance={onDeleteAttendance}
+                onViewAttendance={onViewAttendance}
+                currentPage={attendancePage}
+                totalCount={totalAttendance}
+                onPageChange={setAttendancePage}
+                pageSize={pageSize}
+                onPageSizeChange={onPageSizeChange}
+                showSearch={true}
+                headerContent={
+                  <MonthYearFilter
+                    label="Period:"
+                    month={attendanceMonth}
+                    year={attendanceYear}
+                    onMonthChange={setAttendanceMonth}
+                    onYearChange={setAttendanceYear}
+                    monthId="attendance-month"
+                    yearId="attendance-year"
+                    showLabels={false}
+                    monthWidth="140px"
+                    labelClassName="text-blue-900"
+                    monthClassName="text-blue-700 font-semibold"
+                    yearClassName="text-blue-700 font-semibold"
+                  />
+                }
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      ) : (
         <AttendanceTable
           attendance={attendance}
           isLoading={attendanceLoading}

@@ -383,7 +383,7 @@ function DataTableCoreComponent<TData>({
     <div
       ref={tableContainerRef}
       className={cn(
-        "rounded-md border overflow-auto",
+        "rounded-md border overflow-auto scrollbar-thin",
         shouldVirtualize && "max-h-[600px]",
         className
       )}

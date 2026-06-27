@@ -96,6 +96,27 @@ export const CollegeReportsPage = lazy(
   () => import("@/features/college/pages/CollegeReportsPage")
 );
 
+// Lazy-loaded Biometric Attendance Components
+export const BiometricEsslDashboard = lazy(
+  () => import("@/modules/attendance/biometric/pages/EsslDashboardPage")
+);
+export const BiometricDailyReport = lazy(
+  () => import("@/modules/attendance/biometric/pages/DailyReportPage")
+);
+export const BiometricMonthlySummary = lazy(
+  () => import("@/modules/attendance/biometric/pages/MonthlySummaryPage")
+);
+export const BiometricMonthlyMatrix = lazy(
+  () => import("@/modules/attendance/biometric/pages/MonthlyMatrixPage")
+);
+export const BiometricYearlySummary = lazy(
+  () => import("@/modules/attendance/biometric/pages/YearlySummaryPage")
+);
+export const BiometricYearlyMatrix = lazy(
+  () => import("@/modules/attendance/biometric/pages/YearlyMatrixPage")
+);
+
+
 /**
  * Route configuration type
  */
@@ -105,6 +126,74 @@ export interface RouteConfig {
   component: React.ComponentType<any>;
   preventDirectAccess?: boolean;
 }
+
+/**
+ * Biometric route definitions (Akshara only)
+ */
+const biometricRoutes: RouteConfig[] = [
+  // School Biometric routes
+  {
+    path: "/school/attendance/essl-dashboard",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricEsslDashboard,
+  },
+  {
+    path: "/school/attendance/daily-report",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricDailyReport,
+  },
+  {
+    path: "/school/attendance/monthly-summary",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricMonthlySummary,
+  },
+  {
+    path: "/school/attendance/monthly-matrix",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricMonthlyMatrix,
+  },
+  {
+    path: "/school/attendance/yearly-summary",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricYearlySummary,
+  },
+  {
+    path: "/school/attendance/yearly-matrix",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricYearlyMatrix,
+  },
+  // College Biometric routes
+  {
+    path: "/college/attendance/essl-dashboard",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricEsslDashboard,
+  },
+  {
+    path: "/college/attendance/daily-report",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricDailyReport,
+  },
+  {
+    path: "/college/attendance/monthly-summary",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricMonthlySummary,
+  },
+  {
+    path: "/college/attendance/monthly-matrix",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricMonthlyMatrix,
+  },
+  {
+    path: "/college/attendance/yearly-summary",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricYearlySummary,
+  },
+  {
+    path: "/college/attendance/yearly-matrix",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"],
+    component: BiometricYearlyMatrix,
+  },
+];
 
 /**
  * Route definitions for the application
@@ -268,6 +357,7 @@ export const routes: RouteConfig[] = [
     roles: ["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC", "ACCOUNTANT"],
     component: AnnouncementsManagement,
   },
+  ...(import.meta.env.VITE_FEATURE_BIOMETRIC === "true" ? biometricRoutes : [])
 ];
 
 /**
@@ -308,6 +398,22 @@ const routePrefetchers: Record<string, () => Promise<unknown>> = {
   "/college/financial-reports": () => import("@/features/college/pages/CollegeReportsPage"),
   "/college/announcements": () =>
     import("@/features/general/components/Announcemnts/AnnouncementsManagement"),
+
+  // School Biometric
+  "/school/attendance/essl-dashboard": () => import("@/modules/attendance/biometric/pages/EsslDashboardPage"),
+  "/school/attendance/daily-report": () => import("@/modules/attendance/biometric/pages/DailyReportPage"),
+  "/school/attendance/monthly-summary": () => import("@/modules/attendance/biometric/pages/MonthlySummaryPage"),
+  "/school/attendance/monthly-matrix": () => import("@/modules/attendance/biometric/pages/MonthlyMatrixPage"),
+  "/school/attendance/yearly-summary": () => import("@/modules/attendance/biometric/pages/YearlySummaryPage"),
+  "/school/attendance/yearly-matrix": () => import("@/modules/attendance/biometric/pages/YearlyMatrixPage"),
+
+  // College Biometric
+  "/college/attendance/essl-dashboard": () => import("@/modules/attendance/biometric/pages/EsslDashboardPage"),
+  "/college/attendance/daily-report": () => import("@/modules/attendance/biometric/pages/DailyReportPage"),
+  "/college/attendance/monthly-summary": () => import("@/modules/attendance/biometric/pages/MonthlySummaryPage"),
+  "/college/attendance/monthly-matrix": () => import("@/modules/attendance/biometric/pages/MonthlyMatrixPage"),
+  "/college/attendance/yearly-summary": () => import("@/modules/attendance/biometric/pages/YearlySummaryPage"),
+  "/college/attendance/yearly-matrix": () => import("@/modules/attendance/biometric/pages/YearlyMatrixPage"),
 };
 
 const prefetchedRoutes = new Set<string>();
