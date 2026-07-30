@@ -67,6 +67,38 @@ export type Reservation = {
   application_income_id?: number | null;
   admission_income_id?: number | null;
   is_enrolled?: boolean | null;
+
+  // API fields preserved for custom Excel report export
+  aadhar_no?: string | null;
+  gender?: string | null;
+  dob?: string | null;
+  father_or_guardian_name?: string | null;
+  father_or_guardian_aadhar_no?: string | null;
+  father_or_guardian_mobile?: string | null;
+  father_or_guardian_occupation?: string | null;
+  mother_or_guardian_name?: string | null;
+  mother_or_guardian_aadhar_no?: string | null;
+  mother_or_guardian_mobile?: string | null;
+  mother_or_guardian_occupation?: string | null;
+  siblings?: any[] | null;
+  previous_class?: string | null;
+  previous_school_details?: string | null;
+  present_address?: string | null;
+  permanent_address?: string | null;
+  preferred_class_id?: number | null;
+  class_name?: string | null;
+  preferred_transport_id?: number | null;
+  preferred_distance_slab_id?: number | null;
+  pickup_point?: string | null;
+  request_type?: string | null;
+  referred_by?: number | null;
+  referred_by_name?: string | null;
+  other_referee_name?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: number | null;
+  updated_by?: number | null;
+  transport_required?: boolean | null;
 };
 
 export type AllReservationsTableProps = {
@@ -458,6 +490,98 @@ const AllReservationsTableComponent = ({
     []
   );
 
+  // Custom Excel Export for All Reservations (maps all API response fields)
+  const handleExportExcel = useCallback(async () => {
+    if (!reservations || reservations.length === 0) return;
+
+    try {
+      const { exportToExcel, formatDate } = await import(
+        "@/common/utils/export/excel-export-utils"
+      );
+
+      const excelColumns = [
+        { header: "Reservation ID", key: "reservation_id" },
+        { header: "Reservation No", key: "no" },
+        { header: "Student Name", key: "studentName" },
+        { header: "Aadhar No", key: "aadhar_no" },
+        { header: "Gender", key: "gender" },
+        { header: "Date of Birth", key: "dob" },
+        { header: "Father/Guardian Name", key: "father_or_guardian_name" },
+        { header: "Father/Guardian Aadhar No", key: "father_or_guardian_aadhar_no" },
+        { header: "Father/Guardian Mobile", key: "father_or_guardian_mobile" },
+        { header: "Father/Guardian Occupation", key: "father_or_guardian_occupation" },
+        { header: "Mother/Guardian Name", key: "mother_or_guardian_name" },
+        { header: "Mother/Guardian Aadhar No", key: "mother_or_guardian_aadhar_no" },
+        { header: "Mother/Guardian Mobile", key: "mother_or_guardian_mobile" },
+        { header: "Mother/Guardian Occupation", key: "mother_or_guardian_occupation" },
+        { header: "Previous Class", key: "previous_class" },
+        { header: "Previous School Details", key: "previous_school_details" },
+        { header: "Present Address", key: "present_address" },
+        { header: "Permanent Address", key: "permanent_address" },
+        { header: "Application Fee", key: "application_fee" },
+        { header: "Application Fee Paid", key: "application_fee_paid" },
+        { header: "Preferred Class ID", key: "preferred_class_id" },
+        { header: "Class Name", key: "classAdmission" },
+        { header: "Tuition Fee", key: "tuition_fee" },
+        { header: "Book Fee", key: "book_fee" },
+        { header: "Tuition Concession", key: "tuition_concession" },
+        { header: "Transport Required", key: "transport_required" },
+        { header: "Preferred Transport ID", key: "preferred_transport_id" },
+        { header: "Preferred Distance Slab ID", key: "preferred_distance_slab_id" },
+        { header: "Pickup Point", key: "pickup_point" },
+        { header: "Transport Fee", key: "transport_fee" },
+        { header: "Transport Concession", key: "transport_concession" },
+        { header: "Concession Lock", key: "concession_lock" },
+        { header: "Status", key: "status" },
+        { header: "Request Type", key: "request_type" },
+        { header: "Referred By", key: "referred_by" },
+        { header: "Referred By Name", key: "referred_by_name" },
+        { header: "Other Referee Name", key: "other_referee_name" },
+        { header: "Remarks", key: "remarks" },
+        { header: "Reservation Date", key: "date" },
+        { header: "Created At", key: "created_at" },
+        { header: "Updated At", key: "updated_at" },
+        { header: "Is Enrolled", key: "is_enrolled" },
+      ];
+
+      const flatData = reservations.map((row) => {
+        const record: Record<string, string | number> = {};
+        excelColumns.forEach((col) => {
+          const val = row[col.key as keyof Reservation];
+          if (val === null || val === undefined || val === "") {
+            record[col.key] = "-";
+          } else if (typeof val === "boolean") {
+            record[col.key] = val ? "Yes" : "No";
+          } else if (col.key === "dob" || col.key === "date") {
+            record[col.key] = formatDate(val as string);
+          } else if (col.key === "created_at" || col.key === "updated_at") {
+            record[col.key] = new Date(val as string).toLocaleString("en-IN", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+          } else if (typeof val === "number") {
+            record[col.key] = val;
+          } else {
+            record[col.key] = String(val);
+          }
+        });
+        return record;
+      });
+
+      await exportToExcel(flatData, excelColumns, {
+        filename: "reservations",
+        sheetName: "All Reservations",
+        title: "All Reservations Report",
+        includeMetadata: true,
+      });
+    } catch (error) {
+      console.error("Failed to export reservations:", error);
+    }
+  }, [reservations]);
+
   if (isError) {
     return <ErrorState error={error} onRefetch={onRefetch} />;
   }
@@ -475,6 +599,7 @@ const AllReservationsTableComponent = ({
           export={{
             enabled: true,
             filename: "reservations",
+            onExport: handleExportExcel,
           }}
           loading={isLoading}
           actions={combinedActions}

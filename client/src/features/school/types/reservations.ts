@@ -86,6 +86,7 @@ export interface SchoolReservationRead {
   tuition_concession?: number | null;
   concession_lock?: boolean | null;
   status: SchoolReservationStatusEnum;
+  remarks?: string | null;
   other_referee_name?: string | null;
   reservation_date?: string | null;
   created_at: string;

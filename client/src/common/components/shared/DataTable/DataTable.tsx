@@ -114,12 +114,14 @@ function DataTableInner<TData>({
         filters={filters}
         onAdd={onAdd}
         addButtonText={addButtonText}
+        onExport={exportConfig?.onExport}
+        showExport={exportConfig?.enabled && !!exportConfig.onExport}
         leftContent={toolbarLeftContent}
         middleContent={toolbarMiddleContent}
         rightContent={
           <>
             {toolbarRightContent}
-            {exportConfig?.enabled && (
+            {exportConfig?.enabled && !exportConfig.onExport && (
               <DataTableExport
                 data={data}
                 columns={columns}
