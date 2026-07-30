@@ -2,7 +2,7 @@ import { memo } from "react";
 import { Badge } from "@/common/components/ui/badge";
 
 export interface SchoolReservationViewContentProps {
-  viewReservation: Record<string, unknown>;
+  viewReservation: Record<string, any>;
   routeNames?: Array<{ bus_route_id: number; route_name?: string }>;
   distanceSlabs?: Array<{ slab_id: number; slab_name?: string }>;
   classes?: Array<{ class_id: number; class_name?: string }>;

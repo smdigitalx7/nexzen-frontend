@@ -226,6 +226,7 @@ const ReservationManagementComponent = () => {
 
     // ✅ OPTIMIZATION: Use map with stable reference
     return reservationsData.reservations.map((r: any) => ({
+      ...r,
       id: String(r.reservation_id),
       no: r.reservation_no || r.reservationNo || "",
       reservation_id: r.reservation_id,
