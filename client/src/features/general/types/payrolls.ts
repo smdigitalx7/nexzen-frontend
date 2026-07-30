@@ -111,6 +111,15 @@ export interface PayrollPreview {
   other_deductions: number;
   total_deductions: number;
   net_pay: number;
+  // Biometric payroll preview fields
+  success?: boolean;
+  message?: string;
+  payroll_month?: number;
+  payroll_year?: number;
+  expected_days?: number;
+  missing_days?: number;
+  existing_record?: boolean;
+  existing_status?: string;
 }
 
 export interface PayrollPreviewRequest {

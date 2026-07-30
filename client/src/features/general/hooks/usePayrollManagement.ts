@@ -370,6 +370,9 @@ export const usePayrollManagement = () => {
         if (import.meta.env.DEV) {
           console.log("Creating payroll with data:", data);
         }
+        if (import.meta.env.VITE_FEATURE_BIOMETRIC === "true") {
+          return PayrollsService.createBiometric(data);
+        }
         return PayrollsService.create(data);
       },
       onSuccess: () => {

@@ -1,4 +1,5 @@
-﻿import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calculator,
@@ -14,6 +15,7 @@ import {
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
+import { Badge } from "@/common/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -68,6 +70,7 @@ export const SalaryCalculationForm = ({
   employees,
   initialEmployeeId,
 }: SalaryCalculationFormProps) => {
+  const navigate = useNavigate();
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [previewData, setPreviewData] = useState<PayrollPreview | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -167,11 +170,23 @@ export const SalaryCalculationForm = ({
           const currentMonth = new Date().getMonth() + 1;
           const currentYear = new Date().getFullYear();
           
-          const preview = await PayrollsService.getPreview({
-            employee_id: Number(initialEmployeeId),
-            month: currentMonth,
-            year: currentYear,
-          });
+          const preview = import.meta.env.VITE_FEATURE_BIOMETRIC === "true"
+            ? await PayrollsService.getBiometricPreview({
+                employee_id: Number(initialEmployeeId),
+                month: currentMonth,
+                year: currentYear,
+              })
+            : await PayrollsService.getPreview({
+                employee_id: Number(initialEmployeeId),
+                month: currentMonth,
+                year: currentYear,
+              });
+
+          if (preview && 'success' in preview && preview.success === false) {
+            setPreviewError(preview.message || "Failed to load payroll preview.");
+            setPreviewData(preview);
+            return;
+          }
 
           setPreviewData(preview);
           setPreviewError(null);
@@ -234,11 +249,23 @@ export const SalaryCalculationForm = ({
     setPreviewData(null);
     setPreviewError(null);
     try {
-      const preview = await PayrollsService.getPreview({
-        employee_id: Number(formData.employee_id),
-        month: Number(formData.payroll_month),
-        year: Number(formData.payroll_year),
-      });
+      const preview = import.meta.env.VITE_FEATURE_BIOMETRIC === "true"
+        ? await PayrollsService.getBiometricPreview({
+            employee_id: Number(formData.employee_id),
+            month: Number(formData.payroll_month),
+            year: Number(formData.payroll_year),
+          })
+        : await PayrollsService.getPreview({
+            employee_id: Number(formData.employee_id),
+            month: Number(formData.payroll_month),
+            year: Number(formData.payroll_year),
+          });
+
+      if (preview && 'success' in preview && preview.success === false) {
+        setPreviewError(preview.message || "Failed to load payroll preview.");
+        setPreviewData(preview);
+        return;
+      }
 
       setPreviewData(preview);
       setPreviewError(null);
@@ -296,10 +323,10 @@ export const SalaryCalculationForm = ({
     e.preventDefault();
 
     // Create new payroll
-    if (!previewData) {
+    if (!previewData || previewData.success === false) {
       toast({
         title: "Validation Error",
-        description: "Please get preview data first before creating payroll",
+        description: "Please get a valid preview first before creating payroll",
         variant: "destructive",
       });
       return;
@@ -659,8 +686,44 @@ export const SalaryCalculationForm = ({
 
           {previewData && <Separator className="bg-gray-200" />}
 
-          {/* Show full form only after preview is loaded */}
-          {previewData ? (
+          {/* Unsuccessful Preview Handling */}
+          {previewData && previewData.success === false && (
+            <div className="px-6 py-4 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl p-5 flex flex-col items-center text-center gap-4">
+                <div className="p-3 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full">
+                  <AlertCircle className="h-6 w-6 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-red-950 dark:text-red-200 text-base">
+                    {previewData.message?.includes("PAID") ? "Payroll Already Finalized" : "Salary Profile Missing"}
+                  </h4>
+                  <p className="text-sm text-red-700 dark:text-red-400 mt-1 max-w-md font-medium">
+                    {previewData.message}
+                  </p>
+                </div>
+                {previewData.message?.includes("salary details") && (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      navigate("/employees");
+                      onClose();
+                    }}
+                    className="mt-2 bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg transition shadow-md hover:shadow-lg"
+                  >
+                    Go to Employee Management
+                  </Button>
+                )}
+                {previewData.message?.includes("PAID") && (
+                  <Badge className="bg-green-500 hover:bg-green-600 px-3 py-1 font-bold text-xs uppercase tracking-wider">
+                    Paid
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Show full form only after preview is loaded successfully */}
+          {previewData && previewData.success !== false ? (
             <>
             <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
@@ -688,6 +751,40 @@ export const SalaryCalculationForm = ({
                   {/* Decorative faint background circle */}
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-slate-800 rounded-full opacity-50 blur-2xl"></div>
                </div>
+
+               {/* Attendance Sync Info Cards (Akshara biometric only) */}
+               {import.meta.env.VITE_FEATURE_BIOMETRIC === "true" && (previewData.expected_days !== undefined || previewData.missing_days !== undefined) && (
+                 <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 text-sm shadow-inner">
+                   <div className="flex flex-col gap-0.5">
+                     <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">Expected Work Days</span>
+                     <span className="font-bold text-gray-800 dark:text-gray-200 text-base">{previewData.expected_days ?? 0} Days</span>
+                   </div>
+                   <div className="flex flex-col gap-0.5 border-l pl-4 border-gray-200 dark:border-gray-700">
+                     <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">Missing Log Days</span>
+                     <span className={`font-bold text-base ${Number(previewData.missing_days) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>
+                       {previewData.missing_days ?? 0} Days
+                     </span>
+                   </div>
+                 </div>
+               )}
+
+               {/* Biometric ESSL Sync Warning Alert */}
+               {import.meta.env.VITE_FEATURE_BIOMETRIC === "true" && Number(previewData.missing_days) > 0 && (
+                 <Alert className="border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 rounded-xl">
+                   <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 animate-pulse" />
+                   <AlertDescription className="text-xs font-medium">
+                     This employee has <strong>{previewData.missing_days}</strong> days with no attendance logs synced from ESSL. These days have been deducted as Loss of Pay (LOP).
+                   </AlertDescription>
+                 </Alert>
+               )}
+
+               {/* Upsert Notice Callout */}
+               {import.meta.env.VITE_FEATURE_BIOMETRIC === "true" && previewData.existing_record && (
+                 <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-lg text-xs text-blue-700 dark:text-blue-400 font-medium">
+                   <CheckCircle className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
+                   <span>Existing payroll record found ({previewData.existing_status}). Generating will perform an <strong>UPSERT (Update)</strong>.</span>
+                 </div>
+               )}
 
                {/* Breakdown Details */}
                <div className="grid grid-cols-2 gap-8 px-1">
@@ -814,7 +911,9 @@ export const SalaryCalculationForm = ({
               type="submit"
               className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-medium"
             >
-              Confirm & Generate Payroll
+              {import.meta.env.VITE_FEATURE_BIOMETRIC === "true" && previewData?.existing_record
+                ? "Confirm & Update Payroll"
+                : "Confirm & Generate Payroll"}
             </Button>
           </DialogFooter>
           </>
@@ -833,12 +932,18 @@ export const SalaryCalculationForm = ({
             setPendingPayrollData(null);
           }
         }}
-        title="Confirm Payroll Creation"
+        title={
+          import.meta.env.VITE_FEATURE_BIOMETRIC === "true" && previewData?.existing_record
+            ? "Confirm Payroll Update"
+            : "Confirm Payroll Creation"
+        }
         description={
           pendingPayrollData ? (
             <div className="space-y-2 mt-2">
               <p className="font-medium">
-                Are you sure you want to create this payroll?
+                {import.meta.env.VITE_FEATURE_BIOMETRIC === "true" && previewData?.existing_record
+                  ? "Are you sure you want to update this payroll record?"
+                  : "Are you sure you want to create this payroll?"}
               </p>
               <div className="bg-muted/50 p-3 rounded-md space-y-1 text-sm">
                 <div className="flex justify-between">
@@ -879,15 +984,25 @@ export const SalaryCalculationForm = ({
               </div>
             </div>
           ) : (
-            "Are you sure you want to create this payroll?"
+            import.meta.env.VITE_FEATURE_BIOMETRIC === "true" && previewData?.existing_record
+              ? "Are you sure you want to update this payroll record?"
+              : "Are you sure you want to create this payroll?"
           )
         }
-        confirmText="Create Payroll"
+        confirmText={
+          import.meta.env.VITE_FEATURE_BIOMETRIC === "true" && previewData?.existing_record
+            ? "Update Payroll"
+            : "Create Payroll"
+        }
         cancelText="Cancel"
         onConfirm={handleConfirmCreate}
         onCancel={handleCancelConfirm}
         isLoading={isSubmitting}
-        loadingText="Creating payroll..."
+        loadingText={
+          import.meta.env.VITE_FEATURE_BIOMETRIC === "true" && previewData?.existing_record
+            ? "Updating payroll..."
+            : "Creating payroll..."
+        }
         disabled={isSubmitting}
       />
     </Dialog>

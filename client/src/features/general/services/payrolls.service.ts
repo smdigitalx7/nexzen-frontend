@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import type {
   PayrollRead,
   PayrollListResponse,
@@ -164,6 +164,15 @@ export const PayrollsService = {
   },
 
   /**
+   * Get biometric payroll preview for an employee (Akshara only)
+   * @param payload - Preview request data (employee_id, month, year)
+   * @returns Promise<PayrollPreview> - Payroll preview with calculated biometric values
+   */
+  getBiometricPreview(payload: PayrollPreviewRequest): Promise<PayrollPreview> {
+    return Api.post<PayrollPreview>("/payrolls/biometric-payroll-preview", payload);
+  },
+
+  /**
    * Create a new payroll for an employee
    * @param payload - Payroll creation data
    * @returns Promise<PayrollRead> - Created payroll details
@@ -181,6 +190,25 @@ export const PayrollsService = {
       payment_notes: payload.payment_notes,
     };
     return Api.post<PayrollRead>("/payrolls", apiPayload);
+  },
+
+  /**
+   * Create or update a biometric payroll for an employee (Akshara only)
+   * @param payload - Payroll creation data
+   * @returns Promise<PayrollRead> - Created/updated payroll details
+   */
+  createBiometric(payload: PayrollCreate): Promise<PayrollRead> {
+    const apiPayload = {
+      employee_id: payload.employee_id,
+      payroll_month: payload.payroll_month,
+      payroll_year: payload.payroll_year,
+      other_deductions: payload.other_deductions || 0,
+      advance_amount: payload.advance_amount || 0,
+      paid_amount: payload.paid_amount,
+      payment_method: payload.payment_method,
+      payment_notes: payload.payment_notes,
+    };
+    return Api.post<PayrollRead>("/payrolls/biometric-payroll", apiPayload);
   },
 
   /**
