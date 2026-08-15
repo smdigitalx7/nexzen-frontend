@@ -251,6 +251,7 @@ PayslipDetailView.displayName = "PayslipDetailView";
 
 export const PayrollManagementTemplateComponent = () => {
   const [initialEmployeeId, setInitialEmployeeId] = useState<number | null>(null);
+  const [initialEmployeeName, setInitialEmployeeName] = useState<string>("");
 
   // Dashboard stats hook
   const { data: dashboardStats, isLoading: dashboardLoading } =
@@ -348,8 +349,9 @@ export const PayrollManagementTemplateComponent = () => {
     setActiveTab("generate_payroll");
   }, [setActiveTab]);
 
-  const handleGeneratePayroll = useCallback((employeeId: number) => {
+  const handleGeneratePayroll = useCallback((employeeId: number, employeeName: string) => {
     setInitialEmployeeId(employeeId);
+    setInitialEmployeeName(employeeName);
     setSelectedPayroll(null);
     setShowCreateDialog(true);
   }, [setShowCreateDialog, setSelectedPayroll]);
@@ -635,6 +637,7 @@ export const PayrollManagementTemplateComponent = () => {
           setShowCreateDialog(false);
           // ✅ FIX: Clear selectedPayroll when closing create dialog to ensure create path is taken
           setSelectedPayroll(null);
+          setInitialEmployeeName("");
         }}
         onSubmit={async (data) => {
           // ✅ FIX: Directly call handleCreatePayroll for create operation (don't rely on selectedPayroll state)
@@ -643,6 +646,7 @@ export const PayrollManagementTemplateComponent = () => {
         }}
         employees={employees}
         initialEmployeeId={initialEmployeeId}
+        initialEmployeeName={initialEmployeeName}
       />
 
       {/* Edit Payroll Form Dialog */}

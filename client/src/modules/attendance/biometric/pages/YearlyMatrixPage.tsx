@@ -59,12 +59,14 @@ const YearlyMatrixPage = () => {
       header: "Year",
     },
     {
-      accessorKey: "employee_code",
-      header: "Emp Code",
-    },
-    {
       accessorKey: "employee_name",
-      header: "Employee Name",
+      header: "Employee Details",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-slate-800 dark:text-slate-100">{row.original.employee_name}</span>
+          <span className="text-xs font-mono text-slate-400">{row.original.employee_code}</span>
+        </div>
+      ),
     },
     {
       accessorKey: "department_sname",
@@ -73,85 +75,173 @@ const YearlyMatrixPage = () => {
     {
       accessorKey: "jan_present",
       header: "Jan",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "feb_present",
       header: "Feb",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "mar_present",
       header: "Mar",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "apr_present",
       header: "Apr",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "may_present",
       header: "May",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "jun_present",
       header: "Jun",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "jul_present",
       header: "Jul",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "aug_present",
       header: "Aug",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "sep_present",
       header: "Sep",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "oct_present",
       header: "Oct",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "nov_present",
       header: "Nov",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "dec_present",
       header: "Dec",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return <span className="font-medium text-slate-800 dark:text-slate-200">{val.toFixed(1)}</span>;
+      },
     },
     {
       accessorKey: "yearly_total_present",
       header: "Total P",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return "0.0";
+        return (
+          <span className="inline-flex items-center justify-center px-2 py-0.5 font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-100 rounded">
+            {val.toFixed(1)}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "yearly_total_absent",
       header: "Total A",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return <span className="text-slate-300">0.0</span>;
+        return (
+          <span className="inline-flex items-center justify-center px-2.5 py-0.5 font-bold text-xs bg-rose-50 text-rose-700 border border-rose-100 rounded">
+            {val.toFixed(1)}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "yearly_total_leaves",
       header: "Total L",
-      cell: ({ getValue }) => (getValue() as number)?.toFixed(1) || "0.0",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        if (!val) return "0.0";
+        return (
+          <span className="inline-flex items-center justify-center px-2.5 py-0.5 font-bold text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded">
+            {val.toFixed(1)}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "yearly_total_weekly_offs",
       header: "Total WO",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        return (
+          <span className="inline-flex items-center justify-center px-2.5 py-0.5 font-semibold text-xs bg-slate-50 text-slate-600 border border-slate-200/50 rounded dark:bg-slate-800 dark:text-slate-400">
+            {val || 0}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "yearly_total_holidays",
       header: "Total H",
+      cell: ({ getValue }) => {
+        const val = getValue() as number;
+        return (
+          <span className="inline-flex items-center justify-center px-2.5 py-0.5 font-semibold text-xs bg-amber-50 text-amber-700 border border-amber-200/50 rounded dark:bg-amber-950/20 dark:text-amber-400">
+            {val || 0}
+          </span>
+        );
+      },
     },
   ], []);
 
@@ -194,6 +284,7 @@ const YearlyMatrixPage = () => {
         pageSize={pageSize}
         onPageSizeChange={handlePageSizeChange}
         pageSizeOptions={[10, 25, 50, 100]}
+        tableElementClassName="min-w-[1700px]"
       />
     </div>
   );

@@ -61,6 +61,7 @@ interface SalaryCalculationFormProps {
   onSubmit: (data: PayrollCreate) => Promise<void> | void;
   employees: Array<{ employee_id: number; employee_name: string }>;
   initialEmployeeId?: number | null;
+  initialEmployeeName?: string;
 }
 
 export const SalaryCalculationForm = ({
@@ -69,6 +70,7 @@ export const SalaryCalculationForm = ({
   onSubmit,
   employees,
   initialEmployeeId,
+  initialEmployeeName = "",
 }: SalaryCalculationFormProps) => {
   const navigate = useNavigate();
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -157,7 +159,7 @@ export const SalaryCalculationForm = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calculatedNet, paymentOption]);
 
-  // Auto-fetch preview when dialog opens with an employee ID
+  // Auto-fetch preview when dialog opens with an employee ID or period changes
   useEffect(() => {
     if (isOpen && initialEmployeeId) {
       // Call preview directly with initialEmployeeId
@@ -167,19 +169,16 @@ export const SalaryCalculationForm = ({
         setPreviewError(null);
         
         try {
-          const currentMonth = new Date().getMonth() + 1;
-          const currentYear = new Date().getFullYear();
-          
           const preview = import.meta.env.VITE_FEATURE_BIOMETRIC === "true"
             ? await PayrollsService.getBiometricPreview({
                 employee_id: Number(initialEmployeeId),
-                month: currentMonth,
-                year: currentYear,
+                month: Number(formData.payroll_month),
+                year: Number(formData.payroll_year),
               })
             : await PayrollsService.getPreview({
                 employee_id: Number(initialEmployeeId),
-                month: currentMonth,
-                year: currentYear,
+                month: Number(formData.payroll_month),
+                year: Number(formData.payroll_year),
               });
 
           if (preview && 'success' in preview && preview.success === false) {
@@ -233,7 +232,7 @@ export const SalaryCalculationForm = ({
       fetchPreview();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialEmployeeId]);
+  }, [isOpen, initialEmployeeId, formData.payroll_month, formData.payroll_year]);
 
   const handlePreview = async () => {
     if (
@@ -510,14 +509,52 @@ export const SalaryCalculationForm = ({
                   <div>
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Employee</p>
                     <h3 className="text-lg font-bold text-gray-900">
-                      {previewData?.employee_name || employees.find(e => e.employee_id === initialEmployeeId)?.employee_name || "Loading..."}
+                      {initialEmployeeName || previewData?.employee_name || employees.find(e => e.employee_id === initialEmployeeId)?.employee_name || "Loading..."}
                     </h3>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Period</p>
-                    <p className="text-lg font-bold text-blue-600">
-                      {new Date(0, (formData.payroll_month as number) - 1).toLocaleString("default", { month: "long" })} {formData.payroll_year}
-                    </p>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Period</p>
+                    <div className="flex gap-2 justify-end">
+                      {/* Month Dropdown Selector */}
+                      <Select
+                        value={(formData.payroll_month ?? (new Date().getMonth() + 1)).toString()}
+                        onValueChange={(val) => updateField("payroll_month", parseInt(val, 10))}
+                      >
+                        <SelectTrigger className="h-8 w-28 text-xs font-semibold text-blue-600 bg-blue-50 border-blue-100 focus:ring-blue-500/20">
+                          <SelectValue placeholder="Month" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[200px]">
+                          {Array.from({ length: 12 }, (_, i) => {
+                            const date = new Date(0, i);
+                            return (
+                              <SelectItem key={i + 1} value={(i + 1).toString()} className="text-xs">
+                                {date.toLocaleString("default", { month: "long" })}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+
+                      {/* Year Dropdown Selector */}
+                      <Select
+                        value={(formData.payroll_year ?? new Date().getFullYear()).toString()}
+                        onValueChange={(val) => updateField("payroll_year", parseInt(val, 10))}
+                      >
+                        <SelectTrigger className="h-8 w-20 text-xs font-semibold text-blue-600 bg-blue-50 border-blue-100 focus:ring-blue-500/20">
+                          <SelectValue placeholder="Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 5 }, (_, i) => {
+                            const y = new Date().getFullYear() - 2 + i;
+                            return (
+                              <SelectItem key={y} value={y.toString()} className="text-xs">
+                                {y}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               </div>

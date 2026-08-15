@@ -1,12 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/common/components/ui/card";
 import { Button } from "@/common/components/ui/button";
-import { Badge } from "@/common/components/ui/badge";
 import { 
   ExternalLink, 
-  Smartphone, 
   CheckCircle2, 
-  XCircle, 
   AlertCircle, 
   Users, 
   Clock, 
@@ -16,70 +13,42 @@ import {
 } from "lucide-react";
 import DailyReportPage from "../pages/DailyReportPage";
 import { useBiometricDailyReport } from "../hooks/useBiometricReports";
+import { useEmployeeDashboard } from "@/features/general/hooks/useEmployees";
 import { cn } from "@/common/utils";
 
-interface DeviceRecord {
-  deviceSName: string;
-  deviceFName: string;
-  serialNo: string;
-  location: string;
-  lastPing: string;
-  status: "Online" | "Offline";
-}
-
-const MOCK_DEVICES: DeviceRecord[] = [
-  {
-    deviceSName: "Main Entrance Bio",
-    deviceFName: "eSSL X990-1",
-    serialNo: "ESSL938204921",
-    location: "Main Gate Academic Block",
-    lastPing: "2026-06-15 16:25:31",
-    status: "Online",
-  },
-  {
-    deviceSName: "Office Bio-Punch",
-    deviceFName: "eSSL F18-2",
-    serialNo: "ESSL819382941",
-    location: "Administration Building",
-    lastPing: "2026-06-15 12:10:04",
-    status: "Offline",
-  }
-];
-
 export const EsslDashboard = () => {
-  const [activeSubTab, setActiveSubTab] = useState<"punches" | "devices" | "late">("punches");
+  const [activeSubTab, setActiveSubTab] = useState<"punches" | "late">("punches");
   const [refreshing, setRefreshing] = useState(false);
 
   const todayStr = new Date().toISOString().split("T")[0];
   
   // Fetch today's punches to count present and late employees
-  const { data: todayReport, isLoading, refetch } = useBiometricDailyReport({
+  const { data: todayReport, isLoading: isBiometricLoading, refetch } = useBiometricDailyReport({
     attendanceDate: todayStr,
     page: 1,
     pageSize: 100,
   });
+
+  // Fetch real employee counts from Dashboard API
+  const { data: employeeDashboardStats, isLoading: isDashboardStatsLoading, refetch: refetchDashboard } = useEmployeeDashboard();
 
   const todayPunches = useMemo(() => todayReport?.data || [], [todayReport]);
 
   const stats = useMemo(() => {
     const presentCount = todayPunches.filter(p => p.status_code?.toUpperCase() === "P").length;
     const lateCount = todayPunches.filter(p => p.late_by_minutes > 0).length;
-    const onlineDevices = MOCK_DEVICES.filter(d => d.status === "Online").length;
-    const offlineDevices = MOCK_DEVICES.filter(d => d.status === "Offline").length;
 
     return {
-      registered: todayPunches.length || 1, // Fallback if no records returned
-      active: todayPunches.length || 1,
+      registered: employeeDashboardStats?.total_employees || 0,
+      active: employeeDashboardStats?.active_employees || 0,
       present: presentCount,
       late: lateCount,
-      online: onlineDevices,
-      offline: offlineDevices
     };
-  }, [todayPunches]);
+  }, [todayPunches, employeeDashboardStats]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refetch();
+    await Promise.all([refetch(), refetchDashboard()]);
     setTimeout(() => setRefreshing(false), 800);
   };
 
@@ -93,7 +62,7 @@ export const EsslDashboard = () => {
               <Server className="h-6 w-6" />
             </div>
             <div>
-              <CardTitle className="text-xl font-bold text-white tracking-tight">eSSL eTimeTrackLite Server Console</CardTitle>
+              <CardTitle className="text-xl font-bold text-white tracking-tight">Biometric Attendance Server Console</CardTitle>
               <CardDescription className="text-slate-300 mt-1">
                 Connected to local biometric database. Live sync console runs on port 85 of your local intranet.
               </CardDescription>
@@ -103,65 +72,74 @@ export const EsslDashboard = () => {
             onClick={() => window.open("http://localhost:85/iclock/Main.aspx", "_blank", "noopener,noreferrer")}
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow transition-colors flex items-center gap-2"
           >
-            Launch eSSL Web Server
+            Launch Attendance Server
             <ExternalLink className="h-4 w-4" />
           </Button>
         </CardContent>
       </Card>
 
-      {/* Colored Status Cards (Matching screenshot layout) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Colored Status Cards (Dynamic metrics) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Registered Employees */}
-        <Card className="bg-amber-500 text-white border-none shadow-sm overflow-hidden relative">
+        <Card className="bg-white border border-slate-100 shadow-2xs hover:shadow-xs transition-shadow duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
           <CardContent className="p-5 flex flex-col justify-between h-28">
-            <div className="text-3xl font-extrabold">{stats.registered}</div>
-            <div className="text-xs font-semibold tracking-wider uppercase text-amber-100 flex items-center justify-between">
-              Registered Employees
-              <Users className="h-4 w-4 opacity-50" />
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-bold tracking-wider uppercase text-slate-400">Registered Employees</span>
+              <div className="p-2 bg-amber-50 text-amber-500 rounded-lg group-hover:scale-105 transition-transform duration-200">
+                <Users className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold text-slate-800 tracking-tight">
+              {isDashboardStatsLoading ? "..." : stats.registered}
             </div>
           </CardContent>
         </Card>
 
         {/* Active Employees */}
-        <Card className="bg-blue-500 text-white border-none shadow-sm overflow-hidden relative">
+        <Card className="bg-white border border-slate-100 shadow-2xs hover:shadow-xs transition-shadow duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
           <CardContent className="p-5 flex flex-col justify-between h-28">
-            <div className="text-3xl font-extrabold">{stats.active}</div>
-            <div className="text-xs font-semibold tracking-wider uppercase text-blue-100 flex items-center justify-between">
-              Active Employees
-              <CheckCircle2 className="h-4 w-4 opacity-50" />
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-bold tracking-wider uppercase text-slate-400">Active Employees</span>
+              <div className="p-2 bg-blue-50 text-blue-500 rounded-lg group-hover:scale-105 transition-transform duration-200">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold text-slate-800 tracking-tight">
+              {isDashboardStatsLoading ? "..." : stats.active}
             </div>
           </CardContent>
         </Card>
 
         {/* Present Employees */}
-        <Card className="bg-emerald-500 text-white border-none shadow-sm overflow-hidden relative">
+        <Card className="bg-white border border-slate-100 shadow-2xs hover:shadow-xs transition-shadow duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
           <CardContent className="p-5 flex flex-col justify-between h-28">
-            <div className="text-3xl font-extrabold">{stats.present}</div>
-            <div className="text-xs font-semibold tracking-wider uppercase text-emerald-100 flex items-center justify-between">
-              Present Employees
-              <Clock className="h-4 w-4 opacity-50" />
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-bold tracking-wider uppercase text-slate-400">Present Today</span>
+              <div className="p-2 bg-emerald-50 text-emerald-500 rounded-lg group-hover:scale-105 transition-transform duration-200">
+                <Clock className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold text-slate-800 tracking-tight">
+              {isBiometricLoading ? "..." : stats.present}
             </div>
           </CardContent>
         </Card>
 
-        {/* Online Devices */}
-        <Card className="bg-amber-700 text-white border-none shadow-sm overflow-hidden relative">
+        {/* Late Arrivals */}
+        <Card className="bg-white border border-slate-100 shadow-2xs hover:shadow-xs transition-shadow duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-1 h-full bg-rose-500" />
           <CardContent className="p-5 flex flex-col justify-between h-28">
-            <div className="text-3xl font-extrabold">{stats.online}</div>
-            <div className="text-xs font-semibold tracking-wider uppercase text-amber-100 flex items-center justify-between">
-              Online Devices
-              <Server className="h-4 w-4 opacity-50" />
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-bold tracking-wider uppercase text-slate-400">Late Arrivals</span>
+              <div className="p-2 bg-rose-50 text-rose-500 rounded-lg group-hover:scale-105 transition-transform duration-200">
+                <AlertCircle className="h-5 w-5" />
+              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Offline Devices */}
-        <Card className="bg-red-600 text-white border-none shadow-sm overflow-hidden relative">
-          <CardContent className="p-5 flex flex-col justify-between h-28">
-            <div className="text-3xl font-extrabold">{stats.offline}</div>
-            <div className="text-xs font-semibold tracking-wider uppercase text-red-100 flex items-center justify-between">
-              Offline Devices
-              <XCircle className="h-4 w-4 opacity-50" />
+            <div className="text-3xl font-extrabold text-slate-800 tracking-tight">
+              {isBiometricLoading ? "..." : stats.late}
             </div>
           </CardContent>
         </Card>
@@ -172,8 +150,8 @@ export const EsslDashboard = () => {
         <CardHeader className="border-b bg-slate-50/50 pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-lg font-bold">Biometric eSSL Console</CardTitle>
-              <CardDescription>View live punches, local machine register, and late login exceptions.</CardDescription>
+              <CardTitle className="text-lg font-bold">Biometric Attendance Console</CardTitle>
+              <CardDescription>View live punches and late login exceptions for today.</CardDescription>
             </div>
             
             <div className="flex items-center gap-2">
@@ -184,15 +162,7 @@ export const EsslDashboard = () => {
                   className={cn("h-8 px-3 text-xs font-medium rounded-sm", activeSubTab === "punches" && "bg-slate-100 text-slate-900")}
                   onClick={() => setActiveSubTab("punches")}
                 >
-                  Live Punches
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn("h-8 px-3 text-xs font-medium rounded-sm", activeSubTab === "devices" && "bg-slate-100 text-slate-900")}
-                  onClick={() => setActiveSubTab("devices")}
-                >
-                  Devices ({MOCK_DEVICES.length})
+                  Daily Attendance Report
                 </Button>
                 <Button
                   variant="ghost"
@@ -200,7 +170,7 @@ export const EsslDashboard = () => {
                   className={cn("h-8 px-3 text-xs font-medium rounded-sm", activeSubTab === "late" && "bg-slate-100 text-slate-900")}
                   onClick={() => setActiveSubTab("late")}
                 >
-                  Late Arrivals ({stats.late})
+                  Late Arrivals ({isBiometricLoading ? "..." : stats.late})
                 </Button>
               </div>
               <Button
@@ -208,60 +178,17 @@ export const EsslDashboard = () => {
                 size="icon"
                 className="h-8 w-8"
                 onClick={handleRefresh}
-                disabled={isLoading || refreshing}
+                disabled={isBiometricLoading || refreshing}
               >
-                <RefreshCw className={cn("h-4 w-4 text-slate-500", (isLoading || refreshing) && "animate-spin")} />
+                <RefreshCw className={cn("h-4 w-4 text-slate-500", (isBiometricLoading || refreshing) && "animate-spin")} />
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
           {activeSubTab === "punches" && (
-            <div className="-m-6">
-              <DailyReportPage />
-            </div>
-          )}
-
-          {activeSubTab === "devices" && (
-            <div className="overflow-x-auto scrollbar-thin rounded-md border">
-              <table className="w-full text-sm text-left text-slate-500">
-                <thead className="text-xs text-slate-700 uppercase bg-slate-50 border-b">
-                  <tr>
-                    <th scope="col" className="px-6 py-3">Device Name</th>
-                    <th scope="col" className="px-6 py-3">Device Model</th>
-                    <th scope="col" className="px-6 py-3">Serial No</th>
-                    <th scope="col" className="px-6 py-3">Location</th>
-                    <th scope="col" className="px-6 py-3">Last Ping</th>
-                    <th scope="col" className="px-6 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {MOCK_DEVICES.map((device) => (
-                    <tr key={device.serialNo} className="bg-white border-b hover:bg-slate-50">
-                      <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-2">
-                        <Smartphone className="h-4 w-4 text-slate-400" />
-                        {device.deviceSName}
-                      </td>
-                      <td className="px-6 py-4">{device.deviceFName}</td>
-                      <td className="px-6 py-4 font-mono text-xs">{device.serialNo}</td>
-                      <td className="px-6 py-4">{device.location}</td>
-                      <td className="px-6 py-4 text-slate-400 text-xs">{device.lastPing}</td>
-                      <td className="px-6 py-4">
-                        <Badge 
-                          variant={device.status === "Online" ? "default" : "destructive"}
-                          className={cn(
-                            device.status === "Online" 
-                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-200" 
-                              : "bg-rose-100 text-rose-800 hover:bg-rose-100 border-rose-200"
-                          )}
-                        >
-                          {device.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="pt-2">
+              <DailyReportPage isEmbedded />
             </div>
           )}
 

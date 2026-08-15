@@ -250,17 +250,17 @@ const Sidebar = () => {
               allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
               children: [
                 {
-                  title: "eSSL Dashboard",
+                  title: "Daily Report",
                   href: `${branchPrefix}/attendance/essl-dashboard`,
                   icon: Calendar,
                   allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
                 },
-                {
+                /* {
                   title: "Daily Report",
                   href: `${branchPrefix}/attendance/daily-report`,
                   icon: Calendar,
                   allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
-                },
+                }, */
                 {
                   title: "Monthly Summary",
                   href: `${branchPrefix}/attendance/monthly-summary`,

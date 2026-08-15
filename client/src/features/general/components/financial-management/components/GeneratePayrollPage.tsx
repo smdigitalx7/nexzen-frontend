@@ -41,7 +41,7 @@ import type { PayrollRead } from "@/features/general/types/payrolls";
 import { PayrollStatusEnum } from "@/features/general/types/payrolls";
 
 interface GeneratePayrollPageProps {
-  onGenerate: (employeeId: number) => void;
+  onGenerate: (employeeId: number, employeeName: string) => void;
   onView: (payroll: PayrollRead) => void;
   month: number;
   year: number;
@@ -176,7 +176,7 @@ export const GeneratePayrollPage = ({
             ) : (
               <Button
                 size="sm"
-                onClick={() => onGenerate(row.original.employee_id)}
+                onClick={() => onGenerate(row.original.employee_id, row.original.employee_name)}
                 className="gap-2 bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="h-3.5 w-3.5" />

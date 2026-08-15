@@ -52,6 +52,12 @@ interface DataTableCoreProps<TData> {
   // Empty state
   emptyMessage?: string;
   emptyIcon?: React.ReactNode;
+
+  // Custom row styling callback
+  getRowClassName?: (row: TData) => string;
+
+  // Custom table element styling
+  tableElementClassName?: string;
 }
 
 function DataTableCoreComponent<TData>({
@@ -64,6 +70,8 @@ function DataTableCoreComponent<TData>({
   virtualThreshold = 100,
   rowHeight = 52,
   emptyMessage = "No results found.",
+  getRowClassName,
+  tableElementClassName,
 }: DataTableCoreProps<TData>) {
   const {
     paginatedData,
@@ -306,7 +314,10 @@ function DataTableCoreComponent<TData>({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
-                className="h-[52px] animate-row-entry row-hover-effect"
+                className={cn(
+                  "h-[52px] animate-row-entry row-hover-effect",
+                  getRowClassName?.(row.original)
+                )}
                 style={{
                   animationDelay: `${virtualRow.index * 30}ms`,
                   opacity: 0, // Controlled by animation forwards
@@ -339,7 +350,10 @@ function DataTableCoreComponent<TData>({
       <TableRow
         key={row.id}
         data-state={row.getIsSelected() && "selected"}
-        className="animate-row-entry row-hover-effect"
+        className={cn(
+          "animate-row-entry row-hover-effect",
+          getRowClassName?.(row.original)
+        )}
         style={{
           animationDelay: `${index * 30}ms`,
           opacity: 0, // Controlled by animation forwards
@@ -388,7 +402,7 @@ function DataTableCoreComponent<TData>({
         className
       )}
     >
-      <Table>
+      <Table className={tableElementClassName}>
         <TableHeader className="sticky top-0 bg-muted/50 backdrop-blur-sm z-10">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>

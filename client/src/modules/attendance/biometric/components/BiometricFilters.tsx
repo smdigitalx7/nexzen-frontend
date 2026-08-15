@@ -13,6 +13,7 @@ import {
 import { useEmployeesMinimal } from "@/features/general/hooks/useEmployees";
 import { RefreshCw } from "lucide-react";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 
 interface BiometricFiltersProps {
   // Config
@@ -112,89 +113,92 @@ export const BiometricFilters = ({
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 items-end">
-      {showDate && onDateChange && (
-        <div className="space-y-2">
-          <Label htmlFor="biometric-date">Attendance Date</Label>
-          <DatePicker
-            id="biometric-date"
-            value={date}
-            onChange={onDateChange}
-            placeholder="Select date"
-          />
-        </div>
-      )}
+    <div className="flex flex-wrap md:flex-nowrap justify-between items-end gap-4 w-full">
+      {/* Left side: Filter Inputs */}
+      <div className="flex flex-wrap items-end gap-4 flex-1">
+        {showDate && onDateChange && (
+          <div className="space-y-2 w-48">
+            <Label htmlFor="biometric-date" className="text-slate-700 dark:text-slate-300 font-semibold">
+              Attendance Date
+            </Label>
+            <DatePicker
+              id="biometric-date"
+              value={date}
+              onChange={onDateChange}
+              placeholder="Select date"
+              className="h-10 border-slate-200 bg-white hover:border-slate-300 focus:border-slate-400 focus:ring-slate-400/20"
+            />
+          </div>
+        )}
 
-      {showYear && onYearChange && (
-        <div className="space-y-2">
-          <Label htmlFor="biometric-year">Year</Label>
-          <Select
-            value={year.toString()}
-            onValueChange={(val) => onYearChange(parseInt(val, 10))}
-          >
-            <SelectTrigger id="biometric-year">
-              <SelectValue placeholder="Select Year" />
-            </SelectTrigger>
-            <SelectContent>
-              {YEARS.map((y) => (
-                <SelectItem key={y} value={y.toString()}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {showMonth && onMonthChange && (
-        <div className="space-y-2">
-          <Label htmlFor="biometric-month">Month</Label>
-          <Select
-            value={month.toString()}
-            onValueChange={(val) => onMonthChange(parseInt(val, 10))}
-          >
-            <SelectTrigger id="biometric-month">
-              <SelectValue placeholder="Select Month" />
-            </SelectTrigger>
-            <SelectContent>
-              {MONTHS.map((m) => (
-                <SelectItem key={m.value} value={m.value.toString()}>
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {onEmployeeChange && (
-        <div className="space-y-2">
-          <Label htmlFor="biometric-employee">Employee</Label>
-          <Select
-            value={employeeId?.toString() || "all"}
-            onValueChange={(val) => onEmployeeChange(val === "all" ? null : parseInt(val, 10))}
-          >
-            <SelectTrigger id="biometric-employee">
-              <SelectValue placeholder="All Employees" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Employees</SelectItem>
-              {employeesLoading ? (
-                <SelectItem value="loading" disabled>Loading...</SelectItem>
-              ) : (
-                employees.map((emp: any) => (
-                  <SelectItem key={emp.employee_id} value={emp.employee_id.toString()}>
-                    {emp.employee_name} ({emp.employee_code || `ID: ${emp.employee_id}`})
+        {showYear && onYearChange && (
+          <div className="space-y-2 w-32">
+            <Label htmlFor="biometric-year" className="text-slate-700 dark:text-slate-300 font-semibold">Year</Label>
+            <Select
+              value={year.toString()}
+              onValueChange={(val) => onYearChange(parseInt(val, 10))}
+            >
+              <SelectTrigger id="biometric-year" className="h-10 border-slate-200 bg-white">
+                <SelectValue placeholder="Select Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {YEARS.map((y) => (
+                  <SelectItem key={y} value={y.toString()}>
+                    {y}
                   </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
+        {showMonth && onMonthChange && (
+          <div className="space-y-2 w-40">
+            <Label htmlFor="biometric-month" className="text-slate-700 dark:text-slate-300 font-semibold">Month</Label>
+            <Select
+              value={month.toString()}
+              onValueChange={(val) => onMonthChange(parseInt(val, 10))}
+            >
+              <SelectTrigger id="biometric-month" className="h-10 border-slate-200 bg-white">
+                <SelectValue placeholder="Select Month" />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m) => (
+                  <SelectItem key={m.value} value={m.value.toString()}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {onEmployeeChange && (
+          <div className="space-y-2 w-64">
+            <Label htmlFor="biometric-employee" className="text-slate-700 dark:text-slate-300 font-semibold">
+              Employee
+            </Label>
+            <ServerCombobox
+              items={employees}
+              isLoading={employeesLoading}
+              value={employeeId?.toString() || ""}
+              onSelect={(val) => onEmployeeChange(val ? parseInt(val, 10) : null)}
+              placeholder="All Employees"
+              searchPlaceholder="Search employees..."
+              emptyText="No employees found."
+              valueKey="employee_id"
+              labelKey={(emp: any) => `${emp.employee_name} (${emp.employee_code || `ID: ${emp.employee_id}`})`}
+              width="w-full"
+              className="h-10 border-slate-200 bg-white hover:border-slate-300 focus:border-slate-400 focus:ring-slate-400/20 text-left justify-between font-normal"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Commented out secondary ID filters as per request to focus on Date and Employee filters */}
+      {/* 
       {onCompanyChange && (
-        <div className="space-y-2">
+        <div className="space-y-2 w-32">
           <Label htmlFor="biometric-company">Company ID</Label>
           <Input
             id="biometric-company"
@@ -208,7 +212,7 @@ export const BiometricFilters = ({
       )}
 
       {onDepartmentChange && (
-        <div className="space-y-2">
+        <div className="space-y-2 w-32">
           <Label htmlFor="biometric-department">Department ID</Label>
           <Input
             id="biometric-department"
@@ -222,7 +226,7 @@ export const BiometricFilters = ({
       )}
 
       {onCategoryChange && (
-        <div className="space-y-2">
+        <div className="space-y-2 w-32">
           <Label htmlFor="biometric-category">Category ID</Label>
           <Input
             id="biometric-category"
@@ -234,14 +238,16 @@ export const BiometricFilters = ({
           />
         </div>
       )}
+      */}
 
-      <div className="flex gap-2 min-w-[200px] xl:col-span-2">
-        <Button variant="outline" className="flex-1" onClick={onReset}>
+      {/* Right side: Inline Action Buttons */}
+      <div className="flex items-center gap-2 pb-0.5 shrink-0">
+        <Button variant="outline" className="h-10 px-4 border-slate-200 hover:bg-slate-50" onClick={onReset}>
           Reset
         </Button>
         <Button
           variant="outline"
-          className="flex-1 gap-2"
+          className="h-10 px-4 gap-2 border-slate-200 hover:bg-slate-50"
           onClick={onRefresh}
           disabled={isLoading}
         >

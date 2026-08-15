@@ -65,12 +65,14 @@ const MonthlyMatrixPage = () => {
     const days = getDaysInMonth(year, month);
     const baseCols: ColumnDef<MonthlyMatrixRecord>[] = [
       {
-        accessorKey: "employee_code",
-        header: "Emp Code",
-      },
-      {
         accessorKey: "employee_name",
-        header: "Employee Name",
+        header: "Employee Details",
+        cell: ({ row }) => (
+          <div className="flex flex-col">
+            <span className="font-semibold text-slate-800 dark:text-slate-100">{row.original.employee_name}</span>
+            <span className="text-xs font-mono text-slate-400">{row.original.employee_code}</span>
+          </div>
+        ),
       },
       {
         accessorKey: "department_sname",
@@ -125,25 +127,65 @@ const MonthlyMatrixPage = () => {
       {
         accessorKey: "total_present",
         header: "P",
-        cell: ({ getValue }) => (getValue() as number)?.toFixed(1),
+        cell: ({ getValue }) => {
+          const val = getValue() as number;
+          if (!val) return "0.0";
+          return (
+            <span className="inline-flex items-center justify-center w-8 h-6 font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-200/50 rounded dark:bg-emerald-950/20 dark:text-emerald-400">
+              {val.toFixed(1)}
+            </span>
+          );
+        },
       },
       {
         accessorKey: "total_absent",
         header: "A",
-        cell: ({ getValue }) => (getValue() as number)?.toFixed(1),
+        cell: ({ getValue }) => {
+          const val = getValue() as number;
+          if (!val) return <span className="text-slate-300">0.0</span>;
+          return (
+            <span className="inline-flex items-center justify-center w-8 h-6 font-bold text-xs bg-rose-50 text-rose-700 border border-rose-200/50 rounded dark:bg-rose-950/20 dark:text-rose-400">
+              {val.toFixed(1)}
+            </span>
+          );
+        },
       },
       {
         accessorKey: "total_leaves",
         header: "L",
-        cell: ({ getValue }) => (getValue() as number)?.toFixed(1),
+        cell: ({ getValue }) => {
+          const val = getValue() as number;
+          if (!val) return "0.0";
+          return (
+            <span className="inline-flex items-center justify-center w-8 h-6 font-bold text-xs bg-blue-50 text-blue-700 border border-blue-200/50 rounded dark:bg-blue-950/20 dark:text-blue-400">
+              {val.toFixed(1)}
+            </span>
+          );
+        },
       },
       {
         accessorKey: "total_weekly_offs",
         header: "WO",
+        cell: ({ getValue }) => {
+          const val = getValue() as number;
+          return (
+            <span className="inline-flex items-center justify-center w-8 h-6 font-semibold text-xs bg-slate-50 text-slate-600 border border-slate-200/50 rounded dark:bg-slate-800 dark:text-slate-400">
+              {val || 0}
+            </span>
+          );
+        },
       },
       {
         accessorKey: "total_holidays",
         header: "H",
+        cell: ({ getValue }) => {
+          const val = getValue() as number;
+          return (
+            <span className="inline-flex items-center justify-center w-8 h-6 font-semibold text-xs bg-amber-50 text-amber-700 border border-amber-200/50 rounded dark:bg-amber-950/20 dark:text-amber-400">
+              {val || 0}
+            </span>
+          );
+        },
       }
     );
 
@@ -192,6 +234,7 @@ const MonthlyMatrixPage = () => {
         pageSize={pageSize}
         onPageSizeChange={handlePageSizeChange}
         pageSizeOptions={[10, 25, 50, 100]}
+        tableElementClassName="min-w-[2000px]"
       />
     </div>
   );
