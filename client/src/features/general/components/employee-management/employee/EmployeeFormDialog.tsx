@@ -274,10 +274,8 @@ const EmployeeFormDialog = ({
               </span>
               <Input
                 id="salary"
-                value={formData.salary || ""}
-                onChange={(e) =>
-                  onChange("salary", Number.parseFloat(e.target.value) || 0)
-                }
+                value={formData.salary !== undefined && formData.salary !== null ? formData.salary : ""}
+                onChange={(e) => onChange("salary", e.target.value)}
                 className="h-9 pl-7 bg-white border-slate-200"
                 type="number"
                 min={0}

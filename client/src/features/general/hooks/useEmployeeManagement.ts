@@ -260,6 +260,7 @@ export const useEmployeeManagement = (
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeRead | null>(
     null
   );
+  const [loadedDetailsId, setLoadedDetailsId] = useState<number | null>(null);
   const [showEmployeeDetail, setShowEmployeeDetail] = useState(false);
   const [showDeleteEmployeeDialog, setShowDeleteEmployeeDialog] =
     useState(false);
@@ -355,12 +356,20 @@ export const useEmployeeManagement = (
   // Update selectedEmployee with full details when they are loaded
   useEffect(() => {
     if (fullEmployeeDetails && selectedEmployee?.employee_id === fullEmployeeDetails.employee_id) {
-        // Only update if the data is actually different/more complete to avoid loops
-        if (JSON.stringify(selectedEmployee) !== JSON.stringify(fullEmployeeDetails)) {
+        // Only update if we haven't loaded these specific details into state yet
+        if (loadedDetailsId !== fullEmployeeDetails.employee_id) {
              setSelectedEmployee(fullEmployeeDetails as EmployeeRead);
+             setLoadedDetailsId(fullEmployeeDetails.employee_id);
         }
     }
-  }, [fullEmployeeDetails, selectedEmployee]);
+  }, [fullEmployeeDetails, selectedEmployee, loadedDetailsId]);
+
+  // Reset loadedDetailsId when no employee is selected
+  useEffect(() => {
+    if (!selectedEmployee) {
+      setLoadedDetailsId(null);
+    }
+  }, [selectedEmployee]);
 
   // ✅ FIX: Memoize expensive data transformations
   // Flatten and enrich attendance data with employee names
