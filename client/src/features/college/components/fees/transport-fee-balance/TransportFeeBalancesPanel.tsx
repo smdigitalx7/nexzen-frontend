@@ -89,10 +89,6 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
   const { data: classesData } = useCollegeClasses({ enabled: true });
   const classes = classesData?.items || [];
   const [balanceClass, setBalanceClass] = useState<string>("");
-  const [balanceGroup, setBalanceGroup] = useState<string>("");
-  const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
-  const { data: groupsData } = useCollegeGroups(classIdNum || 0, { enabled: !!classIdNum });
-  const groups = groupsData?.items || [];
 
   const [paymentStatus, setPaymentStatus] = useState<"all" | PaymentStatus>("all");
   const [searchInput, setSearchInput] = useState("");
@@ -105,30 +101,17 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  useEffect(() => {
-    if (balanceClass) {
-      setBalanceGroup("");
-    }
-  }, [balanceClass]);
-
   const selectedClassName = useMemo(() => {
     if (!balanceClass) return null;
     const selectedClass = classes.find((cls: any) => cls.class_id.toString() === balanceClass);
     return selectedClass?.class_name || null;
   }, [balanceClass, classes]);
 
-  const selectedGroupName = useMemo(() => {
-    if (!balanceGroup) return null;
-    const selectedGroup = groups.find((grp: any) => grp.group_id.toString() === balanceGroup);
-    return selectedGroup?.group_name || null;
-  }, [balanceGroup, groups]);
-
   const summaryParams = useMemo(() => {
-    if (!balanceClass && !balanceGroup && paymentStatus === "all") {
-      return undefined;
-    }
-
-    const params: any = {};
+    const params: any = {
+      page: 1,
+      page_size: 100, // Fetch up to 100 records so client-side filtering works effectively
+    };
     if (paymentStatus !== "all") {
       params.payment_status = paymentStatus;
     }
@@ -136,7 +119,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
       params.search = searchQuery;
     }
     return params;
-  }, [paymentStatus, balanceClass, balanceGroup, searchQuery]);
+  }, [paymentStatus, searchQuery]);
 
   const { data: transportSummaryData, isLoading } = useCollegeStudentTransportPaymentSummary(summaryParams);
 
@@ -145,11 +128,9 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
   const { data: selectedSummary, isLoading: isLoadingDetails } = useCollegeStudentTransportPaymentSummaryByEnrollmentId(selectedEnrollmentId);
 
   const rows = useMemo<TransportFeeBalanceRow[]>(() => {
-    if (!transportSummaryData?.items) {
-      return [];
-    }
+    const items = transportSummaryData?.data || [];
 
-    let mappedRows = transportSummaryData.items.map((item: CollegeStudentTransportPaymentSummaryItem): TransportFeeBalanceRow => {
+    let mappedRows = items.map((item: CollegeStudentTransportPaymentSummaryItem): TransportFeeBalanceRow => {
       const totalFee = typeof item.total_fee === 'string'
         ? parseFloat(item.total_fee) || 0
         : (item.total_fee || 0);
@@ -184,12 +165,8 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
       mappedRows = mappedRows.filter(row => row.class_name === selectedClassName);
     }
 
-    if (selectedGroupName) {
-      mappedRows = mappedRows.filter(row => row.group_name === selectedGroupName);
-    }
-
     return mappedRows;
-  }, [transportSummaryData, selectedClassName, selectedGroupName]);
+  }, [transportSummaryData, selectedClassName]);
 
   const handleViewDetails = useCallback((row: TransportFeeBalanceRow) => {
     setSelectedEnrollmentId(row.enrollment_id);
@@ -298,38 +275,19 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
         <div className="flex-1">
           <label htmlFor="transport-balance-class" className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Class</label>
           <Select
-            value={balanceClass}
+            value={balanceClass || "all"}
             onValueChange={(value) => {
-              setBalanceClass(value);
-              setBalanceGroup("");
+              setBalanceClass(value === "all" ? "" : value);
             }}
           >
             <SelectTrigger id="transport-balance-class" className="h-10">
               <SelectValue placeholder="Select class" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Classes</SelectItem>
               {classes.map((cls: any) => (
                 <SelectItem key={cls.class_id} value={cls.class_id.toString()}>
                   {cls.class_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex-1">
-          <label htmlFor="transport-balance-group" className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Group</label>
-          <Select
-            value={balanceGroup}
-            onValueChange={setBalanceGroup}
-            disabled={!balanceClass}
-          >
-            <SelectTrigger id="transport-balance-group" className="h-10">
-              <SelectValue placeholder={balanceClass ? "Select group" : "Select class first"} />
-            </SelectTrigger>
-            <SelectContent>
-              {groups.map((grp: any) => (
-                <SelectItem key={grp.group_id} value={grp.group_id.toString()}>
-                  {grp.group_name}
                 </SelectItem>
               ))}
             </SelectContent>

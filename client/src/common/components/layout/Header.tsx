@@ -48,26 +48,23 @@ const Header = () => {
   const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const { query, setQuery, searchResult, isSearching, error, clearSearch } =
+  const { query, setQuery, searchResult, isSearching, error, clearSearch, performSearch } =
     useGlobalSearch();
 
-  // Close dialog immediately if query length is not 11 characters
+  // Close dialog immediately if query length is less than 11 characters
   useEffect(() => {
     const trimmedQuery = query.trim();
-    if (trimmedQuery.length !== 11) {
+    if (trimmedQuery.length < 11) {
       setShowResultsDialog(false);
     }
   }, [query]);
 
-  // Show results dialog only when query is exactly 11 characters AND there's a result or error
+  // Show results dialog only when query is at least 11 characters AND there's a result or error
   useEffect(() => {
     const trimmedQuery = query.trim();
-    // Only show dialog when:
-    // 1. Query is exactly 11 characters (complete admission number)
-    // 2. AND (there's a search result OR an error occurred)
     if (
-      trimmedQuery.length === 11 &&
-      (searchResult?.result || (error && trimmedQuery.length === 11))
+      trimmedQuery.length >= 11 &&
+      (searchResult?.result || error)
     ) {
       setShowResultsDialog(true);
     }
@@ -305,6 +302,9 @@ const Header = () => {
                     if (e.key === "Escape") {
                       clearSearch();
                       inputRef.current?.blur();
+                    } else if (e.key === "Enter") {
+                      e.preventDefault();
+                      void performSearch();
                     }
                   }}
                 />

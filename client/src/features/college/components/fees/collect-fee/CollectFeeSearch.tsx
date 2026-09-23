@@ -39,15 +39,13 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
     setSelectedClassId(value);
     setSelectedGroupId(null);
     setSearchResults([]);
-    setSearchQuery("");
-  }, [setSearchResults, setSearchQuery]);
+  }, [setSearchResults]);
 
   // Handle group change - clear results
   const handleGroupChange = useCallback((value: number | null) => {
     setSelectedGroupId(value);
     setSearchResults([]);
-    setSearchQuery("");
-  }, [setSearchResults, setSearchQuery]);
+  }, [setSearchResults]);
 
   // Handle search
   const handleSearch = useCallback(
@@ -83,13 +81,27 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
           class_id: selectedClassId,
           group_id: selectedGroupId,
           page: 1,
-          pageSize: 10,
+          page_size: 10,
           search: trimmed,
         });
 
-        const list = Array.isArray(response?.enrollments)
+        const rawList = Array.isArray(response?.enrollments)
           ? response.enrollments
           : [];
+
+        // Flatten the nested students array from each class/group item
+        const list = rawList.flatMap((item: any) => {
+          const students = Array.isArray(item.students) ? item.students : [];
+          return students.map((s: any) => ({
+            ...s,
+            class_id: item.class_id,
+            class_name: item.class_name,
+            group_id: item.group_id,
+            group_name: item.group_name,
+            course_id: item.course_id,
+            course_name: item.course_name,
+          }));
+        });
 
         if (list.length === 0) {
           toast({
@@ -188,18 +200,31 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
               class_id: selectedClassId,
               group_id: selectedGroupId,
               page: 1,
-              pageSize: 10,
+              page_size: 10,
               search: query,
             });
 
             if (response?.enrollments && response.enrollments.length > 0) {
-              const list = response.enrollments;
-              const allSuggestions = (Array.isArray(list) ? list : [])
+              const rawList = response.enrollments;
+              
+              // Flatten the nested students array from each class/group item
+              const list = rawList.flatMap((item: any) => {
+                const students = Array.isArray(item.students) ? item.students : [];
+                return students.map((s: any) => ({
+                  ...s,
+                  class_id: item.class_id,
+                  class_name: item.class_name,
+                  group_id: item.group_id,
+                  group_name: item.group_name,
+                  course_id: item.course_id,
+                  course_name: item.course_name,
+                }));
+              });
+
+              const allSuggestions = list
                 .slice(0, 5)
                 .map((e: any) => ({
-                  admission_no: e.admission_no,
-                  student_name: e.student_name,
-                  enrollment_id: e.enrollment_id,
+                  enrollment: e,
                 }));
               setSuggestions(allSuggestions);
               setShowSuggestions(true);
