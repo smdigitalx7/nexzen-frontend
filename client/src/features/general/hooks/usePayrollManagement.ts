@@ -129,7 +129,11 @@ export const usePayrollManagement = () => {
     useEmployeesByBranch(true);
 
   // ✅ FIX: Ensure employees is always an array to prevent "find is not a function" errors
-  const employees: any[] = Array.isArray(employeesData) ? employeesData : [];
+  const employees: any[] = Array.isArray(employeesData)
+    ? employeesData
+    : (employeesData && typeof employeesData === "object" && "data" in employeesData && Array.isArray((employeesData as any).data))
+      ? (employeesData as any).data
+      : [];
 
   // Additional API hooks for enhanced features
   const { data: dashboardStats } = useQuery({
@@ -369,6 +373,9 @@ export const usePayrollManagement = () => {
         // ✅ FIX: Log the API call for debugging (remove in production if needed)
         if (import.meta.env.DEV) {
           console.log("Creating payroll with data:", data);
+        }
+        if (import.meta.env.VITE_FEATURE_BIOMETRIC === "true") {
+          return PayrollsService.createBiometric(data);
         }
         return PayrollsService.create(data);
       },

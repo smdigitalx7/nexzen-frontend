@@ -19,6 +19,8 @@ export interface DataTableProviderProps<TData> {
   
   // Search
   searchKey?: keyof TData;
+  searchValue?: string;
+  onSearchChange?: (search: string) => void;
   
   // Pagination config
   pagination?: "client" | "server" | "none";
@@ -42,6 +44,8 @@ export function DataTableProvider<TData>({
   data,
   loading = false,
   searchKey,
+  searchValue,
+  onSearchChange,
   pagination = "client",
   pageSize: initialPageSize = 10,
   pageSizeOptions = [10, 25, 50, 100],
@@ -54,7 +58,14 @@ export function DataTableProvider<TData>({
   getRowId,
 }: DataTableProviderProps<TData>) {
   // Search state
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTermState] = useState(searchValue ?? "");
+  
+  // Sync controlled searchValue with internal searchTerm
+  React.useEffect(() => {
+    if (searchValue !== undefined) {
+      setSearchTermState(searchValue);
+    }
+  }, [searchValue]);
   
   // Filter state
   const [filters, setFilters] = useState<FilterState>({});
@@ -100,14 +111,15 @@ export function DataTableProvider<TData>({
   // Reset all filters
   const resetFilters = useCallback(() => {
     setFilters({});
-    setSearchTerm("");
+    setSearchTermState("");
+    onSearchChange?.("");
     onFilterChange?.({});
     if (pagination === "client") {
       setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
     } else if (onPageChange) {
       onPageChange(1);
     }
-  }, [pagination, onPageChange, onFilterChange]);
+  }, [pagination, onPageChange, onFilterChange, onSearchChange]);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
@@ -116,13 +128,26 @@ export function DataTableProvider<TData>({
     );
   }, [searchTerm, filters]);
 
-  // Filter data (client-side only)
+  // Filter data (client-side or fallback for server)
   const filteredData = useMemo(() => {
     // CRITICAL: Handle null/undefined data gracefully to prevent runtime crashes
     const safeData = Array.isArray(data) ? data : [];
 
     if (pagination === "server") {
-      // Server handles filtering
+      // If server search callback is provided, server handles filtering
+      if (onSearchChange) {
+        return safeData;
+      }
+      // Fallback: If pagination is server but no server-search callback provided,
+      // filter safeData client-side so search input is never dead
+      if (searchTerm && searchKey) {
+        const lowerSearch = searchTerm.toLowerCase();
+        return safeData.filter((item) => {
+          const value = (item as Record<string, unknown>)[searchKey as string];
+          if (value === null || value === undefined) return false;
+          return String(value).toLowerCase().includes(lowerSearch);
+        });
+      }
       return safeData;
     }
 
@@ -249,7 +274,8 @@ export function DataTableProvider<TData>({
     paginatedData,
     searchTerm,
     setSearchTerm: (term: string) => {
-      setSearchTerm(term);
+      setSearchTermState(term);
+      onSearchChange?.(term);
       // Reset to first page on search
       if (pagination === "client") {
         setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));

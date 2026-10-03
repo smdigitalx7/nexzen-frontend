@@ -23,7 +23,6 @@ import {
   usePayrollDashboard,
 } from "@/features/general/hooks/usePayrollManagement";
 import { formatCurrency } from "@/common/utils";
-import { PayrollStatsCards as OldPayrollStatsCards } from "./components/PayrollStatsCards";
 import { PayrollStatsCards } from "./PayrollStatsCards";
 import { EmployeePayrollTable } from "./components/EmployeePayrollTable";
 import { SalaryCalculationForm } from "./components/SalaryCalculationForm";
@@ -251,6 +250,7 @@ PayslipDetailView.displayName = "PayslipDetailView";
 
 export const PayrollManagementTemplateComponent = () => {
   const [initialEmployeeId, setInitialEmployeeId] = useState<number | null>(null);
+  const [initialEmployeeName, setInitialEmployeeName] = useState<string>("");
 
   // Dashboard stats hook
   const { data: dashboardStats, isLoading: dashboardLoading } =
@@ -277,23 +277,6 @@ export const PayrollManagementTemplateComponent = () => {
     );
   }, [managementData.employees]);
 
-  // Statistics are computed numbers from the hook, ensure type safety
-  const totalPayrolls =
-    typeof managementData.totalPayrolls === "number"
-      ? managementData.totalPayrolls
-      : 0;
-  const totalAmount =
-    typeof managementData.totalAmount === "number"
-      ? managementData.totalAmount
-      : 0;
-  const paidAmount =
-    typeof managementData.paidAmount === "number"
-      ? managementData.paidAmount
-      : 0;
-  const pendingAmount =
-    typeof managementData.pendingAmount === "number"
-      ? managementData.pendingAmount
-      : 0;
 
   const {
     // UI State
@@ -348,8 +331,9 @@ export const PayrollManagementTemplateComponent = () => {
     setActiveTab("generate_payroll");
   }, [setActiveTab]);
 
-  const handleGeneratePayroll = useCallback((employeeId: number) => {
+  const handleGeneratePayroll = useCallback((employeeId: number, employeeName: string) => {
     setInitialEmployeeId(employeeId);
+    setInitialEmployeeName(employeeName);
     setSelectedPayroll(null);
     setShowCreateDialog(true);
   }, [setShowCreateDialog, setSelectedPayroll]);
@@ -506,24 +490,29 @@ export const PayrollManagementTemplateComponent = () => {
         content: (
           <div className="space-y-4">
             {/* Month/Year Filter */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-3">
-                <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  Filter by month and year:
-                </p>
-                <MonthYearFilter
-                  month={selectedMonth}
-                  year={selectedYear}
-                  onMonthChange={setSelectedMonth}
-                  onYearChange={setSelectedYear}
-                  monthId="payroll-month"
-                  yearId="payroll-year"
-                  showLabels={false}
-                  className="flex-1 items-center"
-                />
+            <div className="">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex items-center gap-3 bg-white dark:bg-slate-800/80 px-6 py-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">
+                    Pay Period:
+                  </span>
+                  <MonthYearFilter
+                    month={selectedMonth}
+                    year={selectedYear}
+                    onMonthChange={setSelectedMonth}
+                    onYearChange={setSelectedYear}
+                    monthId="payroll-month"
+                    yearId="payroll-year"
+                    monthWidth="200px"
+                    yearWidth="115px"
+                    monthClassName="h-11 text-sm font-semibold bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
+                    yearClassName="h-11 text-sm font-semibold bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
+                    showLabels={false}
+                  />
+                </div>
                 <Button
                   onClick={handleCreatePayrollClick}
-                  className="ml-auto bg-blue-600 hover:bg-blue-700 text-white"
+                  className="sm:ml-auto h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-xs"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Preview Payroll
@@ -587,31 +576,12 @@ export const PayrollManagementTemplateComponent = () => {
     ]
   );
 
-  // Memoized stats cards
+  // Memoized stats cards following application design pattern
   const statsCards = useMemo(() => {
-    if (dashboardStats) {
-      return (
-        <PayrollStatsCards stats={dashboardStats} loading={dashboardLoading} />
-      );
-    }
     return (
-      <OldPayrollStatsCards
-        totalPayrolls={totalPayrolls}
-        totalAmount={totalAmount}
-        paidAmount={paidAmount}
-        pendingAmount={pendingAmount}
-        currentBranch={currentBranch}
-      />
+      <PayrollStatsCards stats={dashboardStats} loading={dashboardLoading} />
     );
-  }, [
-    dashboardStats,
-    dashboardLoading,
-    totalPayrolls,
-    totalAmount,
-    paidAmount,
-    pendingAmount,
-    currentBranch,
-  ]);
+  }, [dashboardStats, dashboardLoading]);
 
   return (
     <div className="space-y-6 p-6">
@@ -635,6 +605,8 @@ export const PayrollManagementTemplateComponent = () => {
           setShowCreateDialog(false);
           // ✅ FIX: Clear selectedPayroll when closing create dialog to ensure create path is taken
           setSelectedPayroll(null);
+          setInitialEmployeeName("");
+          setInitialEmployeeId(null);
         }}
         onSubmit={async (data) => {
           // ✅ FIX: Directly call handleCreatePayroll for create operation (don't rely on selectedPayroll state)
@@ -643,6 +615,9 @@ export const PayrollManagementTemplateComponent = () => {
         }}
         employees={employees}
         initialEmployeeId={initialEmployeeId}
+        initialEmployeeName={initialEmployeeName}
+        initialMonth={selectedMonth}
+        initialYear={selectedYear}
       />
 
       {/* Edit Payroll Form Dialog */}
