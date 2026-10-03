@@ -59,6 +59,12 @@ export interface DataTableProps<TData> extends Omit<DataTableProviderProps<TData
   toolbarRightContent?: React.ReactNode;
   headerContent?: React.ReactNode;
   footerContent?: React.ReactNode;
+
+  // Custom row styling callback
+  getRowClassName?: (row: TData) => string;
+
+  // Custom inner table element styling
+  tableElementClassName?: string;
 }
 
 function DataTableInner<TData>({
@@ -85,6 +91,8 @@ function DataTableInner<TData>({
   toolbarRightContent,
   headerContent,
   footerContent,
+  getRowClassName,
+  tableElementClassName,
   data,
 }: DataTableProps<TData> & { data: TData[] }) {
   return (
@@ -144,6 +152,8 @@ function DataTableInner<TData>({
         enableVirtualization={enableVirtualization}
         virtualThreshold={virtualThreshold}
         emptyMessage={emptyMessage}
+        getRowClassName={getRowClassName}
+        tableElementClassName={tableElementClassName}
       />
 
       {/* Pagination */}
@@ -159,6 +169,8 @@ function DataTableComponent<TData>({
   data,
   loading,
   searchKey,
+  searchValue,
+  onSearchChange,
   pagination,
   pageSize,
   pageSizeOptions,
@@ -176,6 +188,8 @@ function DataTableComponent<TData>({
       data={data}
       loading={loading}
       searchKey={searchKey}
+      searchValue={searchValue}
+      onSearchChange={onSearchChange}
       pagination={pagination}
       pageSize={pageSize}
       pageSizeOptions={pageSizeOptions}

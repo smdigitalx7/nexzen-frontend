@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import {
   CreditCard,
   TrendingUp,
@@ -13,7 +13,7 @@ import { PayrollDashboardStats } from "@/features/general/types/payrolls";
 import { formatCurrency } from "@/common/utils";
 
 interface PayrollStatsCardsProps {
-  stats: PayrollDashboardStats;
+  stats?: PayrollDashboardStats | null;
   loading?: boolean;
   className?: string;
 }
@@ -26,7 +26,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
   const statsCards = [
     {
       title: "Total Gross Pay",
-      value: formatCurrency(stats.total_gross_pay),
+      value: formatCurrency(stats?.total_gross_pay ?? 0),
       icon: IndianRupeeIcon,
       color: "indigo" as const,
       description: "Before deductions",
@@ -35,7 +35,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
     },
     {
       title: "Total Net Pay",
-      value: formatCurrency(stats.total_net_pay),
+      value: formatCurrency(stats?.total_net_pay ?? 0),
       icon: Wallet,
       color: "emerald" as const,
       description: "After deductions",
@@ -44,7 +44,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
     },
     {
       title: "Total Deductions",
-      value: formatCurrency(stats.total_deductions),
+      value: formatCurrency(stats?.total_deductions ?? 0),
       icon: TrendingUp,
       color: "orange" as const,
       description: "All deductions",
@@ -53,7 +53,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
     },
     {
       title: "Total Paid",
-      value: formatCurrency(stats.total_paid_amount),
+      value: formatCurrency(stats?.total_paid_amount ?? 0),
       icon: CreditCard,
       color: "teal" as const,
       description: "Amount disbursed",
@@ -62,7 +62,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
     },
     {
       title: "Pending Payment",
-      value: formatCurrency(stats.pending_payment_amount),
+      value: formatCurrency(stats?.pending_payment_amount ?? 0),
       icon: AlertTriangle,
       color: "rose" as const,
       description: "Awaiting payment",
@@ -71,7 +71,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
     },
     {
       title: "Average Salary",
-      value: formatCurrency(stats.average_salary),
+      value: formatCurrency(stats?.average_salary ?? 0),
       icon: Calculator,
       color: "cyan" as const,
       description: "Per employee",
@@ -81,8 +81,8 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
   ];
 
   return (
-    <DashboardGrid columns={3} gap="md" className={className}>
-      {statsCards.map((stat, index) => (
+    <DashboardGrid columns={6} gap="md" className={className}>
+      {statsCards.map((stat) => (
         <StatsCard key={stat.title} {...stat} loading={loading} />
       ))}
     </DashboardGrid>

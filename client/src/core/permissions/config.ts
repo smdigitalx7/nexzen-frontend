@@ -1,9 +1,9 @@
-﻿import { ROLES, type UserRole } from "@/common/constants";
+import { ROLES, type UserRole } from "@/common/constants";
 
 /**
  * Action types that can be controlled by permissions
  */
-export type ActionType = "create" | "edit" | "delete" | "view" | "export" | "import";
+export type ActionType = "create" | "edit" | "delete" | "view" | "export" | "import" | "manage";
 
 /**
  * UI Component types that can be controlled by permissions
@@ -120,6 +120,16 @@ export const GLOBAL_PERMISSIONS: Record<string, ResourcePermission> = {
       delete: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN],
       view: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
       export: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
+    },
+  },
+
+  // ==================== BIOMETRIC ATTENDANCE MODULE ====================
+  biometric_attendance: {
+    resource: "biometric_attendance",
+    actions: {
+      view: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
+      export: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
+      manage: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN],
     },
   },
 
@@ -513,5 +523,6 @@ export const DEFAULT_ACTION_PERMISSIONS: Record<ActionType, UserRole[]> = {
   view: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACCOUNTANT, ROLES.ACADEMIC],
   export: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN],
   import: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN],
+  manage: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN],
 };
 

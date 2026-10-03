@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Button } from '@/common/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
 import { Badge } from '@/common/components/ui/badge';
 import { Loader } from '@/common/components/ui/ProfessionalLoader';
+import { Loader2 } from 'lucide-react';
 import { DIALOG_SIZES } from '@/common/constants';
 import { cn } from '@/common/utils';
 
@@ -186,7 +187,7 @@ export const FormDialog: React.FC<FormDialogProps> = ({
                 onClick={onSave}
                 disabled={disabled || isLoading || (showStatusUpdate && newStatus === currentStatus)}
               >
-                {isLoading && <span className="mr-2"><Loader.Button size="sm" /></span>}
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin text-current" />}
                 {showStatusUpdate ? statusUpdateText : saveText}
               </Button>
             )}

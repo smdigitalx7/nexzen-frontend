@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { Eye, EyeOff } from "lucide-react";
 
 import { cn } from "@/common/utils";
@@ -80,7 +80,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
         <div className="relative">
           {leftIcon && (
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none z-10 flex items-center justify-center">
               {leftIcon}
             </div>
           )}

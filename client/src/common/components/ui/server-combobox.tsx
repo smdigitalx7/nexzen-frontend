@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Loader2, Search } from "lucide-react"
+import { Check, ChevronsUpDown, Loader2, Search, X } from "lucide-react"
 
 import { cn } from "@/common/utils"
 import { Button } from "@/common/components/ui/button"
@@ -114,7 +114,29 @@ export function ServerCombobox<T extends Record<string, any>>({
           className={cn("justify-between", width, !value && "text-muted-foreground", className)}
           disabled={disabled}
         >
-          <span className="truncate">{selectedLabel}</span>
+          <span className="truncate flex-1 text-left">{selectedLabel}</span>
+          {value && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onSelect("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onSelect("");
+                }
+              }}
+              className="ml-2 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors shrink-0"
+              title="Clear selection"
+            >
+              <X className="h-3 w-3" />
+            </span>
+          )}
           {isLoading ? (
             <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-50" />
           ) : (

@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import { DataTable } from "@/common/components/shared/DataTable";
 import { useCanViewUIComponent, useCanCreate } from "@/core/permissions";
@@ -38,6 +38,8 @@ interface EmployeeTableProps {
   onViewEmployee: (employee: EmployeeRead) => void;
   onUpdateStatus?: (id: number, status: string) => void;
   showSearch?: boolean;
+  searchValue?: string;
+  onSearchChange?: (term: string) => void;
   currentPage?: number;
   totalCount?: number;
   onPageChange?: (page: number) => void;
@@ -54,6 +56,8 @@ export const EmployeeTable = ({
   onViewEmployee,
   onUpdateStatus,
   showSearch = true,
+  searchValue,
+  onSearchChange,
   currentPage,
   totalCount,
   onPageChange,
@@ -108,6 +112,8 @@ export const EmployeeTable = ({
       title="Employees"
       loading={isLoading}
       searchKey="employee_name"
+      searchValue={searchValue}
+      onSearchChange={onSearchChange}
       export={{ enabled: true, filename: "employees" }}
       showSearch={showSearch}
       onAdd={canCreateEmployee ? onAddEmployee : undefined}

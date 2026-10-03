@@ -1,5 +1,6 @@
-﻿import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect } from "react";
 import { useEmployeeManagement, useEmployeeDashboard, useAttendanceDashboard, useLeaveDashboard, useAdvanceDashboard } from "@/features/general/hooks";
+import { brand } from "@/lib/config/brand";
 import type { EmployeeRead as HookEmployeeRead, EmployeeAttendanceRead, EmployeeLeaveRead as HookEmployeeLeaveRead } from "@/features/general/hooks/useEmployeeManagement";
 import type { AdvanceRead } from "@/features/general/types/advances";
 import type { EmployeeLeaveRead } from "@/features/general/types/employee-leave";
@@ -59,6 +60,8 @@ export const EmployeeManagementTemplate = () => {
     setActiveTab,
     employeesPage,
     setEmployeesPage,
+    employeeSearch,
+    setEmployeeSearch,
     attendancePage,
     leavesPage,
     advancesPage,
@@ -69,6 +72,7 @@ export const EmployeeManagementTemplate = () => {
     setPageSize,
     
     // Loading states
+    isLoading: employeesLoading,
     attendanceLoading,
     leavesLoading,
     advancesLoading,
@@ -241,14 +245,12 @@ export const EmployeeManagementTemplate = () => {
     activeTab === "advances" // Only fetch when advances tab is active
   );
 
-  // ✅ FIX: Get loading state for the currently active tab only
-  const isDashboardLoading = useMemo(() => {
-    if (activeTab === "employees") return dashboardLoading;
-    if (activeTab === "attendance") return attendanceDashboardLoading;
-    if (activeTab === "leaves") return leaveDashboardLoading;
-    if (activeTab === "advances") return advanceDashboardLoading;
-    return false;
-  }, [activeTab, dashboardLoading, attendanceDashboardLoading, leaveDashboardLoading, advanceDashboardLoading]);
+  // Automatically switch tab to employees if attendance tab is hidden for this tenant
+  useEffect(() => {
+    if (!brand.showEmployeeAttendanceTab() && activeTab === "attendance") {
+      setActiveTab("employees");
+    }
+  }, [activeTab, setActiveTab]);
 
   const handleAddEmployee = () => {
     // Initialize with default form values using LibEmployeeRead (API type)
@@ -349,8 +351,8 @@ export const EmployeeManagementTemplate = () => {
         />
       )}
 
-      {/* Attendance Statistics Cards - Only show when attendance tab is active */}
-      {activeTab === 'attendance' && attendanceDashboardStats && (
+      {/* Attendance Statistics Cards - Only show when attendance tab is active and enabled for brand */}
+      {brand.showEmployeeAttendanceTab() && activeTab === 'attendance' && attendanceDashboardStats && (
         <AttendanceStatsCards
           stats={attendanceDashboardStats}
           loading={attendanceDashboardLoading}
@@ -458,9 +460,13 @@ export const EmployeeManagementTemplate = () => {
         setAdvancesPage={setAdvancesPage}
         pageSize={pageSize}
         onPageSizeChange={setPageSize}
+        employeesLoading={employeesLoading}
+        employeeSearch={employeeSearch}
+        onEmployeeSearchChange={setEmployeeSearch}
         attendanceLoading={attendanceLoading}
         leavesLoading={leavesLoading}
         advancesLoading={advancesLoading}
+        showAttendanceTab={brand.showEmployeeAttendanceTab()}
             onAddEmployee={handleAddEmployee}
             onEditEmployee={handleEditEmployee}
             onDeleteEmployee={handleDeleteEmployeeClick}
