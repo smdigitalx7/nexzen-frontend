@@ -93,7 +93,23 @@ const EmployeeFormDialog = ({
 }: EmployeeFormDialogProps) => {
   const isLoading = isCreatePending || isUpdatePending;
 
+  // Check that all required fields have valid non-empty inputs
+  const isRequiredFieldsFilled = Boolean(
+    formData.employee_name?.trim() &&
+    formData.employee_type?.trim() &&
+    formData.designation?.trim() &&
+    formData.date_of_joining?.trim() &&
+    formData.salary !== undefined &&
+    formData.salary !== null &&
+    String(formData.salary).trim() !== "" &&
+    !isNaN(Number(formData.salary)) &&
+    Number(formData.salary) >= 0
+  );
+
+  const isSaveDisabled = !isRequiredFieldsFilled || isLoading;
+
   const handleSave = () => {
+    if (!isRequiredFieldsFilled) return;
     const form = document.getElementById("employee-form") as HTMLFormElement;
     if (form) form.requestSubmit();
   };
@@ -110,8 +126,13 @@ const EmployeeFormDialog = ({
       }
       size="LARGE"
       isLoading={isLoading}
+      disabled={isSaveDisabled}
       onSave={handleSave}
-      saveText={isEditing ? "Save changes" : "Create employee"}
+      saveText={
+        isEditing
+          ? (isUpdatePending ? "Saving changes..." : "Save changes")
+          : (isCreatePending ? "Creating employee..." : "Create employee")
+      }
       cancelText="Cancel"
     >
       <form
@@ -240,10 +261,11 @@ const EmployeeFormDialog = ({
           <Field id="experience_years" label="Experience (years)">
             <Input
               id="experience_years"
-              value={formData.experience_years ?? ""}
-              onChange={(e) =>
-                onChange("experience_years", Number.parseInt(e.target.value, 10) || 0)
-              }
+              value={formData.experience_years !== undefined && formData.experience_years !== null ? formData.experience_years : ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                onChange("experience_years", val === "" ? ("" as any) : Number(val));
+              }}
               className="h-9 bg-white border-slate-200"
               type="number"
               min={0}
@@ -257,7 +279,7 @@ const EmployeeFormDialog = ({
                   { value: "ACTIVE", label: "Active" },
                   { value: "TERMINATED", label: "Terminated" },
                 ]}
-                value={formData.status || "ACTIVE"}
+                value={(formData.status || "ACTIVE").toUpperCase()}
                 onSelect={(value: string) => onChange("status", value)}
                 placeholder="Select status"
                 radioLayout="horizontal"
@@ -275,7 +297,10 @@ const EmployeeFormDialog = ({
               <Input
                 id="salary"
                 value={formData.salary !== undefined && formData.salary !== null ? formData.salary : ""}
-                onChange={(e) => onChange("salary", e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onChange("salary", val === "" ? ("" as any) : Number(val));
+                }}
                 className="h-9 pl-7 bg-white border-slate-200"
                 type="number"
                 min={0}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { startTransition } from "react";
 import { useAuthStore } from "@/core/auth/authStore";
@@ -7,6 +7,7 @@ import {
   useTabEnabled,
 } from "@/common/hooks/use-tab-navigation";
 import { toast } from "@/common/hooks/use-toast";
+import { useDebounce } from "@/common/hooks/useDebounce";
 import { invalidateQueriesSelective } from "@/common/hooks/useGlobalRefetch";
 import {
   useEmployeesByBranch,
@@ -157,6 +158,8 @@ export const useEmployeeManagement = (
   const [leaveYear, setLeaveYear] = useState<number>(now.getFullYear());
   const [employeesPage, setEmployeesPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const debouncedEmployeeSearch = useDebounce(employeeSearch, 400);
 
   // Data hooks - API calls are made per tab, not based on sidebar navigation
   // Only fetch data when the respective tab is active to prevent unnecessary requests and UI freezes
@@ -167,7 +170,8 @@ export const useEmployeeManagement = (
     data: employeesData,
     isLoading,
     error,
-  } = useEmployeesByBranch(employeesEnabled, employeesPage, pageSize);
+    refetch: refetchEmployees,
+  } = useEmployeesByBranch(employeesEnabled, employeesPage, pageSize, debouncedEmployeeSearch);
 
   // ✅ FIX: Handle both direct array and wrapped response formats
   const employees = useMemo(() => {
@@ -260,7 +264,6 @@ export const useEmployeeManagement = (
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeRead | null>(
     null
   );
-  const [loadedDetailsId, setLoadedDetailsId] = useState<number | null>(null);
   const [showEmployeeDetail, setShowEmployeeDetail] = useState(false);
   const [showDeleteEmployeeDialog, setShowDeleteEmployeeDialog] =
     useState(false);
@@ -353,23 +356,38 @@ export const useEmployeeManagement = (
     selectedEmployee?.employee_id || 0
   );
 
-  // Update selectedEmployee with full details when they are loaded
-  useEffect(() => {
-    if (fullEmployeeDetails && selectedEmployee?.employee_id === fullEmployeeDetails.employee_id) {
-        // Only update if we haven't loaded these specific details into state yet
-        if (loadedDetailsId !== fullEmployeeDetails.employee_id) {
-             setSelectedEmployee(fullEmployeeDetails as EmployeeRead);
-             setLoadedDetailsId(fullEmployeeDetails.employee_id);
-        }
-    }
-  }, [fullEmployeeDetails, selectedEmployee, loadedDetailsId]);
+  // Track which employee_id has been loaded with full details to prevent overwriting user input
+  const loadedDetailIdRef = useRef<number | null>(null);
 
-  // Reset loadedDetailsId when no employee is selected
+  // When selectedEmployee is reset or ID changes, reset the loaded detail ref
   useEffect(() => {
-    if (!selectedEmployee) {
-      setLoadedDetailsId(null);
+    if (!selectedEmployee || selectedEmployee.employee_id !== loadedDetailIdRef.current) {
+      if (!selectedEmployee) {
+        loadedDetailIdRef.current = null;
+      }
     }
-  }, [selectedEmployee]);
+  }, [selectedEmployee?.employee_id]);
+
+  // Update selectedEmployee with full details when loaded from API
+  useEffect(() => {
+    if (
+      fullEmployeeDetails &&
+      selectedEmployee?.employee_id &&
+      fullEmployeeDetails.employee_id === selectedEmployee.employee_id
+    ) {
+      if (!isEditingEmployee) {
+        // When viewing details in sheet, always sync with fresh API data
+        setSelectedEmployee(fullEmployeeDetails as EmployeeRead);
+      } else if (loadedDetailIdRef.current !== fullEmployeeDetails.employee_id) {
+        // When opening edit dialog, populate once to avoid overwriting user edits
+        loadedDetailIdRef.current = fullEmployeeDetails.employee_id;
+        setSelectedEmployee((prev) => ({
+          ...fullEmployeeDetails,
+          ...(prev || {}),
+        }) as EmployeeRead);
+      }
+    }
+  }, [fullEmployeeDetails, selectedEmployee?.employee_id, isEditingEmployee]);
 
   // ✅ FIX: Memoize expensive data transformations
   // Flatten and enrich attendance data with employee names
@@ -496,18 +514,30 @@ export const useEmployeeManagement = (
   ]);
 
   const handleCreateEmployee = (data: EmployeeCreate) => {
-    // ✅ PHASE 2: Close immediately and cleanup state synchronously
-    setShowEmployeeForm(false);
-    cleanupDialogState();
-
     try {
       createEmployeeMutation.mutate(data, {
-        onSuccess: () => {
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              queryClient.refetchQueries({ queryKey: employeeKeys.all });
-            }, 300);
+        onSuccess: async () => {
+          // Show success toast notification
+          toast({
+            title: "Success",
+            description: "Employee created successfully",
+            variant: "success",
           });
+
+          // Close the dialog box only on success
+          setShowEmployeeForm(false);
+          cleanupDialogState();
+
+          // Immediately invalidate and refetch all active employee queries
+          await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+          await queryClient.refetchQueries({ queryKey: employeeKeys.all, type: "active" });
+          if (refetchEmployees) {
+            await refetchEmployees();
+          }
+        },
+        onError: (error) => {
+          console.error("Error creating employee:", error);
+          // Keep dialog open on error so the user can fix the input fields
         }
       });
     } catch (error) {
@@ -516,19 +546,23 @@ export const useEmployeeManagement = (
   };
 
   const handleUpdateEmployee = (id: number, data: EmployeeUpdate) => {
-    // ✅ PHASE 2: Close immediately and cleanup state synchronously
-    setShowEmployeeForm(false);
-    setIsEditingEmployee(false);
-    cleanupDialogState();
-
     try {
       updateEmployeeMutation.mutate({ id, payload: data }, {
-        onSuccess: () => {
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              queryClient.refetchQueries({ queryKey: employeeKeys.all });
-            }, 300);
-          });
+        onSuccess: async () => {
+          setShowEmployeeForm(false);
+          setIsEditingEmployee(false);
+          cleanupDialogState();
+
+          // Immediately invalidate and refetch all active employee queries and detail query
+          await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+          await queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) });
+          await queryClient.refetchQueries({ queryKey: employeeKeys.all, type: "active" });
+          if (refetchEmployees) {
+            await refetchEmployees();
+          }
+        },
+        onError: (error) => {
+          console.error("Error updating employee:", error);
         }
       });
     } catch (error) {
@@ -537,18 +571,20 @@ export const useEmployeeManagement = (
   };
 
   const handleDeleteEmployee = (id: number) => {
-    // ✅ PHASE 2: Close immediately and cleanup state synchronously
     setShowDeleteEmployeeDialog(false);
     cleanupDialogState();
 
     try {
       deleteEmployeeMutation.mutate(id, {
-        onSuccess: () => {
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              queryClient.refetchQueries({ queryKey: employeeKeys.all });
-            }, 300);
-          });
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+          await queryClient.refetchQueries({ queryKey: employeeKeys.all, type: "active" });
+          if (refetchEmployees) {
+            await refetchEmployees();
+          }
+        },
+        onError: (error) => {
+          console.error("Error deleting employee:", error);
         }
       });
     } catch (error) {
@@ -557,17 +593,21 @@ export const useEmployeeManagement = (
   };
 
   const handleUpdateEmployeeStatus = (id: number, status: string) => {
-    // ✅ PHASE 2: Close immediately and cleanup state synchronously
     cleanupDialogState();
 
     try {
       updateStatusMutation.mutate({ id, status }, {
-        onSuccess: () => {
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              queryClient.refetchQueries({ queryKey: employeeKeys.all });
-            }, 300);
-          });
+        onSuccess: async () => {
+          setShowEmployeeDetail(false);
+          await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+          await queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) });
+          await queryClient.refetchQueries({ queryKey: employeeKeys.all, type: "active" });
+          if (refetchEmployees) {
+            await refetchEmployees();
+          }
+        },
+        onError: (error) => {
+          console.error("Error updating status:", error);
         }
       });
     } catch (error) {
@@ -902,6 +942,7 @@ export const useEmployeeManagement = (
 
     // Loading states
     isLoading,
+    employeesLoading: isLoading,
     error,
     attendanceLoading,
     leavesLoading,
@@ -922,6 +963,8 @@ export const useEmployeeManagement = (
     setActiveTab,
     employeesPage,
     setEmployeesPage,
+    employeeSearch,
+    setEmployeeSearch,
     totalEmployeesPages,
     attendancePage,
     leavesPage,
@@ -1039,6 +1082,7 @@ export const useEmployeeManagement = (
     handleUpdateEmployee,
     handleDeleteEmployee,
     handleUpdateEmployeeStatus,
+    refetchEmployees,
     handleCreateAttendance,
     handleBulkCreateAttendance,
     handleUpdateAttendance,

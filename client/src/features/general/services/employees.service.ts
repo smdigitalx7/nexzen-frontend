@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import type { 
   EmployeeRead, 
   EmployeeCreate, 
@@ -10,6 +10,19 @@ import type {
   EmployeeMinimal,
   EmployeePaginatedResponse
 } from "@/features/general/types/employees";
+
+function sanitizeEmployeePayload<T extends Record<string, any>>(payload: T): T {
+  const sanitized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      sanitized[key] = trimmed === "" ? null : trimmed;
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized as T;
+}
 
 export const EmployeesService = {
   /**
@@ -40,7 +53,7 @@ export const EmployeesService = {
   /**
    * Get all employees by institute (requires INSTITUTE_ADMIN, ADMIN, ACADEMIC, ACCOUNTANT role)
    */
-  listByInstitute(params?: { page?: number; page_size?: number }): Promise<EmployeePaginatedResponse> {
+  listByInstitute(params?: { page?: number; page_size?: number; search?: string }): Promise<EmployeePaginatedResponse> {
     return Api.get<EmployeePaginatedResponse>("/employees", params as any);
   },
 
@@ -54,7 +67,7 @@ export const EmployeesService = {
   /**
    * Get all employees by branch (requires INSTITUTE_ADMIN, ADMIN, ACADEMIC, or ACCOUNTANT role)
    */
-  listByBranch(params?: { page?: number; page_size?: number }): Promise<EmployeePaginatedResponse> {
+  listByBranch(params?: { page?: number; page_size?: number; search?: string }): Promise<EmployeePaginatedResponse> {
     return Api.get<EmployeePaginatedResponse>("/employees/branch", params as any);
   },
 
@@ -76,14 +89,14 @@ export const EmployeesService = {
    * Create new employee (requires INSTITUTE_ADMIN, ADMIN role)
    */
   create(payload: EmployeeCreate): Promise<EmployeeRead> {
-    return Api.post<EmployeeRead>("/employees", payload);
+    return Api.post<EmployeeRead>("/employees", sanitizeEmployeePayload(payload));
   },
 
   /**
    * Update employee (requires INSTITUTE_ADMIN, ADMIN role)
    */
   update(id: number, payload: EmployeeUpdate): Promise<EmployeeRead> {
-    return Api.put<EmployeeRead>(`/employees/${id}`, payload);
+    return Api.put<EmployeeRead>(`/employees/${id}`, sanitizeEmployeePayload(payload));
   },
 
   /**
