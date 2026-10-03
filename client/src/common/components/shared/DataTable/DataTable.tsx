@@ -169,6 +169,8 @@ function DataTableComponent<TData>({
   data,
   loading,
   searchKey,
+  searchValue,
+  onSearchChange,
   pagination,
   pageSize,
   pageSizeOptions,
@@ -186,6 +188,8 @@ function DataTableComponent<TData>({
       data={data}
       loading={loading}
       searchKey={searchKey}
+      searchValue={searchValue}
+      onSearchChange={onSearchChange}
       pagination={pagination}
       pageSize={pageSize}
       pageSizeOptions={pageSizeOptions}

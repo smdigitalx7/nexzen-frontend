@@ -202,6 +202,7 @@ export const PayrollsService = {
       employee_id: payload.employee_id,
       payroll_month: payload.payroll_month,
       payroll_year: payload.payroll_year,
+      lop: payload.lop, // <-- FIX: Include user-defined/overridden LOP
       other_deductions: payload.other_deductions || 0,
       advance_amount: payload.advance_amount || 0,
       paid_amount: payload.paid_amount,

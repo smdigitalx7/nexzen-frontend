@@ -101,17 +101,32 @@ export interface RecentPayroll {
   generated_at: string;
 }
 
+export interface AttendanceSummary {
+  total_calendar_days: number;
+  sundays: number;
+  holidays: number;
+  working_days: number;
+  present_days: number;
+  absent_days: number;
+  paid_leaves: number;
+  unpaid_leaves: number;
+  half_days: number;
+}
+
 export interface PayrollPreview {
   employee_id?: number;
   employee_name?: string;
   gross_pay: number;
   previous_balance: number;
   lop: number;
+  suggested_lop?: number;                     // <-- NEW
   advance_deduction: number;
+  outstanding_advance_balance?: number;       // <-- NEW
   other_deductions: number;
   total_deductions: number;
   net_pay: number;
-  // Biometric payroll preview fields
+  attendance_summary?: AttendanceSummary;     // <-- NEW
+  // Biometric payroll status fields
   success?: boolean;
   message?: string;
   payroll_month?: number;

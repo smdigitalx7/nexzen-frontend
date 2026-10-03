@@ -111,6 +111,18 @@ export const brandConfig = {
    * Default: #fe0000
    */
   collegeIconColor: import.meta.env.VITE_COLLEGE_ICON_COLOR || '#fe0000',
+
+  /**
+   * Show employee attendance tab in Employee Management
+   * Environment variable: VITE_SHOW_EMPLOYEE_ATTENDANCE_TAB
+   * Default: false for Akshara (biometric attendance handled in separate sidebar module), true for Velonex
+   */
+  showEmployeeAttendanceTab: import.meta.env.VITE_SHOW_EMPLOYEE_ATTENDANCE_TAB !== undefined
+    ? import.meta.env.VITE_SHOW_EMPLOYEE_ATTENDANCE_TAB === 'true'
+    : !(
+        import.meta.env.VITE_CLIENT?.toLowerCase() === 'akshara' ||
+        (import.meta.env.VITE_BRAND_NAME || '').toLowerCase().includes('akshara')
+      ),
 } as const;
 
 /**
@@ -209,6 +221,25 @@ export const brand = {
    * Get college sidebar icon color
    */
   getCollegeIconColor: () => brandConfig.collegeIconColor,
+
+  /**
+   * Check if the active brand/tenant is Akshara
+   */
+  isAkshara: () =>
+    (import.meta.env.VITE_CLIENT || '').toLowerCase() === 'akshara' ||
+    (brandConfig.name || '').toLowerCase().includes('akshara'),
+
+  /**
+   * Check if the active brand/tenant is Velonex
+   */
+  isVelonex: () =>
+    (import.meta.env.VITE_CLIENT || '').toLowerCase() === 'velonex' ||
+    (brandConfig.name || '').toLowerCase().includes('velonex'),
+
+  /**
+   * Check if the employee attendance tab should be shown in Employee Management
+   */
+  showEmployeeAttendanceTab: () => brandConfig.showEmployeeAttendanceTab,
 };
 
 export default brandConfig;

@@ -1,4 +1,4 @@
-﻿import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { cn } from "@/common/utils";
@@ -52,7 +52,7 @@ export const MonthYearFilter = ({
           {label}
         </span>
       )}
-      <div className="flex-shrink-0" style={{ width: monthWidth || 'auto' }}>
+      <div className="flex-shrink-0" style={{ width: monthWidth || '175px' }}>
         {showLabels && (
           <Label htmlFor={monthId} className="text-sm font-medium mb-1.5 block">
             {monthLabel}
@@ -62,7 +62,7 @@ export const MonthYearFilter = ({
           value={month.toString()}
           onValueChange={(value) => onMonthChange(parseInt(value))}
         >
-          <SelectTrigger id={monthId} className={cn("w-full h-9", monthClassName)}>
+          <SelectTrigger id={monthId} className={cn("w-full h-10 text-sm font-medium", monthClassName)}>
             <SelectValue placeholder="Select month" />
           </SelectTrigger>
           <SelectContent>
@@ -76,7 +76,7 @@ export const MonthYearFilter = ({
           </SelectContent>
         </Select>
       </div>
-      <div className="flex-shrink-0" style={{ width: yearWidth || '100px' }}>
+      <div className="flex-shrink-0" style={{ width: yearWidth || '105px' }}>
         {showLabels && (
           <Label htmlFor={yearId} className="text-sm font-medium mb-1.5 block">
             {yearLabel}
@@ -93,7 +93,7 @@ export const MonthYearFilter = ({
           }}
           min={yearMin.toString()}
           max={yearMax.toString()}
-          className={cn("w-full h-9", yearClassName)}
+          className={cn("w-full h-10 text-sm font-medium", yearClassName)}
         />
       </div>
     </div>

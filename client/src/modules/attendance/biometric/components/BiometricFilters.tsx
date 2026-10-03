@@ -43,6 +43,7 @@ interface BiometricFiltersProps {
   onReset: () => void;
   onRefresh: () => void;
   isLoading?: boolean;
+  isSyncing?: boolean;
 }
 
 const MONTHS = [
@@ -84,6 +85,7 @@ export const BiometricFilters = ({
   onReset,
   onRefresh,
   isLoading = false,
+  isSyncing = false,
 }: BiometricFiltersProps) => {
   const { data: employeesData = [], isLoading: employeesLoading } = useEmployeesMinimal();
 
@@ -117,7 +119,7 @@ export const BiometricFilters = ({
       {/* Left side: Filter Inputs */}
       <div className="flex flex-wrap items-end gap-4 flex-1">
         {showDate && onDateChange && (
-          <div className="space-y-2 w-48">
+          <div className="space-y-2 w-64 min-w-[240px]">
             <Label htmlFor="biometric-date" className="text-slate-700 dark:text-slate-300 font-semibold">
               Attendance Date
             </Label>
@@ -247,12 +249,26 @@ export const BiometricFilters = ({
         </Button>
         <Button
           variant="outline"
-          className="h-10 px-4 gap-2 border-slate-200 hover:bg-slate-50"
+          className="h-10 px-4 gap-2 border-slate-200 hover:bg-slate-50 transition-all disabled:cursor-not-allowed select-none"
           onClick={onRefresh}
-          disabled={isLoading}
+          disabled={isLoading || isSyncing}
         >
-          {isLoading ? <Loader.Button size="xs" /> : <RefreshCw className="h-4 w-4" />}
-          Refresh
+          {isSyncing ? (
+            <>
+              <RefreshCw className="h-4 w-4 animate-spin text-emerald-600" />
+              <span className="text-emerald-700 font-medium">Syncing...</span>
+            </>
+          ) : isLoading ? (
+            <>
+              <Loader.Button size="xs" />
+              <span>Loading...</span>
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4" />
+              <span>Refresh</span>
+            </>
+          )}
         </Button>
       </div>
     </div>

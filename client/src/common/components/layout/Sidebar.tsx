@@ -21,6 +21,7 @@ import {
   ExternalLink,
   FolderOpen,
   Bug,
+  CalendarDays,
 } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 import { cn } from "@/common/utils";
@@ -152,6 +153,60 @@ const Sidebar = () => {
       });
     }
 
+    // Attendance Module - Placed under Employees in General section
+    if (
+      import.meta.env.VITE_FEATURE_BIOMETRIC === "true" &&
+      (isAdminRole ||
+        isInstituteAdminRole ||
+        userRoleUpper === ROLES.ACADEMIC ||
+        userRoleUpper === "ACADEMIC" ||
+        userRoleUpper === ROLES.ACCOUNTANT ||
+        userRoleUpper === "ACCOUNTANT")
+    ) {
+      const branchPrefix =
+        currentBranch?.branch_type === "COLLEGE" ? "/college" : "/school";
+
+      modules.push({
+        title: "Attendance",
+        href: `${branchPrefix}/attendance/essl-dashboard`,
+        icon: Calendar,
+        description: "Biometric attendance reports",
+        allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
+        children: [
+          {
+            title: "Daily Report",
+            href: `${branchPrefix}/attendance/essl-dashboard`,
+            icon: Calendar,
+            allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
+          },
+          {
+            title: "Monthly Summary",
+            href: `${branchPrefix}/attendance/monthly-summary`,
+            icon: Calendar,
+            allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
+          },
+          {
+            title: "Monthly Matrix",
+            href: `${branchPrefix}/attendance/monthly-matrix`,
+            icon: Calendar,
+            allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
+          },
+          {
+            title: "Yearly Summary",
+            href: `${branchPrefix}/attendance/yearly-summary`,
+            icon: Calendar,
+            allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
+          },
+          {
+            title: "Yearly Matrix",
+            href: `${branchPrefix}/attendance/yearly-matrix`,
+            icon: Calendar,
+            allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
+          },
+        ],
+      });
+    }
+
     // Payroll - Only ADMIN and INSTITUTE_ADMIN
     if (isAdminRole || isInstituteAdminRole) {
       modules.push({
@@ -159,6 +214,24 @@ const Sidebar = () => {
         href: "/payroll",
         icon: CreditCard,
         description: "Salary and payments",
+      });
+    }
+
+    // Holidays - Visible to staff / admin roles
+    if (
+      isAdminRole ||
+      isInstituteAdminRole ||
+      userRoleUpper === ROLES.ACCOUNTANT ||
+      userRoleUpper === "ACCOUNTANT" ||
+      userRoleUpper === ROLES.ACADEMIC ||
+      userRoleUpper === "ACADEMIC" ||
+      Boolean(user?.role)
+    ) {
+      modules.push({
+        title: "Holidays",
+        href: "/holidays",
+        icon: CalendarDays,
+        description: "Institute holiday calendar",
       });
     }
 
@@ -188,7 +261,7 @@ const Sidebar = () => {
     }
 
     return modules;
-  }, [user?.role]);
+  }, [user?.role, currentBranch]);
 
   // Get Schema-specific modules (School/College) based on role (memoized for performance)
   const schemaModules = useMemo((): NavigationItem[] => {
@@ -240,55 +313,9 @@ const Sidebar = () => {
         description: "Academic structure & performance",
         allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
       },
-      ...(import.meta.env.VITE_FEATURE_BIOMETRIC === "true"
+      // Attendance for non-biometric deployments (Velonex student daily attendance)
+      ...(import.meta.env.VITE_FEATURE_BIOMETRIC !== "true"
         ? [
-            {
-              title: "Attendance",
-              href: `${branchPrefix}/attendance/essl-dashboard`,
-              icon: Calendar,
-              description: "Biometric attendance reports",
-              allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
-              children: [
-                {
-                  title: "Daily Report",
-                  href: `${branchPrefix}/attendance/essl-dashboard`,
-                  icon: Calendar,
-                  allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
-                },
-                /* {
-                  title: "Daily Report",
-                  href: `${branchPrefix}/attendance/daily-report`,
-                  icon: Calendar,
-                  allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
-                }, */
-                {
-                  title: "Monthly Summary",
-                  href: `${branchPrefix}/attendance/monthly-summary`,
-                  icon: Calendar,
-                  allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
-                },
-                {
-                  title: "Monthly Matrix",
-                  href: `${branchPrefix}/attendance/monthly-matrix`,
-                  icon: Calendar,
-                  allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
-                },
-                {
-                  title: "Yearly Summary",
-                  href: `${branchPrefix}/attendance/yearly-summary`,
-                  icon: Calendar,
-                  allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
-                },
-                {
-                  title: "Yearly Matrix",
-                  href: `${branchPrefix}/attendance/yearly-matrix`,
-                  icon: Calendar,
-                  allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
-                },
-              ],
-            },
-          ]
-        : [
             {
               title: "Attendance",
               href: `${branchPrefix}/attendance`,
@@ -296,7 +323,8 @@ const Sidebar = () => {
               description: "Daily attendance",
               allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
             },
-          ]),
+          ]
+        : []),
       {
         title: "Marks",
         href: `${branchPrefix}/marks`,
@@ -502,6 +530,103 @@ const Sidebar = () => {
     }
   );
 
+  const renderNavigationItem = (item: NavigationItem) => {
+    const displayPath = pendingRoutePath || location.pathname;
+    const isActive =
+      displayPath.startsWith(item.href) ||
+      Boolean(
+        item.children &&
+          item.children.some((child) => displayPath.startsWith(child.href))
+      );
+
+    // Render collapsible submenu for item with children (when sidebar is open)
+    if (item.children && sidebarOpen) {
+      const isExpanded = !!expandedMenus[item.title.toLowerCase()];
+
+      return (
+        <div key={item.title} className="space-y-1">
+          <div
+            onClick={() => toggleMenu(item.title)}
+            className={cn(
+              "w-full flex items-center justify-between px-3 py-2 relative transition-all duration-200 group rounded-md overflow-hidden cursor-pointer",
+              isActive
+                ? "bg-blue-50/50 text-blue-700 font-medium"
+                : "text-slate-600 hover:bg-blue-50/30 hover:text-blue-800"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <item.icon
+                className="h-4 w-4 shrink-0"
+                style={{
+                  color: themeColors.iconColor,
+                  opacity: isActive ? 1 : 0.5,
+                }}
+              />
+              <span className="text-sm">{item.title}</span>
+            </div>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform duration-200 text-slate-500",
+                isExpanded && "transform rotate-180"
+              )}
+            />
+          </div>
+
+          {isExpanded && (
+            <div className="pl-4 ml-4 border-l border-slate-200 space-y-1 mt-1">
+              {item.children.map((child) => {
+                const isChildActive = displayPath === child.href;
+
+                return (
+                  <Link
+                    key={child.href}
+                    to={child.href}
+                    onMouseEnter={() => prefetchRouteComponent(child.href)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const navData = {
+                        path: child.href,
+                        timestamp: Date.now(),
+                      };
+                      sessionStorage.setItem(
+                        "navigation_from_sidebar",
+                        JSON.stringify(navData)
+                      );
+                      handleItemClick(child.href, child.title);
+                      startRouteTransition(child.href);
+                      navigate(child.href, { flushSync: true });
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors",
+                      isChildActive
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                    )}
+                  >
+                    <span>{child.title}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <NavItem
+        key={item.href}
+        item={item}
+        isActive={isActive}
+        sidebarOpen={sidebarOpen}
+        themeColors={themeColors}
+        handleItemClick={handleItemClick}
+        navigate={navigate}
+        startRouteTransition={startRouteTransition}
+      />
+    );
+  };
+
   return (
     <TooltipProvider delayDuration={0}>
       <aside
@@ -598,97 +723,7 @@ const Sidebar = () => {
                   </div>
                 )}
                 <div className={cn("space-y-1", !sidebarOpen && "space-y-2")}>
-                  {schemaModules.map((item: NavigationItem) => {
-                    const displayPath = pendingRoutePath || location.pathname;
-                    const isActive = displayPath.startsWith(item.href);
-
-                    // Render collapsible submenu for item with children (when sidebar is open)
-                    if (item.children && sidebarOpen) {
-                      const isExpanded = !!expandedMenus[item.title.toLowerCase()];
-
-                      return (
-                        <div key={item.title} className="space-y-1">
-                          <div
-                            onClick={() => toggleMenu(item.title)}
-                            className={cn(
-                              "w-full flex items-center justify-between px-3 py-2 relative transition-all duration-200 group rounded-md overflow-hidden cursor-pointer",
-                              isActive
-                                ? "bg-blue-50/50 text-blue-700 font-medium"
-                                : "text-slate-600 hover:bg-blue-50/30 hover:text-blue-800"
-                            )}
-                          >
-                            <div className="flex items-center gap-3">
-                              <item.icon
-                                className="h-4 w-4 shrink-0"
-                                style={{
-                                  color: themeColors.iconColor,
-                                  opacity: isActive ? 1 : 0.5,
-                                }}
-                              />
-                              <span className="text-sm">{item.title}</span>
-                            </div>
-                            <ChevronDown
-                              className={cn(
-                                "h-4 w-4 transition-transform duration-200 text-slate-500",
-                                isExpanded && "transform rotate-180"
-                              )}
-                            />
-                          </div>
-
-                          {isExpanded && (
-                            <div className="pl-4 ml-4 border-l border-slate-200 space-y-1 mt-1">
-                              {item.children.map((child) => {
-                                const isChildActive = displayPath === child.href;
-
-                                return (
-                                  <Link
-                                    key={child.href}
-                                    to={child.href}
-                                    onMouseEnter={() => prefetchRouteComponent(child.href)}
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      const navData = {
-                                        path: child.href,
-                                        timestamp: Date.now(),
-                                      };
-                                      sessionStorage.setItem(
-                                        "navigation_from_sidebar",
-                                        JSON.stringify(navData)
-                                      );
-                                      handleItemClick(child.href, child.title);
-                                      startRouteTransition(child.href);
-                                      navigate(child.href, { flushSync: true });
-                                    }}
-                                    className={cn(
-                                      "w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors",
-                                      isChildActive
-                                        ? "bg-blue-50 text-blue-700 font-medium"
-                                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
-                                    )}
-                                  >
-                                    <span>{child.title}</span>
-                                  </Link>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <NavItem
-                        key={item.href}
-                        item={item}
-                        isActive={isActive}
-                        sidebarOpen={sidebarOpen}
-                        themeColors={themeColors}
-                        handleItemClick={handleItemClick}
-                        navigate={navigate}
-                        startRouteTransition={startRouteTransition}
-                      />
-                    );
-                  })}
+                  {schemaModules.map(renderNavigationItem)}
                 </div>
               </div>
             )}
@@ -710,23 +745,7 @@ const Sidebar = () => {
                   </div>
                 )}
                 <div className={cn("space-y-1", !sidebarOpen && "space-y-2")}>
-                  {generalModules.map((item: NavigationItem) => {
-                    const displayPath = pendingRoutePath || location.pathname;
-                    const isActive = displayPath.startsWith(item.href);
-
-                    return (
-                      <NavItem
-                        key={item.href}
-                        item={item}
-                        isActive={isActive}
-                        sidebarOpen={sidebarOpen}
-                        themeColors={themeColors}
-                        handleItemClick={handleItemClick}
-                        navigate={navigate}
-                        startRouteTransition={startRouteTransition}
-                      />
-                    );
-                  })}
+                  {generalModules.map(renderNavigationItem)}
                 </div>
               </div>
             )}

@@ -28,6 +28,9 @@ export const TransportManagement = lazy(
   () => import("@/features/general/pages/TransportManagementPage")
 );
 export const AuditLog = lazy(() => import("@/features/general/pages/AuditLog"));
+export const HolidaysPage = lazy(
+  () => import("@/features/general/pages/HolidaysPage")
+);
 export const AnnouncementsManagement = lazy(
   () =>
     import(
@@ -221,6 +224,11 @@ export const routes: RouteConfig[] = [
     component: TransportManagement,
   },
   {
+    path: "/holidays",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT", "ACADEMIC"],
+    component: HolidaysPage,
+  },
+  {
     path: "/audit-log",
     roles: ["ADMIN", "INSTITUTE_ADMIN"],
     component: AuditLog,
@@ -371,6 +379,7 @@ const routePrefetchers: Record<string, () => Promise<unknown>> = {
   "/users": () => import("@/features/general/pages/UserManagementPage"),
   "/employees": () => import("@/features/general/pages/EmployeeManagementPage"),
   "/payroll": () => import("@/features/general/pages/PayrollManagementPage"),
+  "/holidays": () => import("@/features/general/pages/HolidaysPage"),
   "/transport": () => import("@/features/general/pages/TransportManagementPage"),
   "/audit-log": () => import("@/features/general/pages/AuditLog"),
   "/support": () => import("@/features/general/pages/SupportPage"),

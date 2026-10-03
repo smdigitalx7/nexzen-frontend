@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/common/components/ui
 import type { TabItem } from "@/common/components/shared/TabSwitcher";
 import type { LucideIcon } from "lucide-react";
 import type { EmployeeLeaveRead } from "@/features/general/types/employee-leave";
+import { brand } from "@/lib/config/brand";
 
 // Using local types from child components for compatibility
 // These types are more minimal but match what the child components expect
@@ -91,9 +92,17 @@ interface EmployeeManagementTabsProps {
   onPageSizeChange: (pageSize: number) => void;
   
   // Loading states
+  employeesLoading?: boolean;
   attendanceLoading: boolean;
   leavesLoading: boolean;
   advancesLoading: boolean;
+
+  // Employee search
+  employeeSearch?: string;
+  onEmployeeSearchChange?: (term: string) => void;
+  
+  // Customization
+  showAttendanceTab?: boolean;
   
   // Employee handlers
   onAddEmployee: () => void;
@@ -159,9 +168,13 @@ export const EmployeeManagementTabs = ({
   setAdvancesPage,
   pageSize,
   onPageSizeChange,
+  employeesLoading,
   attendanceLoading,
   leavesLoading,
   advancesLoading,
+  employeeSearch,
+  onEmployeeSearchChange,
+  showAttendanceTab,
   onAddEmployee,
   onEditEmployee,
   onDeleteEmployee,
@@ -193,6 +206,8 @@ export const EmployeeManagementTabs = ({
   attendanceYear,
   setAttendanceYear,
 }: EmployeeManagementTabsProps) => {
+  const isAttendanceShown = showAttendanceTab ?? brand.showEmployeeAttendanceTab();
+
   const tabs: TabItem[] = [
     {
       value: "employees",
@@ -201,13 +216,15 @@ export const EmployeeManagementTabs = ({
       content: (
         <EmployeeTable
           employees={employees}
-          isLoading={false}
+          isLoading={employeesLoading ?? false}
           onAddEmployee={onAddEmployee}
           onEditEmployee={onEditEmployee}
           onDeleteEmployee={onDeleteEmployee}
           onViewEmployee={onViewEmployee}
           onUpdateStatus={onUpdateStatus}
           showSearch={true}
+          searchValue={employeeSearch}
+          onSearchChange={onEmployeeSearchChange}
           currentPage={employeesPage}
           totalCount={totalEmployees}
           onPageChange={setEmployeesPage}
@@ -216,60 +233,58 @@ export const EmployeeManagementTabs = ({
         />
       ),
     },
-    {
-      value: "leaves",
-      label: "Leaves",
-      icon: FileText,
-      content: (
-        <LeavesTable
-          leaves={leaves}
-          isLoading={leavesLoading}
-          onAddLeave={onAddLeave}
-          onEditLeave={onEditLeave}
-          onDeleteLeave={onDeleteLeave}
-          onViewLeave={onViewLeave}
-          onApproveLeave={onApproveLeave}
-          onRejectLeave={onRejectLeave}
-          currentPage={leavesPage}
-          totalCount={totalLeaves}
-          onPageChange={setLeavesPage}
-          pageSize={pageSize}
-          onPageSizeChange={onPageSizeChange}
-          showSearch={true}
-          headerContent={
-            <MonthYearFilter
-              label="Period:"
-              month={leaveMonth}
-              year={leaveYear}
-              onMonthChange={setLeaveMonth}
-              onYearChange={setLeaveYear}
-              monthId="leave-month"
-              yearId="leave-year"
-              showLabels={false}
-              monthWidth="140px"
-              labelClassName="text-blue-900"
-              monthClassName="text-blue-700 font-semibold"
-              yearClassName="text-blue-700 font-semibold"
-            />
-          }
-        />
-      ),
-    },
-    {
-      value: "attendance",
-      label: "Attendance",
-      icon: Calendar,
-      content: import.meta.env.VITE_FEATURE_BIOMETRIC === "true" ? (
-        <div className="space-y-6">
-          <Tabs defaultValue="essl" className="w-full">
-            <TabsList className="bg-slate-100 p-1 rounded-lg dark:bg-slate-800">
-              <TabsTrigger value="essl">eSSL Biometric Console</TabsTrigger>
-              <TabsTrigger value="manual">Monthly Payroll Logs</TabsTrigger>
-            </TabsList>
-            <TabsContent value="essl" className="mt-4">
-              <EsslDashboard />
-            </TabsContent>
-            <TabsContent value="manual" className="mt-4">
+    ...(isAttendanceShown
+      ? [
+          {
+            value: "attendance",
+            label: "Attendance",
+            icon: Calendar,
+            content: import.meta.env.VITE_FEATURE_BIOMETRIC === "true" ? (
+              <div className="space-y-6">
+                <Tabs defaultValue="essl" className="w-full">
+                  <TabsList className="bg-slate-100 p-1 rounded-lg dark:bg-slate-800">
+                    <TabsTrigger value="essl">eSSL Biometric Console</TabsTrigger>
+                    <TabsTrigger value="manual">Monthly Payroll Logs</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="essl" className="mt-4">
+                    <EsslDashboard />
+                  </TabsContent>
+                  <TabsContent value="manual" className="mt-4">
+                    <AttendanceTable
+                      attendance={attendance}
+                      isLoading={attendanceLoading}
+                      onAddAttendance={onAddAttendance}
+                      onBulkCreateAttendance={onBulkCreateAttendance}
+                      onEditAttendance={onEditAttendance}
+                      onDeleteAttendance={onDeleteAttendance}
+                      onViewAttendance={onViewAttendance}
+                      currentPage={attendancePage}
+                      totalCount={totalAttendance}
+                      onPageChange={setAttendancePage}
+                      pageSize={pageSize}
+                      onPageSizeChange={onPageSizeChange}
+                      showSearch={true}
+                      headerContent={
+                        <MonthYearFilter
+                          label="Period:"
+                          month={attendanceMonth}
+                          year={attendanceYear}
+                          onMonthChange={setAttendanceMonth}
+                          onYearChange={setAttendanceYear}
+                          monthId="attendance-month"
+                          yearId="attendance-year"
+                          showLabels={false}
+                          monthWidth="140px"
+                          labelClassName="text-blue-900"
+                          monthClassName="text-blue-700 font-semibold"
+                          yearClassName="text-blue-700 font-semibold"
+                        />
+                      }
+                    />
+                  </TabsContent>
+                </Tabs>
+              </div>
+            ) : (
               <AttendanceTable
                 attendance={attendance}
                 isLoading={attendanceLoading}
@@ -301,33 +316,39 @@ export const EmployeeManagementTabs = ({
                   />
                 }
               />
-            </TabsContent>
-          </Tabs>
-        </div>
-      ) : (
-        <AttendanceTable
-          attendance={attendance}
-          isLoading={attendanceLoading}
-          onAddAttendance={onAddAttendance}
-          onBulkCreateAttendance={onBulkCreateAttendance}
-          onEditAttendance={onEditAttendance}
-          onDeleteAttendance={onDeleteAttendance}
-          onViewAttendance={onViewAttendance}
-          currentPage={attendancePage}
-          totalCount={totalAttendance}
-          onPageChange={setAttendancePage}
+            ),
+          },
+        ]
+      : []),
+    {
+      value: "leaves",
+      label: "Leaves",
+      icon: FileText,
+      content: (
+        <LeavesTable
+          leaves={leaves}
+          isLoading={leavesLoading}
+          onAddLeave={onAddLeave}
+          onEditLeave={onEditLeave}
+          onDeleteLeave={onDeleteLeave}
+          onViewLeave={onViewLeave}
+          onApproveLeave={onApproveLeave}
+          onRejectLeave={onRejectLeave}
+          currentPage={leavesPage}
+          totalCount={totalLeaves}
+          onPageChange={setLeavesPage}
           pageSize={pageSize}
           onPageSizeChange={onPageSizeChange}
           showSearch={true}
           headerContent={
             <MonthYearFilter
               label="Period:"
-              month={attendanceMonth}
-              year={attendanceYear}
-              onMonthChange={setAttendanceMonth}
-              onYearChange={setAttendanceYear}
-              monthId="attendance-month"
-              yearId="attendance-year"
+              month={leaveMonth}
+              year={leaveYear}
+              onMonthChange={setLeaveMonth}
+              onYearChange={setLeaveYear}
+              monthId="leave-month"
+              yearId="leave-year"
               showLabels={false}
               monthWidth="140px"
               labelClassName="text-blue-900"

@@ -21,6 +21,7 @@ export const useBiometricDailyReport = (params: DailyReportParams, enabled: bool
     queryFn: () => BiometricReportsService.fetchDailyReport(params),
     enabled,
     staleTime: 60 * 1000, // 1 minute
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -55,6 +56,24 @@ export const useBiometricYearlyMatrix = (params: YearlyReportParams, enabled: bo
   return useQuery({
     queryKey: biometricReportKeys.yearlyMatrix(params),
     queryFn: () => BiometricReportsService.fetchYearlyMatrix(params),
+    enabled: enabled && !!params.year,
+    staleTime: 60 * 1000,
+  });
+};
+
+export const useBiometricMonthlyReport = (params: MonthlyReportParams, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: [...biometricReportKeys.all, "monthly", params],
+    queryFn: () => BiometricReportsService.fetchMonthlyReport(params),
+    enabled: enabled && !!params.year && !!params.month,
+    staleTime: 60 * 1000,
+  });
+};
+
+export const useBiometricYearlyReport = (params: YearlyReportParams, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: [...biometricReportKeys.all, "yearly", params],
+    queryFn: () => BiometricReportsService.fetchYearlyReport(params),
     enabled: enabled && !!params.year,
     staleTime: 60 * 1000,
   });

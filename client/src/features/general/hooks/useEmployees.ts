@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EmployeesService } from "@/features/general/services/employees.service";
 import type {
   EmployeeRead,
@@ -26,24 +26,35 @@ export const employeeKeys = {
   recent: (limit?: number) =>
     [...employeeKeys.all, "recent", { limit }] as const,
   withBranches: () => [...employeeKeys.all, "with-branches"] as const,
-  byBranch: (page?: number, pageSize?: number) => [...employeeKeys.all, "by-branch", { page, pageSize }] as const,
+  byBranch: (page?: number, pageSize?: number, search?: string) =>
+    [...employeeKeys.all, "by-branch", { page, pageSize, search }] as const,
   teachersByBranch: () => [...employeeKeys.all, "teachers-by-branch"] as const,
   minimal: () => [...employeeKeys.all, "minimal"] as const,
   drivers: () => [...employeeKeys.all, "drivers"] as const,
 };
 
 // Hooks for fetching data
-export const useEmployeesByInstitute = (page: number = 1, pageSize: number = 25) => {
+export const useEmployeesByInstitute = (page: number = 1, pageSize: number = 25, search?: string) => {
   return useQuery({
     queryKey: employeeKeys.list({}, page, pageSize),
-    queryFn: () => EmployeesService.listByInstitute({ page, page_size: pageSize }),
+    queryFn: () => EmployeesService.listByInstitute({ page, page_size: pageSize, search: search || undefined }),
   });
 };
 
-export const useEmployeesByBranch = (enabled: boolean = true, page: number = 1, pageSize: number = 25) => {
+export const useEmployeesByBranch = (
+  enabled: boolean = true,
+  page: number = 1,
+  pageSize: number = 25,
+  search?: string
+) => {
   return useQuery({
-    queryKey: employeeKeys.byBranch(page, pageSize),
-    queryFn: () => EmployeesService.listByBranch({ page, page_size: pageSize }),
+    queryKey: employeeKeys.byBranch(page, pageSize, search),
+    queryFn: () =>
+      EmployeesService.listByBranch({
+        page,
+        page_size: pageSize,
+        search: search || undefined,
+      }),
     enabled, // Allow conditional query execution to prevent unnecessary fetches
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -120,13 +131,14 @@ export const useDrivers = (enabled: boolean = true) => {
 
 // Mutation hooks
 export const useCreateEmployee = () => {
-  const { invalidateEntity } = useGlobalRefetch();
+  const queryClient = useQueryClient();
 
   return useMutationWithSuccessToast(
     {
       mutationFn: (data: EmployeeCreate) => EmployeesService.create(data),
-      onSuccess: () => {
-        invalidateEntity("employees");
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+        await queryClient.refetchQueries({ queryKey: employeeKeys.all, type: "active" });
       },
     },
     "Employee created successfully"
@@ -134,14 +146,18 @@ export const useCreateEmployee = () => {
 };
 
 export const useUpdateEmployee = () => {
-  const { invalidateEntity } = useGlobalRefetch();
+  const queryClient = useQueryClient();
 
   return useMutationWithSuccessToast(
     {
       mutationFn: ({ id, payload }: { id: number; payload: EmployeeUpdate }) =>
         EmployeesService.update(id, payload),
-      onSuccess: () => {
-        invalidateEntity("employees");
+      onSuccess: async (_data, variables) => {
+        await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+        if (variables?.id) {
+          await queryClient.invalidateQueries({ queryKey: employeeKeys.detail(variables.id) });
+        }
+        await queryClient.refetchQueries({ queryKey: employeeKeys.all, type: "active" });
       },
     },
     "Employee updated successfully"
@@ -149,13 +165,14 @@ export const useUpdateEmployee = () => {
 };
 
 export const useDeleteEmployee = () => {
-  const { invalidateEntity } = useGlobalRefetch();
+  const queryClient = useQueryClient();
 
   return useMutationWithSuccessToast(
     {
       mutationFn: (id: number) => EmployeesService.remove(id),
-      onSuccess: () => {
-        invalidateEntity("employees");
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+        await queryClient.refetchQueries({ queryKey: employeeKeys.all, type: "active" });
       },
     },
     "Employee deleted successfully"
@@ -163,14 +180,18 @@ export const useDeleteEmployee = () => {
 };
 
 export const useUpdateEmployeeStatus = () => {
-  const { invalidateEntity } = useGlobalRefetch();
+  const queryClient = useQueryClient();
 
   return useMutationWithSuccessToast(
     {
       mutationFn: ({ id, status }: { id: number; status: string }) =>
         EmployeesService.updateStatus(id, status),
-      onSuccess: () => {
-        invalidateEntity("employees");
+      onSuccess: async (_data, variables) => {
+        await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+        if (variables?.id) {
+          await queryClient.invalidateQueries({ queryKey: employeeKeys.detail(variables.id) });
+        }
+        await queryClient.refetchQueries({ queryKey: employeeKeys.all, type: "active" });
       },
     },
     "Employee status updated successfully"

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import DailyReportPage from "../pages/DailyReportPage";
 import { useBiometricDailyReport } from "../hooks/useBiometricReports";
+import { BiometricReportsService } from "../services/biometric-reports.service";
 import { useEmployeeDashboard } from "@/features/general/hooks/useEmployees";
 import { cn } from "@/common/utils";
 
@@ -22,11 +23,9 @@ export const EsslDashboard = () => {
 
   const todayStr = new Date().toISOString().split("T")[0];
   
-  // Fetch today's punches to count present and late employees
+  // Fetch today's punches to count present and late employees without pagination
   const { data: todayReport, isLoading: isBiometricLoading, refetch } = useBiometricDailyReport({
     attendanceDate: todayStr,
-    page: 1,
-    pageSize: 100,
   });
 
   // Fetch real employee counts from Dashboard API
@@ -48,8 +47,14 @@ export const EsslDashboard = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    try {
+      const now = new Date();
+      await BiometricReportsService.syncAttendance(now.getFullYear(), now.getMonth() + 1);
+    } catch (err) {
+      console.warn("Manual sync error:", err);
+    }
     await Promise.all([refetch(), refetchDashboard()]);
-    setTimeout(() => setRefreshing(false), 800);
+    setTimeout(() => setRefreshing(false), 500);
   };
 
   return (
@@ -69,7 +74,7 @@ export const EsslDashboard = () => {
             </div>
           </div>
           <Button 
-            onClick={() => window.open("http://localhost:85/iclock/Main.aspx", "_blank", "noopener,noreferrer")}
+            onClick={() => window.open("http://72.60.218.92:8080/iclock/", "_blank", "noopener,noreferrer")}
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow transition-colors flex items-center gap-2"
           >
             Launch Attendance Server

@@ -131,3 +131,82 @@ export interface YearlyMatrixRecord {
   yearly_total_weekly_offs: number;
   yearly_total_holidays: number;
 }
+
+
+export interface MonthlyAttendanceReportRecord {
+  report_year: number;
+  report_month: number;
+  employee_id: number;
+  employee_code: string;
+  employee_name: string;
+  designation?: string | null;
+  company_id?: number | null;
+  company_sname?: string | null;
+  department_id?: number | null;
+  department_sname?: string | null;
+  category_id?: number | null;
+  total_calendar_days?: number | null;
+  total_present_days?: number | null;
+  total_absent_days?: number | null;
+  total_leave_days?: number | null;
+  total_weekly_offs?: number | null;
+  total_holidays?: number | null;
+  total_late_days?: number | null;
+  total_late_minutes?: number | null;
+  total_early_going_days?: number | null;
+  total_early_going_minutes?: number | null;
+  total_overtime_minutes?: number | null;
+  total_worked_hours?: number | null;
+  [dayKey: `day_${number}`]: string | null | undefined | unknown;
+}
+
+export interface YearlyAttendanceReportRecord {
+  report_year: number;
+  report_month: number;
+  report_month_name: string;
+  employee_id: number;
+  employee_code: string;
+  employee_name: string;
+  designation?: string | null;
+  company_id?: number | null;
+  company_sname?: string | null;
+  department_id?: number | null;
+  department_sname?: string | null;
+  category_id?: number | null;
+  total_calendar_days?: number | null;
+  total_present_days?: number | null;
+  total_absent_days?: number | null;
+  total_leave_days?: number | null;
+  total_weekly_offs?: number | null;
+  total_holidays?: number | null;
+  total_late_days?: number | null;
+  total_late_minutes?: number | null;
+  total_early_going_days?: number | null;
+  total_early_going_minutes?: number | null;
+  total_overtime_minutes?: number | null;
+  total_worked_hours?: number | null;
+}
+
+export interface YearlyAttendanceReportTotals {
+  total_calendar_days: number;
+  total_present_days: number;
+  total_absent_days: number;
+  total_leave_days: number;
+  total_weekly_offs: number;
+  total_holidays: number;
+  total_late_days: number;
+  total_late_minutes: number;
+  total_early_going_days: number;
+  total_early_going_minutes: number;
+  total_overtime_minutes: number;
+  total_worked_hours: number;
+}
+
+export interface YearlyAttendanceReportResponse {
+  data: YearlyAttendanceReportRecord[];
+  yearly_totals?: YearlyAttendanceReportTotals | null;
+  total: number;
+  total_pages: number;
+  current_page: number;
+  page_size: number;
+}
