@@ -124,12 +124,13 @@ export const CollectFee = ({
     }
   }, [setSearchQuery, setSearchResults, toast]);
 
-  // Auto-set admission on mount if admission number is in URL
+  // Sync admission state with URL search parameters
   useEffect(() => {
-    if (!hasInitializedRef.current && admissionNoFromUrl) {
-      hasInitializedRef.current = true;
+    if (admissionNoFromUrl) {
       setSearchQuery(admissionNoFromUrl);
       setSelectedAdmissionNo(admissionNoFromUrl);
+    } else {
+      setSelectedAdmissionNo(null);
     }
   }, [admissionNoFromUrl, setSearchQuery]);
 

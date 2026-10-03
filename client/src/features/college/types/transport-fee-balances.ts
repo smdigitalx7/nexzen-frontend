@@ -164,9 +164,9 @@ export interface CollegeStudentTransportPaymentSummaryItem {
   months_paid: number;
   months_pending: number;
   total_months: number;
-  total_fee: number;
-  paid_amount: number;
-  outstanding: number;
+  total_fee: number | string;
+  paid_amount: number | string;
+  outstanding: number | string;
   status: "PENDING" | "PARTIALLY_PAID" | "FULLY_PAID";
   last_payment: string | null;
   enrollment_id: number;
@@ -175,7 +175,11 @@ export interface CollegeStudentTransportPaymentSummaryItem {
 }
 
 export interface CollegeStudentTransportPaymentSummaryListResponse {
-  items: CollegeStudentTransportPaymentSummaryItem[];
+  data: CollegeStudentTransportPaymentSummaryItem[];
+  total_count: number;
+  total_pages: number;
+  current_page: number;
+  page_size: number;
 }
 
 export interface CollegeStudentTransportPaymentSummaryParams {
