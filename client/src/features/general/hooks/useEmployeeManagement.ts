@@ -270,7 +270,7 @@ export const useEmployeeManagement = (
   const [employeeToDelete, setEmployeeToDelete] = useState<EmployeeRead | null>(
     null
   );
-  const [newStatus, setNewStatus] = useState<string>("ACTIVE");
+  const [newStatus, setNewStatus] = useState<string>("");
 
   // Attendance form state
   const [showAttendanceForm, setShowAttendanceForm] = useState(false);
@@ -368,6 +368,15 @@ export const useEmployeeManagement = (
     }
   }, [selectedEmployee?.employee_id]);
 
+  // Sync newStatus with selectedEmployee status
+  useEffect(() => {
+    if (selectedEmployee?.status) {
+      setNewStatus(selectedEmployee.status);
+    } else {
+      setNewStatus("");
+    }
+  }, [selectedEmployee?.employee_id, selectedEmployee?.status]);
+
   // Update selectedEmployee with full details when loaded from API
   useEffect(() => {
     if (
@@ -378,6 +387,9 @@ export const useEmployeeManagement = (
       if (!isEditingEmployee) {
         // When viewing details in sheet, always sync with fresh API data
         setSelectedEmployee(fullEmployeeDetails as EmployeeRead);
+        if (fullEmployeeDetails.status) {
+          setNewStatus(fullEmployeeDetails.status);
+        }
       } else if (loadedDetailIdRef.current !== fullEmployeeDetails.employee_id) {
         // When opening edit dialog, populate once to avoid overwriting user edits
         loadedDetailIdRef.current = fullEmployeeDetails.employee_id;
@@ -599,6 +611,7 @@ export const useEmployeeManagement = (
       updateStatusMutation.mutate({ id, status }, {
         onSuccess: async () => {
           setShowEmployeeDetail(false);
+          setNewStatus("");
           await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
           await queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) });
           await queryClient.refetchQueries({ queryKey: employeeKeys.all, type: "active" });
@@ -1107,6 +1120,7 @@ export const useEmployeeManagement = (
     // Mutation loading states
     createEmployeePending: createEmployeeMutation.isPending,
     updateEmployeePending: updateEmployeeMutation.isPending,
+    updateStatusPending: updateStatusMutation.isPending,
     approveLeavePending: approveLeaveMutation.isPending,
     rejectLeavePending: rejectLeaveMutation.isPending,
   };
