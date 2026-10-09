@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import { DataTable } from "@/common/components/shared/DataTable";
-import { useCanViewUIComponent, useCanCreate, useCanExport } from "@/core/permissions";
+import { useCanViewUIComponent, useCanCreate } from "@/core/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
   createAvatarColumn, 
@@ -65,22 +65,20 @@ export const EmployeeTable = ({
   onPageSizeChange,
 }: EmployeeTableProps) => {
 
-  // Check permissions
-  const canEditEmployee = useCanViewUIComponent("employees", "button", "employee-edit");
-  const canDeleteEmployee = useCanViewUIComponent("employees", "button", "employee-delete");
-  const canCreateEmployee = useCanCreate("employees");
-  const canExportEmployee = useCanExport("employees");
-  const canViewSalary = useCanViewUIComponent("employees", "section", "salary-details");
-
   // Define columns for the data table using column factories
   const columns = useMemo((): ColumnDef<EmployeeRead>[] => [
     createAvatarColumn<EmployeeRead>("employee_name", "employee_code", { header: "Employee" }),
     createTextColumn<EmployeeRead>("designation", { header: "Designation", className: "font-medium" }),
     createTextColumn<EmployeeRead>("mobile_no", { header: "Mobile", fallback: "N/A" }),
-    ...(canViewSalary ? [createCurrencyColumn<EmployeeRead>("salary", { header: "Salary" })] : []),
+    createCurrencyColumn<EmployeeRead>("salary", { header: "Salary" }),
     createDateColumn<EmployeeRead>("date_of_joining", { header: "Joining Date" }),
     createStatusColumn<EmployeeRead>("status", StatusColors.employee, StatusIcons.employee, { header: "Status" })
-  ], [canViewSalary]);
+  ], []);
+
+  // Check permissions
+  const canEditEmployee = useCanViewUIComponent("employees", "button", "employee-edit");
+  const canDeleteEmployee = useCanViewUIComponent("employees", "button", "employee-delete");
+  const canCreateEmployee = useCanCreate("employees");
 
   // ✅ MIGRATED: Use DataTable V2 actions format
   const actions = useMemo(() => [
@@ -116,7 +114,7 @@ export const EmployeeTable = ({
       searchKey="employee_name"
       searchValue={searchValue}
       onSearchChange={onSearchChange}
-      export={{ enabled: canExportEmployee, filename: "employees" }}
+      export={{ enabled: true, filename: "employees" }}
       showSearch={showSearch}
       onAdd={canCreateEmployee ? onAddEmployee : undefined}
       addButtonText="Add Employee"

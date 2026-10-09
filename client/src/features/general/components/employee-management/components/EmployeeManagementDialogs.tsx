@@ -148,7 +148,6 @@ interface EmployeeManagementDialogsProps {
   // Loading states
   createEmployeePending?: boolean;
   updateEmployeePending?: boolean;
-  updateStatusPending?: boolean;
   approveLeavePending?: boolean;
   rejectLeavePending?: boolean;
 }
@@ -261,7 +260,6 @@ export const EmployeeManagementDialogs = ({
   handleDeleteAttendance,
   createEmployeePending = false,
   updateEmployeePending = false,
-  updateStatusPending = false,
   approveLeavePending = false,
   rejectLeavePending = false,
 }: EmployeeManagementDialogsProps) => {
@@ -562,16 +560,13 @@ export const EmployeeManagementDialogs = ({
               sanitized.experience_years = sanitized.experience_years === "" ? null : Number(sanitized.experience_years);
             }
 
-            if (sanitized.status) {
-              sanitized.status = String(sanitized.status).toUpperCase();
-            }
-
             // Exclude read-only or meta fields
             delete sanitized.created_at;
             delete sanitized.updated_at;
             delete sanitized.branch;
             delete sanitized.institute_id;
             delete sanitized.employee_id;
+            delete sanitized.status;
 
             return sanitized;
           };
@@ -618,12 +613,12 @@ export const EmployeeManagementDialogs = ({
         employee={selectedEmployee}
         newStatus={newStatus}
         onStatusChange={setNewStatus}
-        onUpdateStatus={async (status?: string) => {
+        onUpdateStatus={async () => {
           if (selectedEmployee) {
-            await handleUpdateEmployeeStatus(selectedEmployee.employee_id, status || newStatus || selectedEmployee.status);
+            await handleUpdateEmployeeStatus(selectedEmployee.employee_id, newStatus);
           }
         }}
-        isUpdating={Boolean(updateStatusPending)}
+        isUpdating={false}
         getStatusColor={(status: string) => {
           switch (status.toUpperCase()) {
             case "ACTIVE":
