@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { FormDialog } from "@/common/components/shared";
 import { Label } from "@/common/components/ui/label";
 import { Input } from "@/common/components/ui/input";
@@ -6,7 +6,6 @@ import { DatePicker } from "@/common/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
 import { Textarea } from "@/common/components/ui/textarea";
 import { formatCurrency } from "@/common/utils";
-import { useCanViewUIComponent } from "@/core/permissions";
 
 interface AdvanceFormData {
   employee_id: number;
@@ -30,7 +29,6 @@ interface AdvanceFormDialogProps {
 
 const AdvanceFormDialog = ({ open, onOpenChange, isEditing, employees, formData, onChange, onSubmit, isCreatePending, isUpdatePending, advanceStatus }: AdvanceFormDialogProps) => {
   const isLoading = isCreatePending || isUpdatePending;
-  const canViewSalary = useCanViewUIComponent("employees", "section", "salary-details");
   
   // Disable save button if editing and advance status is APPROVED
   const isSaveDisabled = isEditing && advanceStatus === "APPROVED";
@@ -81,11 +79,9 @@ const AdvanceFormDialog = ({ open, onOpenChange, isEditing, employees, formData,
                       <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
                         <div className="flex items-center justify-between w-full">
                           <span>{employee.employee_name}</span>
-                          {canViewSalary && (
-                            <span className="text-xs text-muted-foreground ml-2">
-                              Salary: {formatCurrency(employee.salary || 0)}
-                            </span>
-                          )}
+                          <span className="text-xs text-muted-foreground ml-2">
+                            Salary: {formatCurrency(employee.salary || 0)}
+                          </span>
                         </div>
                       </SelectItem>
                     ))}
