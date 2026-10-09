@@ -256,6 +256,9 @@ export const GLOBAL_PERMISSIONS: Record<string, ResourcePermission> = {
       export: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN],
     },
     ui: {
+      sections: {
+        "salary-details": [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN],
+      },
       buttons: {
         "employee-edit": [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN],
         "employee-delete": [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN],

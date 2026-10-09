@@ -67,7 +67,7 @@ export const EmployeesService = {
   /**
    * Get all employees by branch (requires INSTITUTE_ADMIN, ADMIN, ACADEMIC, or ACCOUNTANT role)
    */
-  listByBranch(params?: { page?: number; page_size?: number; search?: string }): Promise<EmployeePaginatedResponse> {
+  listByBranch(params?: { page?: number; page_size?: number; search?: string; status?: string }): Promise<EmployeePaginatedResponse> {
     return Api.get<EmployeePaginatedResponse>("/employees/branch", params as any);
   },
 
