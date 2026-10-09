@@ -28,9 +28,9 @@ interface EmployeeDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   employee: any | null;
-  newStatus: string;
+  newStatus?: string;
   onStatusChange: (value: string) => void;
-  onUpdateStatus: () => void;
+  onUpdateStatus: (status?: string) => void;
   isUpdating: boolean;
   getStatusColor: (status: string) => string;
   statusOptions?: Array<{ value: string; label: string; color?: string }>;
@@ -79,12 +79,24 @@ const EmployeeDetailSheet = ({
     "button",
     "employee-update-status"
   );
+  const canViewSalary = useCanViewUIComponent(
+    "employees",
+    "section",
+    "salary-details"
+  );
 
-  const handleSave = () => onUpdateStatus();
-
-  const currentStatus = employee?.status;
+  const currentStatus = employee?.status || "ACTIVE";
+  const [stagedStatus, setStagedStatus] = React.useState<string | null>(null);
   const [showStatusAlert, setShowStatusAlert] = React.useState(false);
   const [pendingStatus, setPendingStatus] = React.useState<string | null>(null);
+
+  // Sync newStatus with currentStatus whenever sheet opens or employee changes
+  React.useEffect(() => {
+    setStagedStatus(null);
+    if (open && employee?.status) {
+      onStatusChange(employee.status);
+    }
+  }, [open, employee?.employee_id, employee?.status]);
 
   const handleStatusToggle = (checked: boolean) => {
     setPendingStatus(checked ? "ACTIVE" : "TERMINATED");
@@ -92,12 +104,20 @@ const EmployeeDetailSheet = ({
   };
 
   const confirmStatusChange = () => {
-    if (pendingStatus) onStatusChange(pendingStatus);
+    if (pendingStatus) {
+      setStagedStatus(pendingStatus);
+      onStatusChange(pendingStatus);
+    }
     setShowStatusAlert(false);
   };
 
-  const effectiveStatus = newStatus || currentStatus;
+  const effectiveStatus = stagedStatus ?? (newStatus && newStatus !== "" ? newStatus : currentStatus);
   const isActive = effectiveStatus === "ACTIVE";
+  const hasStatusChanged =
+    (stagedStatus !== null && stagedStatus !== currentStatus) ||
+    (Boolean(newStatus) && newStatus !== currentStatus);
+
+  const handleSave = () => onUpdateStatus(effectiveStatus);
 
   return (
     <FormSheet
@@ -110,7 +130,7 @@ const EmployeeDetailSheet = ({
       onSave={handleSave}
       saveText={isUpdating ? "Saving…" : "Save changes"}
       isLoading={isUpdating}
-      disabled={!canUpdateStatus || newStatus === currentStatus}
+      disabled={!canUpdateStatus || !hasStatusChanged}
     >
       {employee ? (
         <div className="space-y-6 pb-2">
@@ -223,16 +243,21 @@ const EmployeeDetailSheet = ({
             <section className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
               <h3 className="text-sm font-semibold text-slate-800 mb-1 flex items-center gap-2">
                 <Landmark className="h-4 w-4 text-slate-500" />
-                Compensation & bank
+                {canViewSalary ? "Compensation & bank" : "Bank details"}
               </h3>
               <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-medium text-slate-500">Monthly salary</p>
-                  <p className="text-2xl font-semibold text-slate-900 mt-0.5">
-                    {formatCurrency(employee.salary)}
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1 sm:max-w-md sm:ml-8">
+                {canViewSalary && (
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">Monthly salary</p>
+                    <p className="text-2xl font-semibold text-slate-900 mt-0.5">
+                      {formatCurrency(employee.salary)}
+                    </p>
+                  </div>
+                )}
+                <div className={cn(
+                  "grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1",
+                  canViewSalary ? "sm:max-w-md sm:ml-8" : "w-full"
+                )}>
                   <div>
                     <p className="text-xs font-medium text-slate-500">Bank</p>
                     <p className="text-sm font-medium text-slate-900 mt-0.5">

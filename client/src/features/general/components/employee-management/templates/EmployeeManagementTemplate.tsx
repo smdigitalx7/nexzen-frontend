@@ -190,6 +190,7 @@ export const EmployeeManagementTemplate = () => {
     user,
     createEmployeePending,
     updateEmployeePending,
+    updateStatusPending,
     approveLeavePending,
     rejectLeavePending,
     
@@ -315,6 +316,10 @@ export const EmployeeManagementTemplate = () => {
         // API type doesn't have department or branch_id, so we omit them
       } as LibEmployeeRead;
       setSelectedEmployee(hookEmployee);
+    }
+    const targetStatus = fullEmployee?.status || employee.status;
+    if (targetStatus) {
+      setNewStatus(targetStatus);
     }
     setShowEmployeeDetail(true);
   };
@@ -676,6 +681,7 @@ export const EmployeeManagementTemplate = () => {
         setEmployeeToDelete={setEmployeeToDelete}
         newStatus={newStatus}
         setNewStatus={setNewStatus}
+        updateStatusPending={updateStatusPending}
         
         // Attendance dialogs
         showAttendanceForm={showAttendanceForm}
