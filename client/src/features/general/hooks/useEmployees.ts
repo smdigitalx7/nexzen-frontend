@@ -26,8 +26,8 @@ export const employeeKeys = {
   recent: (limit?: number) =>
     [...employeeKeys.all, "recent", { limit }] as const,
   withBranches: () => [...employeeKeys.all, "with-branches"] as const,
-  byBranch: (page?: number, pageSize?: number, search?: string) =>
-    [...employeeKeys.all, "by-branch", { page, pageSize, search }] as const,
+  byBranch: (page?: number, pageSize?: number, search?: string, status?: string) =>
+    [...employeeKeys.all, "by-branch", { page, pageSize, search, status }] as const,
   teachersByBranch: () => [...employeeKeys.all, "teachers-by-branch"] as const,
   minimal: () => [...employeeKeys.all, "minimal"] as const,
   drivers: () => [...employeeKeys.all, "drivers"] as const,
@@ -45,15 +45,17 @@ export const useEmployeesByBranch = (
   enabled: boolean = true,
   page: number = 1,
   pageSize: number = 25,
-  search?: string
+  search?: string,
+  status?: string
 ) => {
   return useQuery({
-    queryKey: employeeKeys.byBranch(page, pageSize, search),
+    queryKey: employeeKeys.byBranch(page, pageSize, search, status),
     queryFn: () =>
       EmployeesService.listByBranch({
         page,
         page_size: pageSize,
         search: search || undefined,
+        status: status || undefined,
       }),
     enabled, // Allow conditional query execution to prevent unnecessary fetches
     staleTime: 30 * 1000, // 30 seconds
@@ -150,8 +152,20 @@ export const useUpdateEmployee = () => {
 
   return useMutationWithSuccessToast(
     {
-      mutationFn: ({ id, payload }: { id: number; payload: EmployeeUpdate }) =>
-        EmployeesService.update(id, payload),
+      mutationFn: async ({ id, payload }: { id: number; payload: EmployeeUpdate }) => {
+        let result = await EmployeesService.update(id, payload);
+        if (payload.status) {
+          try {
+            const statusResult = await EmployeesService.updateStatus(id, payload.status.toUpperCase());
+            if (statusResult) {
+              result = { ...result, ...statusResult };
+            }
+          } catch (statusError) {
+            console.error("Failed to update status via status endpoint:", statusError);
+          }
+        }
+        return result;
+      },
       onSuccess: async (_data, variables) => {
         await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
         if (variables?.id) {
