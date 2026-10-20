@@ -159,7 +159,12 @@ export const useEmployeeManagement = (
   const [employeesPage, setEmployeesPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [employeeSearch, setEmployeeSearch] = useState("");
-  const debouncedEmployeeSearch = useDebounce(employeeSearch, 400);
+  const debouncedEmployeeSearch = useDebounce(employeeSearch, 200);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setEmployeesPage(1);
+  }, [debouncedEmployeeSearch]);
 
   // Data hooks - API calls are made per tab, not based on sidebar navigation
   // Only fetch data when the respective tab is active to prevent unnecessary requests and UI freezes

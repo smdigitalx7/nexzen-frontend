@@ -1,4 +1,4 @@
-﻿import { TabSwitcher, MonthYearFilter } from "@/common/components/shared";
+import { TabSwitcher, MonthYearFilter } from "@/common/components/shared";
 import { EmployeeTable } from "./EmployeeTable";
 import { AttendanceTable } from "./AttendanceTable";
 import { LeavesTable } from "./LeavesTable";
@@ -89,10 +89,15 @@ interface EmployeeManagementTabsProps {
   onPageSizeChange: (pageSize: number) => void;
   
   // Loading states
+  employeesLoading?: boolean;
   attendanceLoading: boolean;
   leavesLoading: boolean;
   advancesLoading: boolean;
-  
+
+  // Search state
+  employeeSearch?: string;
+  onEmployeeSearchChange?: (search: string) => void;
+
   // Employee handlers
   onAddEmployee: () => void;
   onEditEmployee: (employee: EmployeeRead) => void;
@@ -160,6 +165,9 @@ export const EmployeeManagementTabs = ({
   attendanceLoading,
   leavesLoading,
   advancesLoading,
+  employeesLoading = false,
+  employeeSearch,
+  onEmployeeSearchChange,
   onAddEmployee,
   onEditEmployee,
   onDeleteEmployee,
@@ -199,7 +207,7 @@ export const EmployeeManagementTabs = ({
       content: (
         <EmployeeTable
           employees={employees}
-          isLoading={false}
+          isLoading={employeesLoading}
           onAddEmployee={onAddEmployee}
           onEditEmployee={onEditEmployee}
           onDeleteEmployee={onDeleteEmployee}
@@ -211,6 +219,8 @@ export const EmployeeManagementTabs = ({
           onPageChange={setEmployeesPage}
           pageSize={pageSize}
           onPageSizeChange={onPageSizeChange}
+          searchValue={employeeSearch}
+          onSearchChange={onEmployeeSearchChange}
         />
       ),
     },

@@ -43,6 +43,8 @@ interface EmployeeTableProps {
   onPageChange?: (page: number) => void;
   pageSize?: number;
   onPageSizeChange?: (pageSize: number) => void;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
 }
 
 export const EmployeeTable = ({
@@ -59,6 +61,8 @@ export const EmployeeTable = ({
   onPageChange,
   pageSize,
   onPageSizeChange,
+  searchValue,
+  onSearchChange,
 }: EmployeeTableProps) => {
 
   // Check permissions
@@ -112,6 +116,7 @@ export const EmployeeTable = ({
       searchKey="employee_name"
       searchValue={searchValue}
       onSearchChange={onSearchChange}
+      searchPlaceholder="Search by name, code, designation, mobile, email..."
       export={{ enabled: canExportEmployee, filename: "employees" }}
       showSearch={showSearch}
       onAdd={canCreateEmployee ? onAddEmployee : undefined}

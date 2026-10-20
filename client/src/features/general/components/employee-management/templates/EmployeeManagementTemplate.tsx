@@ -1,4 +1,4 @@
-﻿import { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useEmployeeManagement, useEmployeeDashboard, useAttendanceDashboard, useLeaveDashboard, useAdvanceDashboard } from "@/features/general/hooks";
 import type { EmployeeRead as HookEmployeeRead, EmployeeAttendanceRead, EmployeeLeaveRead as HookEmployeeLeaveRead } from "@/features/general/hooks/useEmployeeManagement";
 import type { AdvanceRead } from "@/features/general/types/advances";
@@ -69,9 +69,14 @@ export const EmployeeManagementTemplate = () => {
     setPageSize,
     
     // Loading states
+    employeesLoading,
     attendanceLoading,
     leavesLoading,
     advancesLoading,
+
+    // Search state
+    employeeSearch,
+    setEmployeeSearch,
     
     // Employee state
     showEmployeeForm,
@@ -463,6 +468,9 @@ export const EmployeeManagementTemplate = () => {
         setAdvancesPage={setAdvancesPage}
         pageSize={pageSize}
         onPageSizeChange={setPageSize}
+        employeesLoading={employeesLoading}
+        employeeSearch={employeeSearch}
+        onEmployeeSearchChange={setEmployeeSearch}
         attendanceLoading={attendanceLoading}
         leavesLoading={leavesLoading}
         advancesLoading={advancesLoading}
